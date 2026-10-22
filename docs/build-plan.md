@@ -36,7 +36,8 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 22 | Travel-tip tiers: 6 presets (0.5×, 0.75×, 1×, 1.25×, 1.5×, 2× of the group average) or any custom multiplier; anyone can propose, only the leader locks it in |
 | Oct 22 | Budget warnings: placeholder "under 10% left" until the real rule is defined |
 | Oct 22 | Exchange rates: fixed table until the provider is picked |
-| Oct 22 | Model: Qwen `qwen3.8-max` with thinking on, Alibaba Cloud Model Studio, US (Virginia) region (replaced the Claude API) |
+| Oct 22 | Model: Qwen with thinking on, Alibaba Cloud Model Studio (replaced the Claude API) |
+| Oct 22 | Model is `qwen3.8-flash` (cheaper than max); the team key and endpoint are in the Singapore region, kept in the gitignored `.env` |
 | Oct 22 | Local database is SQLite; Supabase later by setting `DATABASE_URL` |
 | Oct 22 | GroupMe DMs: test first with `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in |
 | Oct 22 | Account linking works without DMs: sign in with Google, then post `@tripbot link <code>` in the group |

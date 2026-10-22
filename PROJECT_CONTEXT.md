@@ -26,7 +26,7 @@ Build order: **single-user first, multi-user later.**
 Working style: Romir makes the design decisions — when something is undecided, **ask, don't assume.**
 
 ## 3. Stack
-- **Agent:** Qwen (`qwen3.8-max`, thinking on) via Alibaba Cloud Model Studio's OpenAI-compatible API, US (Virginia) region. Team decision Oct 22, 2026, replacing the Claude API
+- **Agent:** Qwen (`qwen3.8-flash`, thinking on) via Alibaba Cloud Model Studio's OpenAI-compatible API, Singapore region. Team decision Oct 22, 2026, replacing the Claude API
 - **Chat:** GroupMe bot for MVP (Telegram considered; Sendblue/LoopMessage for iMessage later)
 - **Backend:** Django (+ DRF)
 - **DB:** Supabase Postgres (use as plain Postgres; don't use Supabase Auth to avoid two user systems). SQLite locally for now
@@ -118,7 +118,7 @@ Added since the first draft: `get_trip` (full trip state, never budgets) and `se
 - [ ] FX rate provider (asking mentor; fixed table in use)
 - [ ] Can GroupMe DM people privately? Run `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in
 - [ ] Mentor: demo date + what must work
-- [x] Model + API key → Qwen `qwen3.8-max` via Alibaba Cloud Model Studio (US region); account in verification
+- [x] Model + API key → Qwen `qwen3.8-flash` via Alibaba Cloud Model Studio (Singapore region); key in the gitignored `.env`
 - [x] Trip state for the agent → injected summary every turn + `get_trip` tool
 - [x] Travel-tip tiers → 6 presets (0.5×–2×) + custom multiplier; anyone proposes, leader confirms
 
