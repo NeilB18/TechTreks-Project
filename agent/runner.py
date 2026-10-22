@@ -53,13 +53,15 @@ def make_client() -> OpenAI:
 
 class TripAgent:
     def __init__(self, backend: Backend, trip_id: str, client: OpenAI | None = None,
-                 model: str = config.MODEL, enable_thinking: bool = config.ENABLE_THINKING):
+                 model: str = config.MODEL, enable_thinking: bool = config.ENABLE_THINKING,
+                 history: list[dict] | None = None):
         self.backend = backend
         self.trip_id = trip_id
         self.client = client or make_client()
         self.model = model
         self.enable_thinking = enable_thinking
-        self.history: list[dict] = []
+        # Plain JSON-serializable dicts, so the bot can store and reload them between webhooks.
+        self.history: list[dict] = list(history or [])
 
     def _event_text(self, ev: ChatEvent) -> str:
         state = self.backend.summary(self.trip_id)
