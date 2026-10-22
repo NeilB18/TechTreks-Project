@@ -66,8 +66,13 @@ class FakeBackend:
                 self._counters[prefix] = n
                 return f"{prefix}{n}"
 
+    # Expense and poll ids must be unique across trips (tools look them up without a trip_id).
+    # DjangoBackend overrides these to check the database.
     def _all_expense_ids(self) -> set[str]:
         return {e.id for t in self.trips.values() for e in t.expenses}
+
+    def _all_poll_ids(self) -> set[str]:
+        return {p.id for t in self.trips.values() for p in t.polls}
 
     def _trip(self, trip_id: str) -> Trip:
         if trip_id not in self.trips:
@@ -475,7 +480,7 @@ class FakeBackend:
         trip = self._trip(trip_id)
         if len(options) < 2:
             raise ToolError("A poll needs at least 2 options")
-        p = Poll(id=self._next_id("p", {p.id for p in trip.polls}), question=question,
+        p = Poll(id=self._next_id("p", self._all_poll_ids()), question=question,
                  options=list(options), closes_at=closes_at)
         trip.polls.append(p)
         return {"poll_id": p.id, "options": p.options, "closes_at": closes_at}
