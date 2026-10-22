@@ -54,7 +54,7 @@ def test_tool_loop_runs_tools_and_delivers_messages():
     assert len(backend.trips["miami"].expenses) == 1
 
     first = client.requests[0]
-    assert first["model"] == "qwen3.8-max"
+    assert first["model"] == "qwen3.8-flash"
     assert first["extra_body"] == {"enable_thinking": True}
     assert first["tool_choice"] == "auto"  # thinking mode rejects "required"/object
     assert first["messages"][0]["role"] == "system"
@@ -74,3 +74,17 @@ def test_history_carries_across_turns():
     agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
     assert agent.history[:len(before)] == before
     assert len(client.requests[1]["messages"]) == 4  # system + user + assistant + user
+
+
+def test_undelivered_text_gets_one_reminder():
+    scn = next(s for s in load_scenarios() if s["example"] == "4a")
+    client = ScriptedClient([
+        response("stop", "Logged! $60 each."),
+        response("tool_calls", None, tool_call("t1", "send_message", {"to": "group", "text": "Logged! $60 each."})),
+        response("stop", "done"),
+    ])
+    agent = TripAgent(make_backend(scn), "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="mia", text="@tripbot dinner"))
+    assert r.outbox == [{"to": "group", "text": "Logged! $60 each."}]
+    assert len(client.requests) == 3  # reminded once, never twice
+    assert client.requests[1]["messages"][-1]["content"].startswith("[runner]")

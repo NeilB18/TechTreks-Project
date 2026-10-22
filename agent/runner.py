@@ -16,6 +16,11 @@ from agent.backend.protocol import Backend, ToolError, dispatch
 from agent.tools.schemas import ALL_TOOLS
 
 SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "system_prompt.md").read_text()
+UNDELIVERED_NOTE = (
+    "[runner] Your last text was not delivered: nobody sees text outside send_message. "
+    "If it was meant for someone, send it now with send_message (to \"group\", or a person id for "
+    "anything private like budgets). If it wasn't meant to be sent, reply with nothing."
+)
 
 
 @dataclass
@@ -48,7 +53,8 @@ def make_client() -> OpenAI:
     key = os.environ.get(config.API_KEY_ENV)
     if not key:
         raise RuntimeError(f"Set {config.API_KEY_ENV} to your Model Studio API key")
-    return OpenAI(api_key=key, base_url=config.base_url())
+    # A stuck request otherwise waits 10 minutes; fail fast and let the client retry.
+    return OpenAI(api_key=key, base_url=config.base_url(), timeout=config.REQUEST_TIMEOUT_S, max_retries=2)
 
 
 class TripAgent:
@@ -114,6 +120,7 @@ class TripAgent:
     def handle(self, event: ChatEvent) -> TurnResult:
         result = TurnResult()
         self.history.append({"role": "user", "content": self._event_text(event)})
+        nudged = False
         for _ in range(config.MAX_TOOL_ROUNDS):
             resp = self._call()
             if resp.usage:
@@ -132,6 +139,12 @@ class TripAgent:
             if msg.content and msg.content.strip():
                 result.stray_text.append(msg.content)
             if not tool_calls:
+                # Text written outside send_message is never delivered. Rather than guessing who it
+                # was for (it might be private), remind the model once to send it properly.
+                if msg.content and msg.content.strip() and not nudged and not result.outbox:
+                    nudged = True
+                    self.history.append({"role": "user", "content": UNDELIVERED_NOTE})
+                    continue
                 break
             for tc in tool_calls:
                 content = self._run_tool(tc.function.name, tc.function.arguments, result)
