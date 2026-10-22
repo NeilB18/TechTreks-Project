@@ -209,7 +209,9 @@ get_budget_status(...) × 3  → { warnings: [] }
 
 ### State snapshot
 - Trip: Miami, Mar 16–20. Members: Aarav (leader), Jake, Mia
+- leader_approval: [member changes, trip changes]
 - Private budgets (set via DM): Aarav $1,200, Jake $800, Mia $500. Average is ~$833.
+- Tier presets: 0.5× / 0.75× / 1× / 1.25× / 1.5× / 2× of the group average, or any custom multiplier.
 
 ### Turn 1
 **Jake (group):** @tripbot give us some tips for Miami
@@ -217,48 +219,70 @@ get_budget_status(...) × 3  → { warnings: [] }
 **Reasoning**
 1. Tips depend on the group budget, and none has been picked yet.
 2. All three members have set private budgets, so no DMs are needed to collect them. If someone hadn't set one, DM them first and wait.
-3. Average ≈ $833. Build 3 tiers from it (placeholder rule: 0.75× / 1× / 1.25× ≈ $625 / $833 / $1,040).
-4. Get tips for all 3 tiers, covering lodging, food, activities, and money-saving.
-5. In the group, show only the average and the tier prices, never individual budgets.
-6. The leader picks the tier, so tag Aarav.
+3. List the 6 preset tiers first, with prices only. No tips yet. The backend works out the prices from the group average, so individual budgets never reach the chat.
+4. In the group, show only the average and the tier prices, never individual budgets.
+5. Anyone can pick a preset or ask for a custom multiplier. Only the leader locks one in.
 
 **Tool calls**
 ```
-get_budget_status(...) × 3   → totals used only to compute the average
 get_travel_tips(trip_id="miami", destination="Miami",
-                budget_tiers=[62500, 83300, 104000])
-  → { tiers: [ {lodging, food, activities, saving_tips}, ... ] }
+                multipliers=[0.5, 0.75, 1, 1.25, 1.5, 2], prices_only=true)
+  → { average_cents: 83333, missing_budgets: [],
+      tiers: [ {multiplier: 0.5, budget_cents: 41700}, {multiplier: 0.75, budget_cents: 62500},
+               {multiplier: 1, budget_cents: 83300}, {multiplier: 1.25, budget_cents: 104200},
+               {multiplier: 1.5, budget_cents: 125000}, {multiplier: 2, budget_cents: 166700} ] }
 ```
 
 **Reply (group):**
-> Group average is ~$833/person. Three ways to do Miami:
-> 💸 **Budget (~$625):** hostel in South Beach, food trucks and Cuban spots, free beach days + Wynwood Walls
-> 🌴 **Mid (~$833):** shared Airbnb, mix of casual and one nice dinner, boat tour
-> 🥂 **Splurge (~$1,040):** hotel on Collins, nicer dinners, jet skis + a club night
-> Money tip: Citi Bike + the free Miami Beach trolley instead of Ubers.
-> @Aarav, pick one as the group budget?
+> Group average is ~$833/person. Pick a level and I'll pull tips for it:
+> 0.5× ~$417 · 0.75× ~$625 · 1× ~$833 · 1.25× ~$1,042 · 1.5× ~$1,250 · 2× ~$1,667
+> Or name your own multiplier (like 1.1×). @Aarav locks in the final pick.
 
 ### Turn 2
-**Aarav (group):** @tripbot mid
+**Jake (group):** @tripbot show us 1.1x
 
 **Reasoning**
-1. The leader picked Mid, so save it as the group budget.
-2. Future suggestions and itineraries should target ~$833/person.
-3. Mia's budget ($500) is below Mid. DM her privately and nudge Aarav by DM, naming her.
+1. Jake proposed a custom multiplier. Anyone can propose, so fetch tips for that one tier.
+2. 1.1 × ~$833 ≈ $917. Tips cover lodging, food, activities, and money-saving.
+3. Proposing isn't locking in. Ask Aarav (the leader) to confirm before saving it as the group budget.
 
 **Tool calls**
 ```
-update_trip(trip_id="miami", changes={ group_budget: 83300 })
+get_travel_tips(trip_id="miami", destination="Miami", multipliers=[1.1])
+  → { average_cents: 83333,
+      tiers: [ {multiplier: 1.1, budget_cents: 91700, lodging, food, activities, saving_tips} ] }
 ```
 
 **Reply (group):**
-> Locked in: Mid (~$833/person) 🌴 I'll plan around that.
+> Miami at ~$917/person (1.1×) 🌴
+> 🏠 Shared Airbnb near South Beach
+> 🍽️ Casual spots + one nice dinner
+> 🚤 Boat tour and a beach day
+> 💡 Citi Bike + the free Miami Beach trolley instead of Ubers
+> @Aarav, lock this in as the group budget?
+
+### Turn 3
+**Aarav (group):** @tripbot yeah lock it in
+
+**Reasoning**
+1. The leader confirmed, so save ~$917 as the group budget.
+2. Future suggestions and itineraries should target ~$917/person.
+3. The update says Mia's private budget is below the new group budget. DM her privately and nudge Aarav by DM, naming her but not her number.
+
+**Tool calls**
+```
+update_trip(trip_id="miami", changes={ group_budget: 91700 })
+  → { updated: true, members_below_group_budget: ["mia"] }
+```
+
+**Reply (group):**
+> Locked in: ~$917/person (1.1×) 🌴 I'll plan around that.
 
 **Reply (DM → Mia):**
-> Heads up: the group picked the Mid tier (~$833/person), which is above your budget. I'll flag cheaper options for you as we plan. Want to look at which parts to skip?
+> Heads up: the group budget is ~$917/person, which is above your budget. I'll flag cheaper options for you as we plan. Want to look at which parts to skip?
 
 **Reply (DM → Aarav):**
-> FYI: Mia's budget is below the Mid tier. Worth keeping a few cheaper options in the plan.
+> FYI: Mia's budget is below the group budget. Worth keeping a few cheaper options in the plan.
 
 ## Example 6 — Currency conversion
 
@@ -302,7 +326,7 @@ get_budget_status(...) × 3  → { warnings: [] }
 **Reply (group):**
 > Logged 🤿 Snorkel tour, MX$1,800 (≈ $100), paid by Jake. ≈ $33.33 each.
 
-## Example 7 — Blacklisted (category opt-out)
+## Example 7a — Blacklisted (category opt-out)
 
 ### State snapshot
 - Members: Aarav (leader), Jake, Mia. No exclusions yet.
@@ -344,6 +368,37 @@ get_budget_status(...) × 2  → { warnings: [] }
 
 **Reply (group):**
 > Logged 🍸 Rooftop drinks, $60, paid by Mia, split between Aarav and Mia ($30 each). Jake's not included (opted out of drinks).
+
+## Example 7b — Payer isn't in the split
+
+### State snapshot
+- Trip: Miami Spring Break, base currency USD
+- Members: Aarav (leader), Priya, Jake, Mia, Sam, Leo, Nina, Zoe (8 people)
+- Exclusions: Jake opted out of DRINKS (he doesn't drink)
+
+### Turn 1
+**Jake (group):** @tripbot bar tab was $350, put it on my card, split with everyone
+
+**Reasoning**
+1. The category is DRINKS. Jake is the payer, but he opted out of DRINKS and isn't explicitly named in the split, so he's auto-excluded.
+2. Paying for something isn't the same as taking part in it. Jake stays the payer even though he's not in the split. That's not a conflict, so no need to ask.
+3. "Everyone" minus Jake is 7 people. Equal split: $350 / 7 = $50 each. It divides evenly, so there's no leftover cent.
+4. Jake's share is $0, so he's owed the full $350: each of the 7 owes Jake $50.
+5. Check budgets for the 7 people in the split. Jake fronted the money but spent nothing, so his budget doesn't change.
+
+**Tool calls**
+```
+log_expense(trip_id="miami", paid_by="jake", amount=35000, currency="USD",
+            description="Bar tab", category="DRINKS",
+            split_with=["aarav", "priya", "mia", "sam", "leo", "nina", "zoe"],
+            exclude=["jake"], source_message="...")
+  → { expense_id: "e11", splits: { aarav: 5000, priya: 5000, mia: 5000, sam: 5000,
+                                   leo: 5000, nina: 5000, zoe: 5000 } }
+get_budget_status(...) × 7  → { warnings: [] }
+```
+
+**Reply (group):**
+> Logged 🍻 Bar tab, $350, paid by Jake, split between the 7 drinkers ($50 each). Jake's not included (opted out of drinks), so everyone owes Jake $50. Venmo: @jake-venmo
 
 ## Example 8 — Overspend advice
 TBD — waiting on Romir's budget warning logic
