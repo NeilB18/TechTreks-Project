@@ -12,6 +12,10 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or ("dev-only-insecure-key" if 
 if not SECRET_KEY:
     raise RuntimeError("Set DJANGO_SECRET_KEY when DJANGO_DEBUG=0")
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",")
+# The trip page proxies /accounts/ and /api/me/ to Django (web/next.config.ts), so the sign-in
+# cookie lives on the page's domain. Build URLs (e.g. Google's callback) from the host the browser
+# used. Only safe behind that proxy; the host is still checked against ALLOWED_HOSTS.
+USE_X_FORWARDED_HOST = os.environ.get("DJANGO_USE_X_FORWARDED_HOST", "1") == "1"
 
 # Shared secret the agent sends as "Authorization: Bearer <token>" on /api/tools and /api/trips.
 AGENT_API_TOKEN = os.environ.get("AGENT_API_TOKEN") or ("dev-agent-token" if DEBUG else None)

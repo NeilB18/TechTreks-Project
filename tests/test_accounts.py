@@ -123,3 +123,12 @@ def test_find_link_command():
 
 def test_google_login_route_exists(db):
     assert Client().get("/accounts/google/login/").status_code in (200, 302)
+
+
+def test_google_callback_uses_the_trip_page_host(db, settings):
+    settings.SOCIALACCOUNT_PROVIDERS = {"google": {"APPS": [{"client_id": "cid", "secret": "x", "key": ""}],
+                                                   "SCOPE": ["profile", "email"]}}
+    r = Client().post("/accounts/google/login/?next=/trips/miami", HTTP_X_FORWARDED_HOST="localhost:3000")
+    assert r.status_code == 302
+    assert r["Location"].startswith("https://accounts.google.com/")
+    assert "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Faccounts%2Fgoogle%2Flogin%2Fcallback%2F" in r["Location"]
