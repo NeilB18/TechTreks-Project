@@ -43,10 +43,17 @@ def load_scenarios() -> list[dict]:
     return out
 
 
-def make_backend(scn: dict) -> FakeBackend:
-    b = FakeBackend()
-    b.load_seed(scn["seed"])
+def make_backend(scn: dict, backend=None):
+    """Seed `backend` (default: a new FakeBackend) with the scenario's state snapshot.
+    Any backend with load_seed() works; HttpBackend is seeded through its `state` backend."""
+    b = backend or FakeBackend()
+    (getattr(b, "state", None) or b).load_seed(scn["seed"])
     return b
+
+
+def _state(backend):
+    """The backend to inspect for end_state/privacy checks (HttpBackend exposes one as .state)."""
+    return getattr(backend, "state", None) or backend
 
 
 def make_event(turn: dict) -> ChatEvent:
@@ -80,7 +87,8 @@ def _dollar_pattern(cents: int) -> re.Pattern:
 
 
 # ----------------------------------------------------------------- checking
-def check_turn(expect: dict, tr: TurnResult, backend: FakeBackend, trip_id: str) -> list[str]:
+def check_turn(expect: dict, tr: TurnResult, backend, trip_id: str) -> list[str]:
+    backend = _state(backend)
     fails = []
     calls = tr.tool_calls
     for want in expect.get("calls", []):
@@ -124,8 +132,8 @@ def check_turn(expect: dict, tr: TurnResult, backend: FakeBackend, trip_id: str)
     return fails
 
 
-def check_privacy(tr: TurnResult, backend: FakeBackend, trip_id: str) -> list[str]:
-    trip = backend.trips[trip_id]
+def check_privacy(tr: TurnResult, backend, trip_id: str) -> list[str]:
+    trip = _state(backend).trips[trip_id]
     fails = []
     for o in tr.outbox:
         if o["to"] != "group":
@@ -136,7 +144,7 @@ def check_privacy(tr: TurnResult, backend: FakeBackend, trip_id: str) -> list[st
     return fails
 
 
-def _check_state(check: dict, backend: FakeBackend, trip_id: str) -> list[str]:
+def _check_state(check: dict, backend, trip_id: str) -> list[str]:
     trip = backend.trips[trip_id]
     (kind, spec), = check.items()
     debts = backend.pairwise_debts(trip)
@@ -164,7 +172,7 @@ def _check_state(check: dict, backend: FakeBackend, trip_id: str) -> list[str]:
 
 
 # ------------------------------------------------------------------ running
-def golden_turn(backend: FakeBackend, golden: dict) -> TurnResult:
+def golden_turn(backend, golden: dict) -> TurnResult:
     tr = TurnResult(stop_reason="golden")
     for c in golden.get("calls", []):
         call = ToolCall(name=c["name"], input=c.get("args", {}))
@@ -177,9 +185,10 @@ def golden_turn(backend: FakeBackend, golden: dict) -> TurnResult:
     return tr
 
 
-def run_scenario(scn: dict, agent_factory=None, dump_name: str | None = None) -> list[str]:
-    """Run every turn; return failure strings. agent_factory=None replays the golden turns."""
-    backend = make_backend(scn)
+def run_scenario(scn: dict, agent_factory=None, dump_name: str | None = None, backend=None) -> list[str]:
+    """Run every turn; return failure strings. agent_factory=None replays the golden turns.
+    `backend` defaults to a FakeBackend; pass a DjangoBackend or HttpBackend to test those."""
+    backend = make_backend(scn, backend)
     trip_id = scn["seed"]["trip"]["id"]
     agent = agent_factory(backend, trip_id) if agent_factory else None
     fails, transcript = [], []

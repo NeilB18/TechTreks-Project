@@ -1,17 +1,20 @@
-"""Deterministic tests for the fake backend's data rules (no API calls)."""
+"""Deterministic tests for the backend data rules (no model calls).
+
+Each test runs against the in-memory FakeBackend and the Django DjangoBackend.
+"""
 
 import pytest
+from conftest import make_backend
 
 from agent.backend.fake import rules
-from agent.backend.fake.store import FakeBackend
 from agent.backend.protocol import ToolError, dispatch
 
 MEMBERS = [{"id": p, "name": p.title(), "handle": f"@{p}-venmo"} for p in ["aarav", "jake", "mia"]]
 
 
-@pytest.fixture
-def b():
-    b = FakeBackend()
+@pytest.fixture(params=["fake", "django"])
+def b(request, db):
+    b = make_backend(request.param)
     b.load_seed({"now": "2027-03-01T12:00:00",
                  "trip": {"id": "t", "leader": "aarav", "start_date": "2027-03-14",
                           "end_date": "2027-03-18", "destination": "Miami"},
