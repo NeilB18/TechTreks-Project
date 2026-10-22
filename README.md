@@ -47,6 +47,26 @@ DASHSCOPE_API_KEY=... QWEN_WORKSPACE_ID=... .venv/bin/python -m agent.cli tests/
 
 Then type `priya: @tripbot I can't make it anymore`, or `mia dm: lower my budget to $500`.
 
+## Backend (Phase 3)
+
+Django + DRF in `backend/`, SQLite locally (set `DATABASE_URL` for Supabase Postgres later).
+`trips/services.py` (`DjangoBackend`) runs the same rules as the fake backend over the database,
+so the examples.md replays pass against the fake, the database, and the HTTP API.
+
+```bash
+cd backend
+../.venv/bin/python manage.py migrate
+../.venv/bin/python manage.py runserver
+```
+
+API (all routes need `Authorization: Bearer $AGENT_API_TOKEN`; the dev default is `dev-agent-token`):
+
+- `POST /api/tools/<tool_name>`: any of the 20 tools, with the tool's arguments as the JSON body. Returns 400 `{"error": ...}` on bad input.
+- `GET /api/trips/<id>/summary`: the state injected into each agent turn.
+- `GET /api/trips/<id>` and `GET /api/trips/<id>/balances`: for the trip page. These never include budgets.
+
+The agent talks to it with `agent/backend/http.py` (`HttpBackend`). See `.env.example` for the settings.
+
 ## Placeholders
 
 - Budget warnings: remaining < 10% (`agent/backend/fake/rules.py`). The real logic is still TBD, so Examples 3 and 8 are skipped.
