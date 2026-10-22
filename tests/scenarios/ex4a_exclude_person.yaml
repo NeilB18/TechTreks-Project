@@ -1,0 +1,31 @@
+example: "4a"
+title: Exclude someone from a split
+seed:
+  trip: {id: miami, name: Miami Spring Break, destination: Miami, base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes]}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: mia
+    text: "@tripbot dinner was $120, I paid, split with everyone except Jake"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: mia, amount: 12000, currency: USD, category: FOOD,
+                                     split_with: [aarav, mia]}}
+      count_min: {get_budget_status: 2}
+      messages:
+        - {to: group, contains: ["$60", Jake]}
+      end_state:
+        - balance: {from: aarav, to: mia, amount: 6000}
+        - no_debts_for: jake
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: mia, amount: 12000, currency: USD,
+                                     description: Dinner, category: FOOD, split_with: [aarav, mia],
+                                     exclude: [jake], source_message: "dinner was $120"}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
+      messages:
+        - {to: group, text: "Logged 🍽️ Dinner, $120, paid by Mia, split between Aarav and Mia ($60 each). Jake's not included."}

@@ -1,0 +1,44 @@
+example: "6"
+title: Currency conversion
+seed:
+  trip: {id: cancun, name: Cancún Spring Break, destination: "Cancún, Mexico",
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes]}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: jake
+    text: "@tripbot paid $1,800 for the snorkel tour"
+    expect:
+      forbid_mutations: true
+      forbid: [log_expense]
+      messages:
+        - {to: group, contains_any: [peso, MXN]}
+    golden:
+      messages:
+        - {to: group, text: "Got it! Was that $1,800 USD or pesos? And split with everyone?"}
+  - sender: jake
+    text: "@tripbot pesos, everyone"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: jake, amount: 180000, currency: MXN,
+                                     split_with: [aarav, jake, mia]}}
+      count_min: {get_budget_status: 3}
+      messages:
+        - {to: group, matches: ["1,?800", "\\$100"]}
+      end_state:
+        - expense_count: 1
+        - balance: {from: aarav, to: jake, amount: 3336}
+    golden:
+      calls:
+        - {name: convert_currency, args: {amount: 180000, from: MXN, to: USD}}
+        - {name: log_expense, args: {trip_id: cancun, paid_by: jake, amount: 180000, currency: MXN,
+                                     description: Snorkel tour, category: ACTIVITIES,
+                                     split_with: [aarav, jake, mia]}}
+        - {name: get_budget_status, args: {trip_id: cancun, person_id: aarav}}
+        - {name: get_budget_status, args: {trip_id: cancun, person_id: jake}}
+        - {name: get_budget_status, args: {trip_id: cancun, person_id: mia}}
+      messages:
+        - {to: group, text: "Logged 🤿 Snorkel tour, MX$1,800 (≈ $100), paid by Jake. ≈ $33.36 each."}

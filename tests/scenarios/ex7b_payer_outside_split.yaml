@@ -1,0 +1,52 @@
+example: "7b"
+title: Payer isn't in the split
+seed:
+  trip: {id: miami, name: Miami Spring Break, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes]}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: priya, name: Priya, handle: "@priya-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+    - {id: sam, name: Sam, handle: "@sam-venmo"}
+    - {id: leo, name: Leo, handle: "@leo-venmo"}
+    - {id: nina, name: Nina, handle: "@nina-venmo"}
+    - {id: zoe, name: Zoe, handle: "@zoe-venmo"}
+  exclusions:
+    - [jake, DRINKS]
+turns:
+  - sender: jake
+    text: "@tripbot bar tab was $350, put it on my card, split with everyone"
+    expect:
+      forbid: [set_exclusion]
+      calls:
+        - {name: log_expense, args: {paid_by: jake, amount: 35000, category: DRINKS}}
+      count_min: {get_budget_status: 7}
+      messages:
+        - {to: group, contains: ["$50", Jake]}
+      end_state:
+        - expense_count: 1
+        - balance: {from: aarav, to: jake, amount: 5000}
+        - balance: {from: priya, to: jake, amount: 5000}
+        - balance: {from: mia, to: jake, amount: 5000}
+        - balance: {from: sam, to: jake, amount: 5000}
+        - balance: {from: leo, to: jake, amount: 5000}
+        - balance: {from: nina, to: jake, amount: 5000}
+        - balance: {from: zoe, to: jake, amount: 5000}
+        - no_debts_for: jake
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: jake, amount: 35000, currency: USD,
+                                     description: Bar tab, category: DRINKS,
+                                     split_with: [aarav, priya, mia, sam, leo, nina, zoe],
+                                     exclude: [jake]}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: priya}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: sam}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: leo}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: nina}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: zoe}}
+      messages:
+        - {to: group, text: "Logged 🍻 Bar tab, $350, paid by Jake, split between the 7 drinkers ($50 each). Jake's not included (opted out of drinks), so everyone owes Jake $50. Venmo: @jake-venmo"}
