@@ -1,0 +1,144 @@
+{
+  "detail": {
+    "trip": {
+      "id": "miami",
+      "name": "Miami Spring Break (Example 2a)",
+      "status": "BOOKED",
+      "destination": "Miami",
+      "start_date": "2027-03-16",
+      "end_date": "2027-03-20",
+      "target_break": null,
+      "base_currency": "USD",
+      "group_budget_cents": null,
+      "leader_id": "aarav",
+      "leader_approval": [
+        "member_changes",
+        "trip_changes"
+      ],
+      "auto_log_mode": null
+    },
+    "members": [
+      {
+        "id": "aarav",
+        "name": "Aarav",
+        "handle": "@aarav-venmo",
+        "active": true,
+        "budget_set": false
+      },
+      {
+        "id": "jake",
+        "name": "Jake",
+        "handle": "@jake-venmo",
+        "active": true,
+        "budget_set": false
+      },
+      {
+        "id": "mia",
+        "name": "Mia",
+        "handle": "@mia-venmo",
+        "active": true,
+        "budget_set": false
+      }
+    ],
+    "category_opt_outs": [],
+    "recent_expenses": [
+      {
+        "id": "e1",
+        "description": "Airbnb (Mar 14\u201318)",
+        "category": "LODGING",
+        "paid_by": "aarav",
+        "amount_cents": 120000,
+        "splits": {
+          "aarav": 40000,
+          "jake": 40000,
+          "mia": 40000
+        }
+      }
+    ],
+    "activities": [
+      {
+        "activity_id": "boat_tour",
+        "name": "Boat tour",
+        "location": null,
+        "start": "2027-03-15T10:00",
+        "end": null,
+        "est_cost_cents": 13300,
+        "cost_is_per_person": true,
+        "est_per_person_cents": 13300,
+        "attendees": [
+          "aarav",
+          "jake",
+          "mia"
+        ],
+        "important": false,
+        "booking_url": null,
+        "expense_id": null
+      },
+      {
+        "activity_id": "beach_day",
+        "name": "Beach day",
+        "location": null,
+        "start": "2027-03-17",
+        "end": null,
+        "est_cost_cents": 0,
+        "cost_is_per_person": true,
+        "est_per_person_cents": 0,
+        "attendees": [
+          "aarav",
+          "jake",
+          "mia"
+        ],
+        "important": false,
+        "booking_url": null,
+        "expense_id": null
+      }
+    ],
+    "open_polls": [],
+    "expenses": [
+      {
+        "expense_id": "e1",
+        "description": "Airbnb (Mar 14\u201318)",
+        "category": "LODGING",
+        "paid_by": "aarav",
+        "amount_cents": 120000,
+        "original_amount": 120000,
+        "original_currency": "USD",
+        "fx_rate": 1.0,
+        "splits": {
+          "aarav": 40000,
+          "jake": 40000,
+          "mia": 40000
+        },
+        "created_at": "2027-03-01T12:00:00",
+        "refunded_cents": 0
+      }
+    ],
+    "refunds": [],
+    "polls": [],
+    "reminders": [],
+    "itinerary_drafts": []
+  },
+  "balances": {
+    "balances": {
+      "jake": {
+        "owes": [
+          {
+            "to": "aarav",
+            "amount_cents": 40000,
+            "handle": "@aarav-venmo"
+          }
+        ]
+      },
+      "mia": {
+        "owes": [
+          {
+            "to": "aarav",
+            "amount_cents": 40000,
+            "handle": "@aarav-venmo"
+          }
+        ]
+      }
+    },
+    "currency": "USD"
+  }
+}

@@ -1,0 +1,63 @@
+example: "5"
+title: Travel tips for a given budget
+seed:
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-16", end_date: "2027-03-20", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes]}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  budgets:
+    aarav: {total: 120000}
+    jake: {total: 80000}
+    mia: {total: 50000}
+turns:
+  - sender: jake
+    text: "@tripbot give us some tips for Miami"
+    expect:
+      calls:
+        - {name: get_travel_tips, args: {prices_only: true, multipliers: [0.5, 0.75, 1, 1.25, 1.5, 2]}}
+      forbid: [update_trip]
+      messages:
+        - to: group
+          contains: [Aarav]
+          matches: ["\\$833", "\\$417", "\\$625", "\\$1,?042", "\\$1,?250", "\\$1,?667"]
+    golden:
+      calls:
+        - {name: get_travel_tips, args: {trip_id: miami, destination: Miami,
+                                         multipliers: [0.5, 0.75, 1, 1.25, 1.5, 2], prices_only: true}}
+      messages:
+        - {to: group, text: "Group average is ~$833/person. Pick a level and I'll pull tips for it:\n0.5× ~$417 · 0.75× ~$625 · 1× ~$833 · 1.25× ~$1,042 · 1.5× ~$1,250 · 2× ~$1,667\nOr name your own multiplier (like 1.1×). @Aarav locks in the final pick."}
+  - sender: jake
+    text: "@tripbot show us 1.1x"
+    expect:
+      calls:
+        - {name: get_travel_tips, args: {multipliers: [1.1]}}
+      forbid: [update_trip]
+      messages:
+        - {to: group, contains: [Aarav], matches: ["\\$917"]}
+    golden:
+      calls:
+        - {name: get_travel_tips, args: {trip_id: miami, destination: Miami, multipliers: [1.1]}}
+      messages:
+        - {to: group, text: "Miami at ~$917/person (1.1×) 🌴\n🏠 Shared Airbnb near South Beach\n🍽️ Casual spots + one nice dinner\n🚤 Boat tour and a beach day\n💡 Citi Bike + the free Miami Beach trolley instead of Ubers\n@Aarav, lock this in as the group budget?"}
+  - sender: aarav
+    text: "@tripbot yeah lock it in"
+    expect:
+      calls:
+        - {name: update_trip, args: {changes: {group_budget: 91700}}}
+      messages:
+        - {to: group, matches: ["\\$917"], not_contains: [Mia]}
+        - {to: mia, matches: ["\\$917"]}
+        - {to: aarav, contains: [Mia]}
+      no_messages_to: [jake]
+      end_state:
+        - trip: {group_budget: 91700}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: miami, changes: {group_budget: 91700}}}
+      messages:
+        - {to: group, text: "Locked in: ~$917/person (1.1×) 🌴 I'll plan around that."}
+        - {to: mia, text: "Heads up: the group budget is ~$917/person, which is above your budget. I'll flag cheaper options for you as we plan. Want to look at which parts to skip?"}
+        - {to: aarav, text: "FYI: Mia's budget is below the group budget. Worth keeping a few cheaper options in the plan."}

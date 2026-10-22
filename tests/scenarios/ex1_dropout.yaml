@@ -1,0 +1,63 @@
+example: "1"
+title: Someone can't make it
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes]}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: priya, name: Priya, handle: "@priya-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  budgets:
+    aarav: {total: 150000}
+    jake: {total: 110000}
+    mia: {total: 90000, limits: {ACTIVITIES: 14000}}
+  expenses:
+    - {id: e1, paid_by: aarav, amount: 120000, description: Airbnb, category: LODGING,
+       split_with: [aarav, priya, jake, mia]}
+  activities:
+    - {id: boat_tour, name: Boat tour, start: "2027-03-15T10:00", est_cost_cents: 40000,
+       cost_is_per_person: false}
+turns:
+  - sender: priya
+    text: "@tripbot guys I can't make it anymore, so sorry 😭"
+    expect:
+      forbid_mutations: true
+      forbid: [remove_member]
+      messages:
+        - {to: group, contains: [Aarav]}
+    golden:
+      messages:
+        - {to: group, text: "Sorry Priya! Just to confirm, are you out for the whole trip? @Aarav as trip lead, you'll need to approve too. Heads up: anything already booked (like the Airbnb) still gets split with you."}
+  - sender: priya
+    text: "@tripbot yeah whole trip"
+    expect:
+      forbid_mutations: true
+      forbid: [remove_member]
+    golden: {}
+  - sender: aarav
+    text: "@tripbot approved"
+    expect:
+      calls:
+        - {name: remove_member, args: {person_id: priya}}
+        - {name: get_budget_status, args: {person_id: mia}}
+      messages:
+        - {to: group, contains: ["133"], not_contains: [activities budget]}
+        - {to: priya, contains: ["$300", Aarav]}
+        - {to: mia, contains_any: [activities, budget]}
+      end_state:
+        - member_active: {priya: false}
+        - balance: {from: priya, to: aarav, amount: 30000}
+    golden:
+      calls:
+        - {name: remove_member, args: {trip_id: miami, person_id: priya}}
+        - {name: get_balances, args: {trip_id: miami}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: jake}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
+      messages:
+        - {to: group, text: "Priya's off the trip 💔 Boat tour is now ~$133/person (was $100)."}
+        - {to: priya, text: "Sorry you can't come! You still owe Aarav $300 for the Airbnb. Venmo: @aarav-venmo"}
+        - {to: mia, text: "Heads up: with the boat tour going up to ~$133, your activities budget is almost used up."}

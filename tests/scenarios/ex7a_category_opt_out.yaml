@@ -1,0 +1,46 @@
+example: "7a"
+title: Blacklisted (category opt-out)
+seed:
+  trip: {id: miami, name: Miami Spring Break, destination: Miami, base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes]}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: jake
+    channel: dm
+    text: I don't drink, leave me out of drinks
+    expect:
+      calls:
+        - {name: set_exclusion, args: {person_id: jake, category: DRINKS}}
+      messages:
+        - {to: jake, contains_any: [drink]}
+      no_messages_to: [group]
+      end_state:
+        - opt_out: [jake, DRINKS]
+    golden:
+      calls:
+        - {name: set_exclusion, args: {trip_id: miami, person_id: jake, category: DRINKS}}
+      messages:
+        - {to: jake, text: "Done. You won't be included in any drinks splits."}
+  - sender: mia
+    text: "@tripbot drinks at the rooftop were $60, I paid, split with everyone"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: mia, amount: 6000, category: DRINKS}}
+      count_min: {get_budget_status: 2}
+      messages:
+        - {to: group, contains: [Jake, "$30"]}
+      end_state:
+        - balance: {from: aarav, to: mia, amount: 3000}
+        - no_debts_for: jake
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: mia, amount: 6000, currency: USD,
+                                     description: Rooftop drinks, category: DRINKS,
+                                     split_with: [aarav, jake, mia]}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
+      messages:
+        - {to: group, text: "Logged 🍸 Rooftop drinks, $60, paid by Mia, split between Aarav and Mia ($30 each). Jake's not included (opted out of drinks)."}

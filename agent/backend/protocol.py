@@ -1,0 +1,71 @@
+"""The agent <-> backend contract: one method per tool in agent/tools/schemas.py.
+
+FakeBackend (agent/backend/fake/store.py) implements it in memory; HttpBackend
+(Phase 3) will implement it against the Django API. Both must return the same
+JSON shapes, so the scenario tests can run against either.
+"""
+
+import inspect
+from typing import Any, Protocol
+
+
+class ToolError(Exception):
+    """Bad input or a rule violation. The runner returns it to the model as an error tool result."""
+
+
+class Backend(Protocol):
+    # Expenses
+    def log_expense(self, **kw: Any) -> dict: ...
+    def edit_expense(self, **kw: Any) -> dict: ...
+    def delete_expense(self, **kw: Any) -> dict: ...
+    def record_refund(self, **kw: Any) -> dict: ...
+    # Trip & members
+    def add_member(self, **kw: Any) -> dict: ...
+    def remove_member(self, **kw: Any) -> dict: ...
+    def update_trip(self, **kw: Any) -> dict: ...
+    def set_budget(self, **kw: Any) -> dict: ...
+    def set_exclusion(self, **kw: Any) -> dict: ...
+    # Planning
+    def generate_itinerary(self, **kw: Any) -> dict: ...
+    def add_activity(self, **kw: Any) -> dict: ...
+    def get_travel_tips(self, **kw: Any) -> dict: ...
+    def create_poll(self, **kw: Any) -> dict: ...
+    def vote_poll(self, **kw: Any) -> dict: ...
+    def close_poll(self, **kw: Any) -> dict: ...
+    def create_reminder(self, **kw: Any) -> dict: ...
+    # Money info & reads
+    def get_balances(self, **kw: Any) -> dict: ...
+    def get_budget_status(self, **kw: Any) -> dict: ...
+    def convert_currency(self, **kw: Any) -> dict: ...
+    def get_trip(self, **kw: Any) -> dict: ...
+
+    # Not a tool: the compact state injected into every agent turn. Never contains budgets.
+    def summary(self, trip_id: str) -> dict: ...
+
+
+BACKEND_TOOLS = [
+    name for name in Backend.__dict__
+    if not name.startswith("_") and name != "summary" and callable(Backend.__dict__[name])
+]
+
+# Tools that change state. A turn that must only ask a question may call none of these.
+MUTATING_TOOLS = {
+    "log_expense", "edit_expense", "delete_expense", "record_refund",
+    "add_member", "remove_member", "update_trip", "set_budget", "set_exclusion",
+    "add_activity", "create_poll", "vote_poll", "close_poll", "create_reminder",
+}
+
+
+def is_mutation(name: str, args: dict) -> bool:
+    return name in MUTATING_TOOLS or (name == "generate_itinerary" and bool(args.get("save_draft_id")))
+
+
+def dispatch(backend: Backend, name: str, args: dict) -> dict:
+    if name not in BACKEND_TOOLS:
+        raise ToolError(f"Unknown tool: {name}")
+    fn = getattr(backend, name)
+    try:
+        inspect.signature(fn).bind(**args)
+    except TypeError as e:  # unexpected or missing arguments
+        raise ToolError(f"Bad arguments for {name}: {e}") from e
+    return fn(**args)

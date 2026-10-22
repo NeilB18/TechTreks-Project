@@ -1,0 +1,6 @@
+example: "8"
+title: Overspend advice
+skip: "budget warning logic TBD (Romir)"
+seed:
+  trip: {id: miami}
+turns: []

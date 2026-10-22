@@ -1,0 +1,38 @@
+example: "2b"
+title: Personal budget change
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: BOOKED, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes]}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  budgets:
+    mia: {total: 90000}
+  expenses:
+    - {id: e1, paid_by: aarav, amount: 90000, description: Airbnb, category: LODGING,
+       split_with: [aarav, jake, mia]}
+  activities:
+    - {id: boat_tour, name: Boat tour, start: "2027-03-15T10:00", est_cost_cents: 13300}
+    - {id: club_night, name: Club night, start: "2027-03-16T22:00", est_cost_cents: 8000}
+turns:
+  - sender: mia
+    channel: dm
+    text: can you lower my budget to $500
+    expect:
+      calls:
+        - {name: set_budget, args: {person_id: mia, total: 50000}}
+        - {name: get_budget_status, args: {person_id: mia}}
+      messages:
+        - {to: mia, contains: ["$500", "$200"]}
+      no_messages_to: [group]
+      end_state:
+        - budget_total: {mia: 50000}
+    golden:
+      calls:
+        - {name: set_budget, args: {trip_id: miami, person_id: mia, total: 50000, limits: {}}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
+      messages:
+        - {to: mia, text: "Done, your budget is now $500. You've got $200 left, but the boat tour (~$133) and club night (~$80) together come to ~$213, which is $13 over. Want to skip one or bump the budget a bit?"}

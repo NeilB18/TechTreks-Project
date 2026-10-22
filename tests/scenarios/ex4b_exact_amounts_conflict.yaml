@@ -1,0 +1,44 @@
+example: "4b"
+title: Exact amounts + opt-out conflict
+seed:
+  trip: {id: miami, name: Miami Spring Break, destination: Miami, base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes]}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  exclusions:
+    - [jake, DRINKS]
+turns:
+  - sender: aarav
+    text: "@tripbot bar tab $90, I paid. I had $40, Mia $30, Jake $20"
+    expect:
+      forbid_mutations: true
+      forbid: [log_expense]
+      messages:
+        - {to: group, contains: [Jake]}
+    golden:
+      messages:
+        - {to: group, text: "Quick check: Jake's opted out of drinks. @Jake, should I still put $20 of the bar tab on you?"}
+  - sender: jake
+    text: "@tripbot yeah I had a couple sodas, include me"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: aarav, amount: 9000, category: DRINKS,
+                                     exact_amounts: {aarav: 4000, mia: 3000, jake: 2000}}}
+      count_min: {get_budget_status: 3}
+      messages:
+        - {to: group, contains: ["$40", "$30", "$20"]}
+      end_state:
+        - balance: {from: jake, to: aarav, amount: 2000}
+        - balance: {from: mia, to: aarav, amount: 3000}
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: aarav, amount: 9000, currency: USD,
+                                     description: Bar tab, category: DRINKS,
+                                     exact_amounts: {aarav: 4000, mia: 3000, jake: 2000}}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: jake}}
+      messages:
+        - {to: group, text: "Logged 🍹 Bar tab, $90, paid by Aarav. Aarav $40, Mia $30, Jake $20."}

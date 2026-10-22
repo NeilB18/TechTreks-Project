@@ -1,0 +1,8 @@
+openai>=3.36,<4
+pytest>=9
+pyyaml>=6
+django>=5.2,<6
+djangorestframework>=3.16
+pytest-django>=4.11
+dj-database-url>=3
+requests>=2.32
