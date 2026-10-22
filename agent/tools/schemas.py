@@ -38,7 +38,8 @@ BACKEND_TOOL_SCHEMAS = [
     _tool("log_expense",
           "Log a payment and split it. Call right away once payer, amount, currency and who it's for are clear; "
           "if who it's for is unclear, or the currency symbol is ambiguous, ask instead. The payer does not have to be in the split. "
-          "Stores the original amount and the base-currency amount with the FX rate. Returns expense_id, splits (base-currency cents) and auto_excluded.",
+          "Stores the original amount and the base-currency amount with the FX rate. Returns expense_id, splits (base-currency cents), auto_excluded, "
+          "display (amounts to quote) and budget_warnings ({person_id: [warnings]}, private: DM each person their own).",
           {"trip_id": TRIP_ID, "paid_by": PERSON, "amount": {**CENTS, "description": "Total in `currency`, in cents: $120 -> 12000, MX$1,800 -> 180000"},
            "currency": CURRENCY, "description": {"type": "string"}, "category": CATEGORY,
            **SPLIT_FIELDS,
@@ -46,7 +47,7 @@ BACKEND_TOOL_SCHEMAS = [
           ["trip_id", "paid_by", "amount", "currency", "description", "category"]),
     _tool("edit_expense",
           "Change an expense's amount, currency, category, description, payer or split. Any member can ask, "
-          "but only call this after the payer has confirmed in chat.",
+          "but only call this after the payer has confirmed in chat. Returns budget_warnings like log_expense.",
           {"expense_id": {"type": "string"}, "requested_by": PERSON,
            "changes": {"type": "object", "properties": {
                "amount": CENTS, "currency": CURRENCY, "description": {"type": "string"}, "category": CATEGORY,
@@ -59,7 +60,7 @@ BACKEND_TOOL_SCHEMAS = [
     _tool("record_refund",
           "Record money returned on an expense. Only the original payer reports refunds. It's a big change: "
           "show the per-person effect and get confirmation (and the leader's, if refunds_deletes is in leader_approval) before calling. "
-          "Refund is shared in the same ratio as the original split.",
+          "Refund is shared in the same ratio as the original split. Returns payer_now_owes and budget_warnings.",
           {"expense_id": {"type": "string"}, "amount": CENTS, "currency": CURRENCY, "note": {"type": "string"}},
           ["expense_id", "amount", "currency"]),
     # ------------------------------------------------------ trip & members
@@ -69,7 +70,8 @@ BACKEND_TOOL_SCHEMAS = [
           ["trip_id", "chat_user_id", "name"]),
     _tool("remove_member",
           "Drop someone from the trip. Only after the person confirmed they're out (and the leader approved, if member_changes is in leader_approval). "
-          "Past splits stay (they still owe); they come off future splits and activities.",
+          "Past splits stay (they still owe); they come off future splits and activities. "
+          "Returns budget_warnings for the remaining members (private: DM each person their own).",
           {"trip_id": TRIP_ID, "person_id": PERSON},
           ["trip_id", "person_id"]),
     _tool("update_trip",
@@ -149,7 +151,7 @@ BACKEND_TOOL_SCHEMAS = [
     _tool("get_budget_status",
           "One person's budget: total, spent (their split shares, not what they paid), planned activity costs, remaining, and warnings. "
           "PRIVATE: anything from this result may only go to that person's DM, never the group. "
-          "Call it for every person in the split after each expense.",
+          "Use it when someone asks about their own budget. Expense tools already return budget_warnings, so there's no need to call this after each expense.",
           {"trip_id": TRIP_ID, "person_id": PERSON}, ["trip_id", "person_id"]),
     _tool("convert_currency", "Convert an amount between currencies.",
           {"amount": CENTS, "from": CURRENCY, "to": CURRENCY}, ["amount", "from", "to"]),

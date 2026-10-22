@@ -42,7 +42,6 @@ turns:
     expect:
       calls:
         - {name: remove_member, args: {person_id: priya}}
-        - {name: get_budget_status, args: {person_id: mia}}
       messages:
         - {to: group, contains: ["133"], not_contains: [activities budget]}
         - {to: priya, contains: ["$300", Aarav]}
@@ -54,9 +53,6 @@ turns:
       calls:
         - {name: remove_member, args: {trip_id: miami, person_id: priya}}
         - {name: get_balances, args: {trip_id: miami}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: jake}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
       messages:
         - {to: group, text: "Priya's off the trip 💔 Boat tour is now ~$133/person (was $100)."}
         - {to: priya, text: "Sorry you can't come! You still owe Aarav $300 for the Airbnb. Venmo: @aarav-venmo"}

@@ -29,7 +29,6 @@ turns:
     expect:
       calls:
         - {name: log_expense, args: {paid_by: mia, amount: 6000, category: DRINKS}}
-      count_min: {get_budget_status: 2}
       messages:
         - {to: group, contains: [Jake, "$30"]}
       end_state:
@@ -40,7 +39,5 @@ turns:
         - {name: log_expense, args: {trip_id: miami, paid_by: mia, amount: 6000, currency: USD,
                                      description: Rooftop drinks, category: DRINKS,
                                      split_with: [aarav, jake, mia]}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
       messages:
         - {to: group, text: "Logged 🍸 Rooftop drinks, $60, paid by Mia, split between Aarav and Mia ($30 each). Jake's not included (opted out of drinks)."}

@@ -55,10 +55,11 @@ def _display(trip: Trip, amount: int, currency: str, base: int, shares: dict[str
     return out
 
 
-def _budget_check_step(people) -> str:
-    ids = ", ".join(sorted(people))
-    return (f"Call get_budget_status for each of: {ids} (one call per person), "
-            "then DM only the people with warnings.")
+def _warnings_step(warnings: dict) -> str:
+    if not warnings:
+        return "Nobody's budget needs a warning."
+    return (f"DM each person in budget_warnings ({', '.join(warnings)}) privately about their warning. "
+            "Never mention it in the group.")
 
 
 def _slug(name: str) -> str:
@@ -261,7 +262,8 @@ class FakeBackend:
                 "original_amount": amount, "original_currency": currency, "fx_rate": rate,
                 "splits": splits, "auto_excluded": auto_excluded,
                 "display": _display(trip, amount, currency, base_amount, splits),
-                "next_step": _budget_check_step(splits)}
+                "budget_warnings": (w := self._budget_warnings(trip, splits)),
+                "next_step": _warnings_step(w)}
 
     def edit_expense(self, expense_id: str, requested_by: str, changes: dict) -> dict:
         trip, e = self._find_expense(expense_id)
@@ -291,7 +293,8 @@ class FakeBackend:
             e.amount_cents, e.fx_rate, e.splits = base_amount, rate, splits
             e.original_amount, e.original_currency, e.category, e.paid_by = amount, currency, category, paid_by
         return {"updated": True, "payer": e.paid_by, "expense": self._expense_view(trip, e),
-                "next_step": _budget_check_step(e.splits)}
+                "budget_warnings": (w := self._budget_warnings(trip, e.splits)),
+                "next_step": _warnings_step(w)}
 
     def delete_expense(self, expense_id: str, requested_by: str) -> dict:
         trip, e = self._find_expense(expense_id)
@@ -325,7 +328,8 @@ class FakeBackend:
         return {"refund_id": r.id, "expense_id": expense_id, "payer": e.paid_by,
                 "base_amount": base, "per_person": per_person, "payer_now_owes": payer_owes,
                 "display": _display(trip, amount, currency, base, per_person),
-                "next_step": step + " " + _budget_check_step(per_person)}
+                "budget_warnings": (w := self._budget_warnings(trip, per_person)),
+                "next_step": step + " " + _warnings_step(w)}
 
     # ---------------------------------------------------------- trip & members
     def add_member(self, trip_id: str, chat_user_id: str, name: str, payment_handle: str | None = None) -> dict:
@@ -353,8 +357,11 @@ class FakeBackend:
             if person_id in a.attendees:
                 a.attendees.remove(person_id)
                 removed_from.append(a.id)
+        # Group-total activities now cost the others more, so re-check everyone still going.
+        warnings = self._budget_warnings(trip, trip.active_member_ids())
         return {"removed": True, "removed_from_activities": removed_from,
-                "still_owes_past_splits": True, "was_leader": trip.leader_id == person_id}
+                "still_owes_past_splits": True, "was_leader": trip.leader_id == person_id,
+                "budget_warnings": warnings, "next_step": _warnings_step(warnings)}
 
     def update_trip(self, trip_id: str, changes: dict) -> dict:
         trip = self._trip(trip_id)
@@ -596,6 +603,17 @@ class FakeBackend:
                 planned += self._activity_view(trip, a)["est_per_person_cents"]
         return {"ACTIVITIES": planned} if planned else {}
 
+    def _budget_warnings(self, trip: Trip, people) -> dict[str, list[str]]:
+        """Private: {person_id: warnings} for people with a budget and at least one warning.
+        Returned by the money-changing tools so the agent only has to DM, not check each person."""
+        out = {}
+        for pid in people:
+            if pid in trip.budgets:
+                warnings = self.get_budget_status(trip.id, pid)["warnings"]
+                if warnings:
+                    out[pid] = warnings
+        return out
+
     def get_budget_status(self, trip_id: str, person_id: str) -> dict:
         trip = self._trip(trip_id)
         self._person(trip, person_id)
@@ -615,6 +633,9 @@ class FakeBackend:
             "by_category": {c: {"limit_cents": b.limits.get(c), "spent_cents": spent_by_cat.get(c, 0),
                                 "planned_cents": planned_by_cat.get(c, 0)} for c in cats},
             "warnings": rules.budget_warnings(b.total_cents, b.limits, spent_by_cat, planned_by_cat),
+            "display": {k: rules.fmt_money(v, trip.base_currency) for k, v in {
+                "total": b.total_cents, "spent": spent, "remaining": b.total_cents - spent,
+                "planned": planned, "remaining_after_planned": b.total_cents - spent - planned}.items()},
         }
 
     def convert_currency(self, amount: int, **kw) -> dict:

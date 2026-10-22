@@ -38,19 +38,16 @@ Multi-turn where confirmations are needed.
 2. Remove Priya. Her past splits stay. She comes off future splits and activities.
 3. The boat tour's cost is a group total, not per person, so the per-person estimate goes up for the remaining 3.
 4. Get her outstanding balance so she knows exactly what she owes and who to pay.
-5. The remaining members' budgets may be affected by the higher boat tour share. Check each one, and DM only if there's a warning.
+5. The higher boat tour share may affect the remaining members' budgets. `remove_member` returns `budget_warnings` for them, so DM only the people listed.
 
 **Tool calls**
 ```
 remove_member(trip_id="miami", person_id="priya")
-  → { removed: true, removed_from_activities: ["boat_tour"] }
+  → { removed: true, removed_from_activities: ["boat_tour"],
+      budget_warnings: { mia: ["ACTIVITIES under 10% remaining"] } }
 
 get_balances(trip_id="miami")
   → { priya: { owes: [{ to: "aarav", amount_cents: 30000, handle: "@aarav-venmo" }] } }
-
-get_budget_status(trip_id="miami", person_id="aarav")  → { warnings: [] }
-get_budget_status(trip_id="miami", person_id="jake")   → { warnings: [] }
-get_budget_status(trip_id="miami", person_id="mia")    → { warnings: ["ACTIVITIES under 10% remaining"] }
 ```
 
 **Reply (group):**
@@ -149,16 +146,14 @@ TBD — waiting on Romir's budget warning logic
 1. This is an expense with a clear payer, amount, and split: everyone except Jake means Aarav and Mia.
 2. No exact amounts are given, so it's an equal split: $60 each. It divides evenly, so there's no leftover cent.
 3. Exclusions stated in a message just get logged. No confirmation needed.
-4. After logging, check the budgets of everyone in the split (Aarav and Mia). DM only if there's a warning.
+4. The result's `budget_warnings` covers everyone in the split. DM only the people listed.
 
 **Tool calls**
 ```
 log_expense(trip_id="miami", paid_by="mia", amount=12000, currency="USD",
             description="Dinner", category="FOOD",
             split_with=["aarav", "mia"], exclude=["jake"], source_message="...")
-  → { expense_id: "e7", splits: { aarav: 6000, mia: 6000 } }
-get_budget_status(trip_id="miami", person_id="aarav")  → { warnings: [] }
-get_budget_status(trip_id="miami", person_id="mia")    → { warnings: [] }
+  → { expense_id: "e7", splits: { aarav: 6000, mia: 6000 }, budget_warnings: {} }
 ```
 
 **Reply (group):**
@@ -191,15 +186,14 @@ get_budget_status(trip_id="miami", person_id="mia")    → { warnings: [] }
 **Reasoning**
 1. The conflict is resolved. Jake says to include him.
 2. Log it with the exact amounts.
-3. Check budgets for everyone in the split.
+3. Nobody is in `budget_warnings`, so there are no DMs.
 
 **Tool calls**
 ```
 log_expense(trip_id="miami", paid_by="aarav", amount=9000, currency="USD",
             description="Bar tab", category="DRINKS",
             exact_amounts={ aarav: 4000, mia: 3000, jake: 2000 }, source_message="...")
-  → { expense_id: "e8" }
-get_budget_status(...) × 3  → { warnings: [] }
+  → { expense_id: "e8", budget_warnings: {} }
 ```
 
 **Reply (group):**
@@ -313,7 +307,7 @@ update_trip(trip_id="miami", changes={ group_budget: 91700 })
 1. 1,800 MXN needs converting to the base currency (USD), with the rate saved.
 2. Equal split 3 ways. The leftover cent goes to a random person.
 3. The confirmation shows both amounts.
-4. Check budgets for all 3 people in the split.
+4. No `budget_warnings`, so there are no DMs.
 
 **Tool calls**
 ```
@@ -322,8 +316,8 @@ convert_currency(amount=180000, from="MXN", to="USD")
 log_expense(trip_id="cancun", paid_by="jake", amount=180000, currency="MXN",
             description="Snorkel tour", category="ACTIVITIES",
             split_with=["aarav", "jake", "mia"], source_message="...")
-  → { expense_id: "e9", base_amount: 10000, splits: { aarav: 3334, jake: 3333, mia: 3333 } }
-get_budget_status(...) × 3  → { warnings: [] }
+  → { expense_id: "e9", base_amount: 10000, splits: { aarav: 3334, jake: 3333, mia: 3333 },
+      budget_warnings: {} }
 ```
 
 **Reply (group):**
@@ -358,15 +352,14 @@ set_exclusion(trip_id="miami", person_id="jake", category="DRINKS")
 2. Jake opted out of DRINKS and isn't explicitly named, so there's no conflict. Exclude him automatically.
 3. Equal split between Aarav and Mia: $30 each.
 4. The confirmation names Jake and gives the reason.
-5. Check budgets for Aarav and Mia.
+5. No `budget_warnings`, so there are no DMs.
 
 **Tool calls**
 ```
 log_expense(trip_id="miami", paid_by="mia", amount=6000, currency="USD",
             description="Rooftop drinks", category="DRINKS",
             split_with=["aarav", "mia"], exclude=["jake"], source_message="...")
-  → { expense_id: "e10", splits: { aarav: 3000, mia: 3000 } }
-get_budget_status(...) × 2  → { warnings: [] }
+  → { expense_id: "e10", splits: { aarav: 3000, mia: 3000 }, budget_warnings: {} }
 ```
 
 **Reply (group):**
@@ -387,7 +380,7 @@ get_budget_status(...) × 2  → { warnings: [] }
 2. Paying for something isn't the same as taking part in it. Jake stays the payer even though he's not in the split. That's not a conflict, so no need to ask.
 3. "Everyone" minus Jake is 7 people. Equal split: $350 / 7 = $50 each. It divides evenly, so there's no leftover cent.
 4. Jake's share is $0, so he's owed the full $350: each of the 7 owes Jake $50.
-5. Check budgets for the 7 people in the split. Jake fronted the money but spent nothing, so his budget doesn't change.
+5. Jake fronted the money but spent nothing, so his budget doesn't change. No `budget_warnings` for the 7, so there are no DMs.
 
 **Tool calls**
 ```
@@ -396,8 +389,8 @@ log_expense(trip_id="miami", paid_by="jake", amount=35000, currency="USD",
             split_with=["aarav", "priya", "mia", "sam", "leo", "nina", "zoe"],
             exclude=["jake"], source_message="...")
   → { expense_id: "e11", splits: { aarav: 5000, priya: 5000, mia: 5000, sam: 5000,
-                                   leo: 5000, nina: 5000, zoe: 5000 } }
-get_budget_status(...) × 7  → { warnings: [] }
+                                   leo: 5000, nina: 5000, zoe: 5000 },
+      budget_warnings: {} }
 ```
 
 **Reply (group):**
@@ -439,7 +432,8 @@ TBD — waiting on Romir's budget warning logic
 **Tool calls**
 ```
 record_refund(expense_id="e5", amount=15000, currency="USD", note="Concert moved")
-  → { refund_id: "r1", per_person: { aarav: 5000, jake: 5000, mia: 5000 } }
+  → { refund_id: "r1", per_person: { aarav: 5000, jake: 5000, mia: 5000 },
+      payer_now_owes: [{ to: "jake", amount_cents: 5000, handle: "@jake-venmo" }], budget_warnings: {} }
 get_balances(trip_id="miami")
   → { aarav: { owes: [{ to: "jake", amount_cents: 5000 }] },
       mia:   { owes: [{ to: "aarav", amount_cents: 5000 }] } }

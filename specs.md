@@ -48,7 +48,7 @@ Category enum: LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT
 - **Category opt-outs:** can be set by DM or in the group. When an expense auto-excludes someone, the confirmation names them and gives the reason.
 - **Refunds:** only the original payer reports a refund. If people already paid the payer back, balances update and the agent DMs the payer who to pay back and how much.
 - **Opt-out conflict:** if someone opted out of a category but is explicitly named in a split for that category, the agent asks before logging.
-- **Budget checks:** after every expense, the agent calls `get_budget_status` for each person in the split and DMs any warnings.
+- **Budget checks:** the backend checks budgets itself. `log_expense`, `edit_expense`, `record_refund` and `remove_member` return `budget_warnings` (`{person_id: [warnings]}`, only people who need one), and the agent DMs each of those people. Decided Oct 22, 2026 after live tests showed the model sometimes skipped per-person checks.
 - **Travel info:** tips and itinerary places come from external APIs (Google Places / SerpAPI), not the model's own knowledge.
 
 ## Platform & listening
@@ -92,7 +92,7 @@ Amounts in cents. "Confirm" = agent must get the stated confirmation before call
 | Tool | Does | Inputs | Visibility |
 |---|---|---|---|
 | `get_balances` | Who owes whom | trip_id | Group |
-| `get_budget_status` | A person's remaining budget + warnings | trip_id, person_id | DM only |
+| `get_budget_status` | A person's remaining budget + warnings (when they ask; expense tools already return warnings) | trip_id, person_id | DM only |
 | `convert_currency` | Converts an amount | amount, from, to | Group |
 | `get_trip` | Full trip state: members, leader, leader_approval, exclusions, expenses, refunds, activities, polls, reminders. Never budgets | trip_id | Group |
 

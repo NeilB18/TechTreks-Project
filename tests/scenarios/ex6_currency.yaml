@@ -25,9 +25,9 @@ turns:
       calls:
         - {name: log_expense, args: {paid_by: jake, amount: 180000, currency: MXN,
                                      split_with: [aarav, jake, mia]}}
-      count_min: {get_budget_status: 3}
       messages:
         - {to: group, matches: ["1,?800", "\\$100"]}
+      no_messages_to: [aarav, jake, mia]  # no budgets set, so no warnings to DM
       end_state:
         - expense_count: 1
         - balance: {from: aarav, to: jake, amount: 3336}
@@ -37,8 +37,5 @@ turns:
         - {name: log_expense, args: {trip_id: cancun, paid_by: jake, amount: 180000, currency: MXN,
                                      description: Snorkel tour, category: ACTIVITIES,
                                      split_with: [aarav, jake, mia]}}
-        - {name: get_budget_status, args: {trip_id: cancun, person_id: aarav}}
-        - {name: get_budget_status, args: {trip_id: cancun, person_id: jake}}
-        - {name: get_budget_status, args: {trip_id: cancun, person_id: mia}}
       messages:
         - {to: group, text: "Logged 🤿 Snorkel tour, MX$1,800 (≈ $100), paid by Jake. ≈ $33.36 each."}

@@ -114,8 +114,22 @@ def test_budget_warning_placeholder_includes_planned_activities(b):
     dispatch(b, "add_activity", {"trip_id": "t", "name": "Boat", "est_cost_cents": 40000,
                                  "cost_is_per_person": False, "start": "2027-03-15"})
     assert b.get_budget_status("t", "mia")["warnings"] == []
-    dispatch(b, "remove_member", {"trip_id": "t", "person_id": "priya"})
+    r = dispatch(b, "remove_member", {"trip_id": "t", "person_id": "priya"})
     assert b.get_budget_status("t", "mia")["warnings"] == ["ACTIVITIES under 10% remaining"]
+    assert r["budget_warnings"] == {"mia": ["ACTIVITIES under 10% remaining"]}
+
+
+def test_expense_tools_return_only_needed_warnings(b):
+    dispatch(b, "set_budget", {"trip_id": "t", "person_id": "mia", "total": 10000})
+    dispatch(b, "set_budget", {"trip_id": "t", "person_id": "jake", "total": 100000})
+    r = log(b, amount=27300, split_with=["aarav", "jake", "mia"])  # $91 each: Mia has $9 of $100 left
+    assert r["budget_warnings"] == {"mia": ["Total budget under 10% remaining"]}  # aarav has no budget
+    assert "DM each person" in r["next_step"] and "mia" in r["next_step"]
+    edited = dispatch(b, "edit_expense", {"expense_id": r["expense_id"], "requested_by": "aarav",
+                                          "changes": {"amount": 3000}})
+    assert edited["budget_warnings"] == {}
+    refund = dispatch(b, "record_refund", {"expense_id": r["expense_id"], "amount": 1500, "currency": "USD"})
+    assert refund["budget_warnings"] == {}
 
 
 def test_tier_prices_round_to_dollar():
@@ -171,3 +185,10 @@ def test_results_include_chat_ready_amounts(b):
     assert r["display"]["base_amount"] == "$100.08"
     assert sorted(r["display"]["per_person"].values()) == ["$33.36", "$33.36", "$33.36"]
     assert rules.fmt_money(-1300) == "-$13"
+
+
+def test_budget_status_has_chat_ready_amounts(b):
+    dispatch(b, "set_budget", {"trip_id": "t", "person_id": "mia", "total": 50000})
+    log(b, amount=90000, split_with=["aarav", "jake", "mia"])
+    d = b.get_budget_status("t", "mia")["display"]
+    assert (d["total"], d["spent"], d["remaining"]) == ("$500", "$300", "$200")

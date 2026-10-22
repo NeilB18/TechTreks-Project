@@ -50,8 +50,8 @@ turns:
       # At ~$917, both Jake ($800) and Mia ($500) are below the group budget.
       messages:
         - {to: group, matches: ["\\$917"], not_matches: ["\\bMia\\b", "\\bJake\\b", "\\$800", "\\$500"]}
-        - {to: mia, matches: ["\\$917"]}
-        - {to: jake, matches: ["\\$917"]}
+        - {to: mia, matches: ["\\$917|1\\.1"]}   # the amount or the tier, either is fine
+        - {to: jake, matches: ["\\$917|1\\.1"]}
         - {to: aarav, contains: [Mia, Jake]}
       end_state:
         - trip: {group_budget: 91700}

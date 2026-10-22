@@ -36,7 +36,6 @@ def test_catches_wrong_split_and_balance():
                                                         "nina", "zoe"],
                                          "override_opt_outs": ["jake"]}}])
     assert any("aarav should owe jake 5000" in f for f in fails)
-    assert any("get_budget_status" in f for f in fails)
 
 
 def test_catches_missing_dm():

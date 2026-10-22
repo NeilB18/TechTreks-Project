@@ -26,7 +26,6 @@ turns:
       calls:
         - {name: log_expense, args: {paid_by: aarav, amount: 9000, category: DRINKS,
                                      exact_amounts: {aarav: 4000, mia: 3000, jake: 2000}}}
-      count_min: {get_budget_status: 3}
       messages:
         - {to: group, contains: ["$40", "$30", "$20"]}
       end_state:
@@ -37,8 +36,5 @@ turns:
         - {name: log_expense, args: {trip_id: miami, paid_by: aarav, amount: 9000, currency: USD,
                                      description: Bar tab, category: DRINKS,
                                      exact_amounts: {aarav: 4000, mia: 3000, jake: 2000}}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: jake}}
       messages:
         - {to: group, text: "Logged 🍹 Bar tab, $90, paid by Aarav. Aarav $40, Mia $30, Jake $20."}

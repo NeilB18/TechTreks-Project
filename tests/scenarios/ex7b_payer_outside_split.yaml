@@ -22,9 +22,9 @@ turns:
       forbid: [set_exclusion]
       calls:
         - {name: log_expense, args: {paid_by: jake, amount: 35000, category: DRINKS}}
-      count_min: {get_budget_status: 7}
       messages:
         - {to: group, contains: ["$50", Jake]}
+      no_messages_to: [aarav, priya, jake, mia, sam, leo, nina, zoe]  # no budgets set, so no warnings to DM
       end_state:
         - expense_count: 1
         - balance: {from: aarav, to: jake, amount: 5000}
@@ -41,12 +41,5 @@ turns:
                                      description: Bar tab, category: DRINKS,
                                      split_with: [aarav, priya, mia, sam, leo, nina, zoe],
                                      exclude: [jake]}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: priya}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: sam}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: leo}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: nina}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: zoe}}
       messages:
         - {to: group, text: "Logged 🍻 Bar tab, $350, paid by Jake, split between the 7 drinkers ($50 each). Jake's not included (opted out of drinks), so everyone owes Jake $50. Venmo: @jake-venmo"}

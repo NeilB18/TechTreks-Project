@@ -14,9 +14,9 @@ turns:
       calls:
         # Passing everyone + exclude [jake], or just [aarav, mia], are both right; end_state checks the result.
         - {name: log_expense, args: {paid_by: mia, amount: 12000, currency: USD, category: FOOD}}
-      count_min: {get_budget_status: 2}
       messages:
         - {to: group, contains: ["$60", Jake]}
+      no_messages_to: [aarav, jake, mia]  # no budgets set, so no warnings to DM
       end_state:
         - balance: {from: aarav, to: mia, amount: 6000}
         - no_debts_for: jake
@@ -25,7 +25,5 @@ turns:
         - {name: log_expense, args: {trip_id: miami, paid_by: mia, amount: 12000, currency: USD,
                                      description: Dinner, category: FOOD, split_with: [aarav, mia],
                                      exclude: [jake], source_message: "dinner was $120"}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
-        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
       messages:
         - {to: group, text: "Logged 🍽️ Dinner, $120, paid by Mia, split between Aarav and Mia ($60 each). Jake's not included."}
