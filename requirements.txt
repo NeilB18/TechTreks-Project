@@ -3,6 +3,7 @@ pytest>=9
 pyyaml>=6
 django>=5.2,<6
 djangorestframework>=3.16
+django-allauth[socialaccount]>=65.20
 pytest-django>=4.11
 dj-database-url>=3
 requests>=2.32
