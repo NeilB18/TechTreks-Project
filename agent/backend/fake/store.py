@@ -46,13 +46,24 @@ FAKE_ITINERARY_ITEMS = [
 ]
 
 
-def _display(trip: Trip, amount: int, currency: str, base: int, shares: dict[str, int]) -> dict:
+def _display(trip: Trip, amount: int, currency: str, base: int, shares: dict[str, int],
+             paid_by: str | None = None) -> dict:
     """Formatted amounts to quote in chat, so replies match what was actually recorded."""
     out = {"amount": rules.fmt_money(amount, currency),
            "per_person": {p: rules.fmt_money(c, trip.base_currency) for p, c in shares.items()}}
     if currency != trip.base_currency:
         out["base_amount"] = rules.fmt_money(base, trip.base_currency)
+    if paid_by:
+        payer = trip.members[paid_by]
+        # Everyone in the split pays the payer, so it's the payer's handle, never the debtor's.
+        out["pay_to"] = f"{payer.name} ({payer.payment_handle})" if payer.payment_handle else payer.name
     return out
+
+
+def _debt_line(trip: Trip, debtor: str, creditor: str, cents: int) -> str:
+    c = trip.members[creditor]
+    pay = f", pay {c.payment_handle}" if c.payment_handle else ""
+    return f"{trip.members[debtor].name} owes {c.name} {rules.fmt_money(cents, trip.base_currency)}{pay}"
 
 
 def _warnings_step(warnings: dict) -> str:
@@ -261,7 +272,7 @@ class FakeBackend:
         return {"expense_id": e.id, "base_amount": base_amount, "base_currency": trip.base_currency,
                 "original_amount": amount, "original_currency": currency, "fx_rate": rate,
                 "splits": splits, "auto_excluded": auto_excluded,
-                "display": _display(trip, amount, currency, base_amount, splits),
+                "display": _display(trip, amount, currency, base_amount, splits, paid_by),
                 "budget_warnings": (w := self._budget_warnings(trip, splits)),
                 "next_step": _warnings_step(w)}
 
@@ -319,7 +330,8 @@ class FakeBackend:
                    amount_cents=base, original_amount=amount, currency=currency, note=note,
                    per_person=per_person, created_at=self.now)
         trip.refunds.append(r)
-        payer_owes = [{"to": c, "amount_cents": amt, "handle": trip.members[c].payment_handle}
+        payer_owes = [{"to": c, "amount_cents": amt, "handle": trip.members[c].payment_handle,
+                       "line": _debt_line(trip, d, c, amt)}
                       for (d, c), amt in sorted(self.pairwise_debts(trip).items()) if d == e.paid_by]
         step = "Post the refund and changed balances in the group."
         if payer_owes:
@@ -580,11 +592,14 @@ class FakeBackend:
     def get_balances(self, trip_id: str) -> dict:
         trip = self._trip(trip_id)
         out: dict[str, dict] = {}
+        lines = []
         for (debtor, creditor), amt in sorted(self.pairwise_debts(trip).items()):
             out.setdefault(debtor, {"owes": []})["owes"].append({
-                "to": creditor, "amount_cents": amt,
+                "to": creditor, "amount_cents": amt, "amount": rules.fmt_money(amt, trip.base_currency),
                 "handle": trip.members[creditor].payment_handle})
-        return {"balances": out, "currency": trip.base_currency}
+            lines.append(_debt_line(trip, debtor, creditor, amt))
+        # `lines` is chat-ready: quote it rather than re-deriving amounts or handles.
+        return {"balances": out, "currency": trip.base_currency, "lines": lines}
 
     def _spent_by_category(self, trip: Trip, pid: str) -> dict[str, int]:
         spent: dict[str, int] = {}

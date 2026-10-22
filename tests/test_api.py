@@ -36,7 +36,7 @@ def test_requires_token(client):
 def test_tool_call_and_errors(client):
     r = post(client, "get_balances", {"trip_id": "miami"})
     assert r.status_code == 200
-    assert r.json()["balances"]["mia"]["owes"][0] == {"to": "aarav", "amount_cents": 5000,
+    assert r.json()["balances"]["mia"]["owes"][0] == {"to": "aarav", "amount_cents": 5000, "amount": "$50",
                                                       "handle": "@aarav-venmo"}
     assert post(client, "nope", {}).status_code == 404
     r = post(client, "log_expense", {"trip_id": "miami", "paid_by": "zed", "amount": 100, "currency": "USD",

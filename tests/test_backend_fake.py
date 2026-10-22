@@ -56,7 +56,7 @@ def test_opt_out_auto_excluded_and_override(b):
 def test_payer_outside_split_is_owed_everything(b):
     log(b, paid_by="jake", amount=35000, split_with=["aarav", "mia"])
     owes = b.get_balances("t")["balances"]
-    assert owes["aarav"]["owes"] == [{"to": "jake", "amount_cents": 17500, "handle": "@jake-venmo"}]
+    assert owes["aarav"]["owes"] == [{"to": "jake", "amount_cents": 17500, "amount": "$175", "handle": "@jake-venmo"}]
     assert "jake" not in owes
     assert b.get_budget_status("t", "jake")["spent_cents"] == 0
 
@@ -73,7 +73,8 @@ def test_refund_same_ratio_and_pairwise_balances(b):
     log(b, paid_by="jake", amount=10000, category="SETTLEMENT", exact_amounts={"aarav": 10000})
     r = dispatch(b, "record_refund", {"expense_id": e, "amount": 15000, "currency": "USD"})
     assert r["per_person"] == {"aarav": 5000, "jake": 5000, "mia": 5000}
-    assert r["payer_now_owes"] == [{"to": "jake", "amount_cents": 5000, "handle": "@jake-venmo"}]
+    assert r["payer_now_owes"] == [{"to": "jake", "amount_cents": 5000, "handle": "@jake-venmo",
+                                    "line": "Aarav owes Jake $50, pay @jake-venmo"}]
     assert "DM aarav" in r["next_step"]
     debts = b.pairwise_debts(b.trips["t"])
     assert debts == {("aarav", "jake"): 5000, ("mia", "aarav"): 5000}
@@ -192,3 +193,11 @@ def test_budget_status_has_chat_ready_amounts(b):
     log(b, amount=90000, split_with=["aarav", "jake", "mia"])
     d = b.get_budget_status("t", "mia")["display"]
     assert (d["total"], d["spent"], d["remaining"]) == ("$500", "$300", "$200")
+
+
+def test_balance_lines_use_the_creditors_handle(b):
+    r = log(b, paid_by="mia", amount=12000, split_with=["aarav", "mia"])
+    assert r["display"]["pay_to"] == "Mia (@mia-venmo)"
+    bal = b.get_balances("t")
+    assert bal["lines"] == ["Aarav owes Mia $60, pay @mia-venmo"]
+    assert bal["balances"]["aarav"]["owes"][0]["amount"] == "$60"

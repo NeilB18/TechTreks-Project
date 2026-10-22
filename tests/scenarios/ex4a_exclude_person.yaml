@@ -15,7 +15,7 @@ turns:
         # Passing everyone + exclude [jake], or just [aarav, mia], are both right; end_state checks the result.
         - {name: log_expense, args: {paid_by: mia, amount: 12000, currency: USD, category: FOOD}}
       messages:
-        - {to: group, contains: ["$60", Jake]}
+        - {to: group, contains: ["$60"], not_matches: ["@aarav-venmo"]}  # Aarav pays Mia, so never Aarav's own handle
       no_messages_to: [aarav, jake, mia]  # no budgets set, so no warnings to DM
       end_state:
         - balance: {from: aarav, to: mia, amount: 6000}
