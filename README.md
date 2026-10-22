@@ -90,6 +90,10 @@ Run `manage.py send_due_reminders` from cron every few minutes.
 
 DM check: `GROUPME_ACCESS_TOKEN=... .venv/bin/python scripts/groupme_dm_spike.py <recipient_user_id>`. GroupMe bots can't DM, so this tests DMs sent from a user account.
 
+## Google sign-in (Phase 5)
+
+Google-only sign-in through django-allauth. A signed-in person links themselves to their trip member by posting `@tripbot link <code>` in the group, so no DMs are needed. After that, `GET /api/me/trips/<id>/budget` returns their own budget and nobody else's. Setup: [docs/google-signin.md](docs/google-signin.md).
+
 ## Trip page (Phase 5)
 
 Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtures by default, or the Django API when `TRIP_API_URL` is set.

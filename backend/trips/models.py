@@ -5,6 +5,7 @@ currency, with the original amount, currency and FX rate kept alongside.
 Rows within a trip keep their order through `position`.
 """
 
+from django.conf import settings
 from django.db import models
 
 
@@ -34,6 +35,9 @@ class Person(models.Model):
     payment_handle = models.CharField(max_length=100, null=True, blank=True)
     active = models.BooleanField(default=True)
     position = models.IntegerField(default=0)
+    # The signed-in account that proved it owns this chat user (see accounts/services.py).
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                             related_name="trip_people")
 
     class Meta:
         ordering = ["position"]

@@ -1,7 +1,7 @@
 # Tech Treks — Group Trip Agent: Project Context for Claude Code
 
-> Handoff from claude.ai planning chats (Oct 15–20, 2026). Use this as context for `/plan`.
-> **Source of truth for design:** `specs.md` and `examples.md` in the repo folder (`~/Desktop/tech_treks/MAIN PROJECT/`). If anything here conflicts with those files, the files win.
+> Started as a handoff from claude.ai planning chats (Oct 15–20, 2026); updated Oct 22, 2026.
+> **Source of truth for design:** `specs.md` and `examples.md` in this repo. If anything here conflicts with those files, the files win. Build details and the decisions log: [docs/build-plan.md](docs/build-plan.md).
 
 ## 1. What we're building
 An AI agent that lives in a group chat (GroupMe for now) and:
@@ -20,14 +20,17 @@ An AI agent that lives in a group chat (GroupMe for now) and:
 | **Romir** | Agent side — system prompt, tool definitions (specs.md), CoT examples (examples.md), eval harness/tests |
 | **Shriya + Roger** | Backend API / web app, GroupMe bot integration |
 
+First versions of the backend, bot, sign-in and trip page were built alongside the agent (PRs 2–6) so the whole flow could be tested end to end; they're ready for review.
+
 Build order: **single-user first, multi-user later.**
 Working style: Romir makes the design decisions — when something is undecided, **ask, don't assume.**
 
-## 3. Stack (planned)
+## 3. Stack
 - **Agent:** Qwen (`qwen3.8-max`, thinking on) via Alibaba Cloud Model Studio's OpenAI-compatible API, US (Virginia) region. Team decision Oct 22, 2026, replacing the Claude API
 - **Chat:** GroupMe bot for MVP (Telegram considered; Sendblue/LoopMessage for iMessage later)
 - **Backend:** Django (+ DRF)
-- **DB:** Supabase Postgres (use as plain Postgres; don't use Supabase Auth to avoid two user systems)
+- **DB:** Supabase Postgres (use as plain Postgres; don't use Supabase Auth to avoid two user systems). SQLite locally for now
+- **Sign-in:** Google via django-allauth
 - **Travel data:** Google Places + SerpAPI (Duffel only if in-app booking is added later)
 - **Payments:** Venmo/Zelle deep links only (no money moves through us)
 - **Trip page:** Next.js + Tailwind
@@ -46,7 +49,8 @@ Category enum: `LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT`
 - **Trip**: id, name, status (PLANNING / BOOKED / ACTIVE / DONE), destination?, start_date?, end_date?, target_break?, base_currency, group_budget, members, activities, expenses, polls, reminders
   - methods: add_*, itinerary_by_day, spent_by_category, balances, `summary()` → **the context contract fed to the agent each turn** (align with Shriya/Roger)
 
-## 5. Tools (19) — the agent ↔ backend contract
+## 5. Tools (20 + `send_message`) — the agent ↔ backend contract
+Added since the first draft: `get_trip` (full trip state, never budgets) and `send_message` (the agent's only way to talk: the group, or one person privately). Current inputs are in `specs.md` and `agent/tools/schemas.py`.
 "Confirm" = agent must get that confirmation in chat before calling.
 
 **Expenses**
@@ -101,21 +105,26 @@ Category enum: `LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT`
 
 ## 7. Progress so far
 - ✅ Concept, stack, data model, Trip object + methods designed
-- ✅ `specs.md` — data model, 19 tools, agent rules (in repo folder, pushed on branch `agent-specs`)
-- ✅ `examples.md` — CoT worked examples (full multi-turn traces: chat → reasoning → tool calls → reply) for: dropout, location/budget/date change, split among / exclude people, travel tips tiers, currency conversion, category opt-outs, refunds
-- ⏳ Earlier drafts from Oct 16 (may be superseded by specs.md — reconcile, don't trust blindly): `schema.sql` (Postgres, cents, balances view), `system_prompt.md`, `examples.json` (50 annotated cases), `tests.md`, `test_agent.py` (eval harness scoring tool routing/args)
+- ✅ `specs.md` and `examples.md` (plus Example 7b, payer outside the split; Example 5 rewritten for the 6-tier flow)
+- ✅ Agent: system prompt v1, 20 backend tools + `send_message`, Qwen tool-calling loop, fake-chat CLI (`agent/`)
+- ✅ Tests: every example replayed offline against the fake backend, the database and the API; live Qwen tests ready to run
+- ✅ Django backend + tool API, GroupMe bot, Google sign-in, Next.js trip page (all tested offline)
+- ⏳ Live Qwen runs and prompt tuning: waiting on Alibaba account verification
+- ⏳ Not deployed yet; Supabase not connected
+- The Oct 16 drafts (`schema.sql`, `examples.json`, etc.) were never in this repo and are superseded by the code above
 
 ## 8. Open questions (ask Romir — don't decide)
-- [ ] **Budget warning logic** — more complex than "< 10% of total"; Romir to explain. Blocks examples: *running out of budget early* and *overspend advice*.
-- [ ] FX rate provider (asking mentor)
-- [ ] Mentor: demo date + what must work; team API key/credits + model; who implements tools (agent side vs backend); can the GroupMe bot DM people privately (critical — DM-only budgets depend on it)
+- [ ] **Budget warning logic** — more complex than "< 10% of total" (placeholder in use); Romir to explain. Blocks Examples 3 and 8.
+- [ ] FX rate provider (asking mentor; fixed table in use)
+- [ ] Can GroupMe DM people privately? Run `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in
+- [ ] Mentor: demo date + what must work
+- [x] Model + API key → Qwen `qwen3.8-max` via Alibaba Cloud Model Studio (US region); account in verification
+- [x] Trip state for the agent → injected summary every turn + `get_trip` tool
+- [x] Travel-tip tiers → 6 presets (0.5×–2×) + custom multiplier; anyone proposes, leader confirms
 
-## 9. What's left to build (agent side, in order)
-1. Finish the 2 blocked examples once budget warning logic is defined.
-2. **System prompt v1** from specs.md rules.
-3. **Tool definitions** — function-calling JSON schemas (OpenAI format) matching specs.md.
-4. **Local harness** — Python script calling the Qwen API with the tools, running against an **in-memory fake** of the data model, fed a fake multi-person chat. No backend needed.
-5. **Turn examples into tests** — each = input + expected tool calls + expected end state. Run → fix prompt → repeat.
-6. **Integrate** — swap fakes for Shriya/Roger's real Django API + GroupMe bot.
-
-(Team side, for reference: Django API + Supabase schema, GroupMe bot webhook, Google sign-in, Next.js trip page.)
+## 9. What's next
+1. When Qwen access works: `pytest -m live --repeat 3`, fix the prompt until the scenarios pass.
+2. Real GroupMe test: create the bot, `manage.py link_group`, chat end to end.
+3. Deploy the backend + trip page on one domain; connect Supabase; set up Google OAuth (`docs/google-signin.md`).
+4. Replace placeholder travel tips / FX with Google Places, SerpAPI and a real FX provider.
+5. Finish Examples 3 and 8 once the budget-warning logic is defined.

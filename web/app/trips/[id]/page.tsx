@@ -5,7 +5,7 @@ import { Balances } from "@/components/Balances";
 import { BudgetPanel } from "@/components/BudgetPanel";
 import { Expenses } from "@/components/Expenses";
 import { Itinerary } from "@/components/Itinerary";
-import { getTripPage } from "@/lib/api";
+import { getTripPage, usingFixtures } from "@/lib/api";
 import { formatDateRange, formatMoney } from "@/lib/format";
 
 export async function generateMetadata(props: PageProps<"/trips/[id]">): Promise<Metadata> {
@@ -69,7 +69,7 @@ export default async function TripPage(props: PageProps<"/trips/[id]">) {
       </section>
 
       <section className="mt-8">
-        <BudgetPanel />
+        <BudgetPanel tripId={trip.id} live={!usingFixtures} currency={trip.base_currency} />
       </section>
     </main>
   );

@@ -70,3 +70,28 @@ export type Balances = {
 };
 
 export type TripPageData = { detail: TripDetail; balances: Balances };
+
+// Signed-in API (/api/me/*, proxied to Django). Only ever the caller's own data.
+export type Me =
+  | { signed_in: false; login_url: string }
+  | { signed_in: true; email: string; people: { trip_id: string; trip_name: string; person_id: string; name: string }[] };
+
+export type BudgetStatus = {
+  person_id: string;
+  budget_set: boolean;
+  total_cents?: number;
+  spent_cents: number;
+  remaining_cents?: number;
+  planned_cents: number;
+  remaining_after_planned_cents?: number;
+  warnings: string[];
+};
+
+export type MyBudget = {
+  person_id: string;
+  name: string;
+  budget: BudgetStatus;
+  notices: { text: string; created_at: string }[];
+};
+
+export type LinkCode = { code: string; expires_at: string; instructions: string };
