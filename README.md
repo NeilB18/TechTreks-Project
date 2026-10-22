@@ -67,6 +67,10 @@ API (all routes need `Authorization: Bearer $AGENT_API_TOKEN`; the dev default i
 
 The agent talks to it with `agent/backend/http.py` (`HttpBackend`). See `.env.example` for the settings.
 
+## Trip page (Phase 5)
+
+Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtures by default, or the Django API when `TRIP_API_URL` is set.
+
 ## Placeholders
 
 - Budget warnings: remaining < 10% (`agent/backend/fake/rules.py`). The real logic is still TBD, so Examples 3 and 8 are skipped.
