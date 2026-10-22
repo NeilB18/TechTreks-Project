@@ -2,7 +2,7 @@ example: "9"
 title: Refunds
 seed:
   trip: {id: miami, name: Miami Spring Break, destination: Miami, base_currency: USD,
-         leader: aarav, leader_approval: [member_changes, trip_changes]}
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
   members:
     - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
     - {id: jake, name: Jake, handle: "@jake-venmo"}

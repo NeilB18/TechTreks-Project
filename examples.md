@@ -267,22 +267,25 @@ get_travel_tips(trip_id="miami", destination="Miami", multipliers=[1.1])
 **Reasoning**
 1. The leader confirmed, so save ~$917 as the group budget.
 2. Future suggestions and itineraries should target ~$917/person.
-3. The update says Mia's private budget is below the new group budget. DM her privately and nudge Aarav by DM, naming her but not her number.
+3. The update says Jake's and Mia's private budgets are below the new group budget ($800 and $500 vs ~$917). DM each of them privately, and nudge Aarav by DM, naming them but not their numbers.
 
 **Tool calls**
 ```
 update_trip(trip_id="miami", changes={ group_budget: 91700 })
-  → { updated: true, members_below_group_budget: ["mia"] }
+  → { updated: true, members_below_group_budget: ["jake", "mia"] }
 ```
 
 **Reply (group):**
 > Locked in: ~$917/person (1.1×) 🌴 I'll plan around that.
 
+**Reply (DM → Jake):**
+> Heads up: the group budget is ~$917/person, which is a bit above your budget. I'll flag cheaper options for you as we plan.
+
 **Reply (DM → Mia):**
 > Heads up: the group budget is ~$917/person, which is above your budget. I'll flag cheaper options for you as we plan. Want to look at which parts to skip?
 
 **Reply (DM → Aarav):**
-> FYI: Mia's budget is below the group budget. Worth keeping a few cheaper options in the plan.
+> FYI: Jake's and Mia's budgets are below the group budget. Worth keeping a few cheaper options in the plan.
 
 ## Example 6 — Currency conversion
 

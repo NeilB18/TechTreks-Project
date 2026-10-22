@@ -12,7 +12,7 @@ expect keys (all optional):
   count_min:        {tool: n}         at least n calls
   forbid:           [tool]            must not be called this turn
   forbid_mutations: true              no state-changing tool (asking-only turns)
-  messages:         [{to, contains?, contains_any?, matches?, not_contains?}]
+  messages:         [{to, contains?, contains_any?, matches?, not_contains?, not_matches?}]
                                       checked against all text sent to `to` this turn
   no_messages_to:   [to]
   end_state:        [check]           see _check_state
@@ -124,6 +124,9 @@ def check_turn(expect: dict, tr: TurnResult, backend, trip_id: str) -> list[str]
         for s in m.get("not_contains", []):
             if s.lower() in low:
                 fails.append(f"message to {m['to']} must not contain {s!r}: {text!r}")
+        for pat in m.get("not_matches", []):
+            if re.search(pat, text, re.I):
+                fails.append(f"message to {m['to']} must not match /{pat}/: {text!r}")
     for to in expect.get("no_messages_to", []):
         if any(o["to"] == to for o in tr.outbox):
             fails.append(f"should not message {to}")

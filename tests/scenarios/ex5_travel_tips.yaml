@@ -3,7 +3,7 @@ title: Travel tips for a given budget
 seed:
   trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
          start_date: "2027-03-16", end_date: "2027-03-20", base_currency: USD,
-         leader: aarav, leader_approval: [member_changes, trip_changes]}
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
   members:
     - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
     - {id: jake, name: Jake, handle: "@jake-venmo"}
@@ -47,11 +47,12 @@ turns:
     expect:
       calls:
         - {name: update_trip, args: {changes: {group_budget: 91700}}}
+      # At ~$917, both Jake ($800) and Mia ($500) are below the group budget.
       messages:
-        - {to: group, matches: ["\\$917"], not_contains: [Mia]}
+        - {to: group, matches: ["\\$917"], not_matches: ["\\bMia\\b", "\\bJake\\b", "\\$800", "\\$500"]}
         - {to: mia, matches: ["\\$917"]}
-        - {to: aarav, contains: [Mia]}
-      no_messages_to: [jake]
+        - {to: jake, matches: ["\\$917"]}
+        - {to: aarav, contains: [Mia, Jake]}
       end_state:
         - trip: {group_budget: 91700}
     golden:
@@ -59,5 +60,6 @@ turns:
         - {name: update_trip, args: {trip_id: miami, changes: {group_budget: 91700}}}
       messages:
         - {to: group, text: "Locked in: ~$917/person (1.1×) 🌴 I'll plan around that."}
+        - {to: jake, text: "Heads up: the group budget is ~$917/person, which is a bit above your budget. I'll flag cheaper options for you as we plan."}
         - {to: mia, text: "Heads up: the group budget is ~$917/person, which is above your budget. I'll flag cheaper options for you as we plan. Want to look at which parts to skip?"}
-        - {to: aarav, text: "FYI: Mia's budget is below the group budget. Worth keeping a few cheaper options in the plan."}
+        - {to: aarav, text: "FYI: Jake's and Mia's budgets are below the group budget. Worth keeping a few cheaper options in the plan."}

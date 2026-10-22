@@ -4,7 +4,7 @@ seed:
   now: "2027-03-01T12:00:00"
   trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
          start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
-         leader: aarav, leader_approval: [member_changes, trip_changes]}
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
   members:
     - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
     - {id: priya, name: Priya, handle: "@priya-venmo"}
