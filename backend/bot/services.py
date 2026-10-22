@@ -9,6 +9,7 @@ import re
 from django.conf import settings
 from django.db import IntegrityError, transaction
 
+from accounts.services import find_link_command, redeem
 from agent.runner import ChatEvent, TripAgent
 from bot import groupme
 from bot.models import Conversation, GroupChat, ProcessedMessage
@@ -53,6 +54,10 @@ def handle_callback(payload: dict) -> str:
     trip = chat.trip
     backend = DjangoBackend()
     person = _find_or_add_person(backend, trip.id, str(payload.get("user_id")), payload.get("name") or "")
+    code = find_link_command(text) if mentioned else None
+    if code:
+        groupme.post_to_group(chat.bot_id, redeem(code, person))
+        return "linked account"
     convo, _ = Conversation.objects.get_or_create(trip=trip)
     agent = make_agent(backend, trip.id, convo.history)
     event = ChatEvent(sender_id=person.person_id, text=text, channel="group", mentioned=mentioned)
