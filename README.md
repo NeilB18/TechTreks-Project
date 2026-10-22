@@ -67,6 +67,29 @@ API (all routes need `Authorization: Bearer $AGENT_API_TOKEN`; the dev default i
 
 The agent talks to it with `agent/backend/http.py` (`HttpBackend`). See `.env.example` for the settings.
 
+## GroupMe bot (Phase 4)
+
+Django app `backend/bot`. GroupMe posts every group message to `/groupme/callback/<GROUPME_CALLBACK_SECRET>`. The bot:
+
+- ignores bot and system messages and repeats;
+- adds new senders to the trip;
+- sends @mentions to the agent;
+- posts group replies through the GroupMe bot API.
+
+Private messages (budgets) never go to the group. Until DMs are confirmed, they're saved as private notices for the trip page (`BOT_DM_MODE=store`).
+
+Setup, once you have a GroupMe bot (dev.groupme.com/bots):
+
+```bash
+cd backend
+../.venv/bin/python manage.py migrate
+../.venv/bin/python manage.py link_group <group_id> <bot_id> <trip_id> --name "Miami Spring Break"
+```
+
+Run `manage.py send_due_reminders` from cron every few minutes.
+
+DM check: `GROUPME_ACCESS_TOKEN=... .venv/bin/python scripts/groupme_dm_spike.py <recipient_user_id>`. GroupMe bots can't DM, so this tests DMs sent from a user account.
+
 ## Trip page (Phase 5)
 
 Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtures by default, or the Django API when `TRIP_API_URL` is set.
