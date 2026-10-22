@@ -73,6 +73,8 @@ def test_refund_same_ratio_and_pairwise_balances(b):
     log(b, paid_by="jake", amount=10000, category="SETTLEMENT", exact_amounts={"aarav": 10000})
     r = dispatch(b, "record_refund", {"expense_id": e, "amount": 15000, "currency": "USD"})
     assert r["per_person"] == {"aarav": 5000, "jake": 5000, "mia": 5000}
+    assert r["payer_now_owes"] == [{"to": "jake", "amount_cents": 5000, "handle": "@jake-venmo"}]
+    assert "DM aarav" in r["next_step"]
     debts = b.pairwise_debts(b.trips["t"])
     assert debts == {("aarav", "jake"): 5000, ("mia", "aarav"): 5000}
 
@@ -161,3 +163,11 @@ def test_unknown_args_are_tool_errors(b):
         dispatch(b, "get_balances", {"trip_id": "t", "bogus": 1})
     with pytest.raises(ToolError):
         dispatch(b, "nope", {})
+
+
+def test_results_include_chat_ready_amounts(b):
+    r = log(b, amount=180000, currency="MXN", split_with=["aarav", "jake", "mia"])
+    assert r["display"]["amount"] == "MX$1,800"
+    assert r["display"]["base_amount"] == "$100.08"
+    assert sorted(r["display"]["per_person"].values()) == ["$33.36", "$33.36", "$33.36"]
+    assert rules.fmt_money(-1300) == "-$13"

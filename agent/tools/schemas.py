@@ -10,7 +10,8 @@ in the injected trip summary. Keep inputs in sync with agent/backend/protocol.py
 
 CATEGORY = {"type": "string",
             "enum": ["LODGING", "TRANSPORT", "FOOD", "DRINKS", "ACTIVITIES", "OTHER", "SETTLEMENT"]}
-CENTS = {"type": "integer", "minimum": 0}
+CENTS = {"type": "integer", "minimum": 0,
+         "description": "Integer cents (1/100 of the currency): $120 -> 12000, MX$1,800 -> 180000, $33.50 -> 3350"}
 PERSON = {"type": "string", "description": "Person id from the trip summary"}
 PEOPLE = {"type": "array", "items": PERSON}
 CURRENCY = {"type": "string", "description": "ISO 4217 code, e.g. USD, MXN, EUR"}
@@ -38,7 +39,7 @@ BACKEND_TOOL_SCHEMAS = [
           "Log a payment and split it. Call right away once payer, amount, currency and who it's for are clear; "
           "if who it's for is unclear, or the currency symbol is ambiguous, ask instead. The payer does not have to be in the split. "
           "Stores the original amount and the base-currency amount with the FX rate. Returns expense_id, splits (base-currency cents) and auto_excluded.",
-          {"trip_id": TRIP_ID, "paid_by": PERSON, "amount": {**CENTS, "description": "Total in `currency`, in cents"},
+          {"trip_id": TRIP_ID, "paid_by": PERSON, "amount": {**CENTS, "description": "Total in `currency`, in cents: $120 -> 12000, MX$1,800 -> 180000"},
            "currency": CURRENCY, "description": {"type": "string"}, "category": CATEGORY,
            **SPLIT_FIELDS,
            "source_message": {"type": "string", "description": "The chat message this came from"}},

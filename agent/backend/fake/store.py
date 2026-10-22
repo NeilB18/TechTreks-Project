@@ -46,6 +46,21 @@ FAKE_ITINERARY_ITEMS = [
 ]
 
 
+def _display(trip: Trip, amount: int, currency: str, base: int, shares: dict[str, int]) -> dict:
+    """Formatted amounts to quote in chat, so replies match what was actually recorded."""
+    out = {"amount": rules.fmt_money(amount, currency),
+           "per_person": {p: rules.fmt_money(c, trip.base_currency) for p, c in shares.items()}}
+    if currency != trip.base_currency:
+        out["base_amount"] = rules.fmt_money(base, trip.base_currency)
+    return out
+
+
+def _budget_check_step(people) -> str:
+    ids = ", ".join(sorted(people))
+    return (f"Call get_budget_status for each of: {ids} (one call per person), "
+            "then DM only the people with warnings.")
+
+
 def _slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") or "x"
 
@@ -244,7 +259,9 @@ class FakeBackend:
         trip.expenses.append(e)
         return {"expense_id": e.id, "base_amount": base_amount, "base_currency": trip.base_currency,
                 "original_amount": amount, "original_currency": currency, "fx_rate": rate,
-                "splits": splits, "auto_excluded": auto_excluded}
+                "splits": splits, "auto_excluded": auto_excluded,
+                "display": _display(trip, amount, currency, base_amount, splits),
+                "next_step": _budget_check_step(splits)}
 
     def edit_expense(self, expense_id: str, requested_by: str, changes: dict) -> dict:
         trip, e = self._find_expense(expense_id)
@@ -273,7 +290,8 @@ class FakeBackend:
                 override_opt_outs=changes.get("override_opt_outs"))
             e.amount_cents, e.fx_rate, e.splits = base_amount, rate, splits
             e.original_amount, e.original_currency, e.category, e.paid_by = amount, currency, category, paid_by
-        return {"updated": True, "payer": e.paid_by, "expense": self._expense_view(trip, e)}
+        return {"updated": True, "payer": e.paid_by, "expense": self._expense_view(trip, e),
+                "next_step": _budget_check_step(e.splits)}
 
     def delete_expense(self, expense_id: str, requested_by: str) -> dict:
         trip, e = self._find_expense(expense_id)
@@ -298,8 +316,16 @@ class FakeBackend:
                    amount_cents=base, original_amount=amount, currency=currency, note=note,
                    per_person=per_person, created_at=self.now)
         trip.refunds.append(r)
+        payer_owes = [{"to": c, "amount_cents": amt, "handle": trip.members[c].payment_handle}
+                      for (d, c), amt in sorted(self.pairwise_debts(trip).items()) if d == e.paid_by]
+        step = "Post the refund and changed balances in the group."
+        if payer_owes:
+            step += (f" {e.paid_by} now owes money back (see payer_now_owes): DM {e.paid_by} who to pay,"
+                     " how much, and the handle.")
         return {"refund_id": r.id, "expense_id": expense_id, "payer": e.paid_by,
-                "base_amount": base, "per_person": per_person}
+                "base_amount": base, "per_person": per_person, "payer_now_owes": payer_owes,
+                "display": _display(trip, amount, currency, base, per_person),
+                "next_step": step + " " + _budget_check_step(per_person)}
 
     # ---------------------------------------------------------- trip & members
     def add_member(self, trip_id: str, chat_user_id: str, name: str, payment_handle: str | None = None) -> dict:

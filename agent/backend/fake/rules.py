@@ -83,3 +83,12 @@ def split_proportional(amount_cents: int, weights: dict[str, int], rng: random.R
 
 def fmt_usd(cents: int) -> str:
     return f"${cents / 100:,.2f}".replace(".00", "")
+
+
+SYMBOLS = {"USD": "$", "MXN": "MX$", "EUR": "€", "GBP": "£", "CAD": "CA$"}
+
+
+def fmt_money(cents: int, currency: str = "USD") -> str:
+    """Chat-ready amount, e.g. 3336 -> "$33.36", 180000 MXN -> "MX$1,800"."""
+    text = f"{SYMBOLS.get(currency, currency + ' ')}{abs(cents) / 100:,.2f}".replace(".00", "")
+    return "-" + text if cents < 0 else text
