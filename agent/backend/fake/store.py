@@ -264,6 +264,7 @@ class FakeBackend:
             trip, paid_by=paid_by, amount=amount, currency=currency, category=category,
             split_with=split_with, exact_amounts=exact_amounts, exclude=exclude,
             override_opt_outs=override_opt_outs)
+        before = self._snapshot(trip, splits)
         e = Expense(id=self._next_id("e", self._all_expense_ids()), paid_by=paid_by,
                     amount_cents=base_amount, original_amount=amount, original_currency=currency,
                     fx_rate=rate, description=description, category=category, splits=splits,
@@ -273,7 +274,7 @@ class FakeBackend:
                 "original_amount": amount, "original_currency": currency, "fx_rate": rate,
                 "splits": splits, "auto_excluded": auto_excluded,
                 "display": _display(trip, amount, currency, base_amount, splits, paid_by),
-                "budget_warnings": (w := self._budget_warnings(trip, splits)),
+                "budget_warnings": (w := self._budget_warnings(trip, before)),
                 "next_step": _warnings_step(w)}
 
     def edit_expense(self, expense_id: str, requested_by: str, changes: dict) -> dict:
@@ -286,6 +287,7 @@ class FakeBackend:
             raise ToolError(f"Can't change {sorted(bad)}; allowed: {sorted(allowed)}")
         if "description" in changes:
             e.description = changes["description"]
+        before = {}
         money_keys = {"amount", "currency", "category", "split_with", "exact_amounts", "exclude",
                       "override_opt_outs", "paid_by"}
         if money_keys & set(changes):
@@ -301,10 +303,11 @@ class FakeBackend:
                 trip, paid_by=paid_by, amount=amount, currency=currency, category=category,
                 split_with=split_with, exact_amounts=exact, exclude=changes.get("exclude"),
                 override_opt_outs=changes.get("override_opt_outs"))
+            before = self._snapshot(trip, set(e.splits) | set(splits))
             e.amount_cents, e.fx_rate, e.splits = base_amount, rate, splits
             e.original_amount, e.original_currency, e.category, e.paid_by = amount, currency, category, paid_by
         return {"updated": True, "payer": e.paid_by, "expense": self._expense_view(trip, e),
-                "budget_warnings": (w := self._budget_warnings(trip, e.splits)),
+                "budget_warnings": (w := self._budget_warnings(trip, before)),
                 "next_step": _warnings_step(w)}
 
     def delete_expense(self, expense_id: str, requested_by: str) -> dict:
@@ -326,6 +329,7 @@ class FakeBackend:
         if base + already > e.amount_cents:
             raise ToolError(f"Refunds would total {base + already} cents, more than the expense ({e.amount_cents})")
         per_person = rules.split_proportional(base, e.splits, self.rng)
+        before = self._snapshot(trip, per_person)
         r = Refund(id=self._next_id("r", {r.id for r in trip.refunds}), expense_id=expense_id,
                    amount_cents=base, original_amount=amount, currency=currency, note=note,
                    per_person=per_person, created_at=self.now)
@@ -340,7 +344,7 @@ class FakeBackend:
         return {"refund_id": r.id, "expense_id": expense_id, "payer": e.paid_by,
                 "base_amount": base, "per_person": per_person, "payer_now_owes": payer_owes,
                 "display": _display(trip, amount, currency, base, per_person),
-                "budget_warnings": (w := self._budget_warnings(trip, per_person)),
+                "budget_warnings": (w := self._budget_warnings(trip, before)),
                 "next_step": step + " " + _warnings_step(w)}
 
     # ---------------------------------------------------------- trip & members
@@ -363,6 +367,7 @@ class FakeBackend:
         p = self._person(trip, person_id)
         if not p.active:
             raise ToolError(f"{person_id!r} was already removed")
+        before = self._snapshot(trip, [m for m in trip.active_member_ids() if m != person_id])
         p.active = False
         removed_from = []
         for a in trip.activities:
@@ -370,7 +375,7 @@ class FakeBackend:
                 a.attendees.remove(person_id)
                 removed_from.append(a.id)
         # Group-total activities now cost the others more, so re-check everyone still going.
-        warnings = self._budget_warnings(trip, trip.active_member_ids())
+        warnings = self._budget_warnings(trip, before)
         return {"removed": True, "removed_from_activities": removed_from,
                 "still_owes_past_splits": True, "was_leader": trip.leader_id == person_id,
                 "budget_warnings": warnings, "next_step": _warnings_step(warnings)}
@@ -618,15 +623,34 @@ class FakeBackend:
                 planned += self._activity_view(trip, a)["est_per_person_cents"]
         return {"ACTIVITIES": planned} if planned else {}
 
-    def _budget_warnings(self, trip: Trip, people) -> dict[str, list[str]]:
-        """Private: {person_id: warnings} for people with a budget and at least one warning.
+    def _upcoming(self, trip: Trip, pid: str) -> list[tuple[str, int]]:
+        """(name, per-person cents) of this person's unpaid upcoming activities, priciest first."""
+        items = [(a.name, self._activity_view(trip, a)["est_per_person_cents"]) for a in trip.activities
+                 if pid in a.attendees and a.expense_id is None and a.est_cost_cents
+                 and (a.start is None or a.start[:10] >= self.now[:10])]
+        return sorted(items, key=lambda x: -x[1])
+
+    def _flags(self, trip: Trip, pid: str) -> dict[str, str]:
+        b = trip.budgets.get(pid)
+        if b is None:
+            return {}
+        return rules.budget_flags(b.total_cents, b.limits, self._spent_by_category(trip, pid),
+                                  self._planned_by_category(trip, pid),
+                                  rules.trip_progress(trip.start_date, trip.end_date, self.now),
+                                  self._upcoming(trip, pid), trip.base_currency)
+
+    def _snapshot(self, trip: Trip, people) -> dict[str, dict[str, str]]:
+        """Each person's warning flags before a change, to diff against afterwards."""
+        return {pid: self._flags(trip, pid) for pid in people if pid in trip.budgets}
+
+    def _budget_warnings(self, trip: Trip, before: dict[str, dict[str, str]]) -> dict[str, list[str]]:
+        """Private: {person_id: messages} for warning lines this change newly crossed.
         Returned by the money-changing tools so the agent only has to DM, not check each person."""
         out = {}
-        for pid in people:
-            if pid in trip.budgets:
-                warnings = self.get_budget_status(trip.id, pid)["warnings"]
-                if warnings:
-                    out[pid] = warnings
+        for pid, flags_before in before.items():
+            new = rules.newly_crossed(flags_before, self._flags(trip, pid))
+            if new:
+                out[pid] = new
         return out
 
     def get_budget_status(self, trip_id: str, person_id: str) -> dict:
@@ -647,7 +671,10 @@ class FakeBackend:
             "remaining_after_planned_cents": b.total_cents - spent - planned,
             "by_category": {c: {"limit_cents": b.limits.get(c), "spent_cents": spent_by_cat.get(c, 0),
                                 "planned_cents": planned_by_cat.get(c, 0)} for c in cats},
-            "warnings": rules.budget_warnings(b.total_cents, b.limits, spent_by_cat, planned_by_cat),
+            "warnings": rules.current_warnings(self._flags(trip, person_id)),
+            "over_by_cents": max(spent - b.total_cents, 0),
+            "upcoming": [{"name": n, "est_per_person": rules.fmt_money(c, trip.base_currency)}
+                         for n, c in self._upcoming(trip, person_id)],
             "display": {k: rules.fmt_money(v, trip.base_currency) for k, v in {
                 "total": b.total_cents, "spent": spent, "remaining": b.total_cents - spent,
                 "planned": planned, "remaining_after_planned": b.total_cents - spent - planned}.items()},

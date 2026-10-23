@@ -106,7 +106,7 @@ def test_budget_counts_share_not_payment_and_skips_settlements(b):
     assert s["spent_cents"] == 10000 and s["remaining_cents"] == 40000
 
 
-def test_budget_warning_placeholder_includes_planned_activities(b):
+def test_dropout_warns_when_a_category_limit_is_nearly_used(b):
     # Example 1: a $400 group-total boat tour split 4 ways fits Mia's $140 activities limit;
     # after a dropout it's ~$133 each, leaving under 10% of the limit.
     dispatch(b, "add_member", {"trip_id": "t", "chat_user_id": "priya", "name": "Priya"})
@@ -116,15 +116,16 @@ def test_budget_warning_placeholder_includes_planned_activities(b):
                                  "cost_is_per_person": False, "start": "2027-03-15"})
     assert b.get_budget_status("t", "mia")["warnings"] == []
     r = dispatch(b, "remove_member", {"trip_id": "t", "person_id": "priya"})
-    assert b.get_budget_status("t", "mia")["warnings"] == ["ACTIVITIES under 10% remaining"]
-    assert r["budget_warnings"] == {"mia": ["ACTIVITIES under 10% remaining"]}
+    msg = "Activities: $133.33 of your $140 limit used (including plans), $6.67 left."
+    assert b.get_budget_status("t", "mia")["warnings"] == [msg]
+    assert r["budget_warnings"] == {"mia": [msg]}
 
 
 def test_expense_tools_return_only_needed_warnings(b):
     dispatch(b, "set_budget", {"trip_id": "t", "person_id": "mia", "total": 10000})
     dispatch(b, "set_budget", {"trip_id": "t", "person_id": "jake", "total": 100000})
-    r = log(b, amount=27300, split_with=["aarav", "jake", "mia"])  # $91 each: Mia has $9 of $100 left
-    assert r["budget_warnings"] == {"mia": ["Total budget under 10% remaining"]}  # aarav has no budget
+    r = log(b, amount=27300, split_with=["aarav", "jake", "mia"])  # $91 each: Mia passes 50% and 80% at once
+    assert r["budget_warnings"] == {"mia": ["You've used 91% of your budget ($91 of $100)."]}  # aarav has no budget
     assert "DM each person" in r["next_step"] and "mia" in r["next_step"]
     edited = dispatch(b, "edit_expense", {"expense_id": r["expense_id"], "requested_by": "aarav",
                                           "changes": {"amount": 3000}})
