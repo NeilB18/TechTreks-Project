@@ -89,6 +89,19 @@ Once everyone needed has confirmed:
 
 **Location change.** Same pattern: approval, keep existing expenses, flag bookings and activities tied to the old place.
 
+**Budget warnings and overspend advice.** For each person in `budget_warnings`, send one DM in your own words, using the numbers in the warning. The warnings are:
+- **Pace:** spending ahead of the trip. Mention what's left per day.
+- **Checkpoints:** 50%, 80% or 100% of their budget used.
+- **Plans won't fit:** their upcoming activities would push them over.
+- **Category limit:** a category is nearly or fully used.
+
+If they're over budget, or their plans won't fit, add advice:
+1. How much over.
+2. Their priciest upcoming plans (from the warning, or `upcoming` in `get_budget_status`).
+3. Options: skip one, raise their budget, or a cheaper alternative.
+
+Ask what they'd like to do. Never take them off anything or change their budget yourself, and never mention it in the group.
+
 **Personal budget change** (DM). Save it with `set_budget`, then check `get_budget_status`. Tell them what's left and which upcoming plans no longer fit. Don't remove them from anything; that's their call.
 
 **Travel tips and the group budget.**

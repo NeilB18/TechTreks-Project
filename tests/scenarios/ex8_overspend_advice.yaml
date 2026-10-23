@@ -1,6 +1,40 @@
 example: "8"
 title: Overspend advice
-skip: "budget warning logic TBD (Romir)"
 seed:
-  trip: {id: miami}
-turns: []
+  now: "2027-03-16T13:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: ACTIVE, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  budgets:
+    mia: {total: 50000}
+  expenses:
+    - {id: e1, paid_by: aarav, amount: 90000, description: Airbnb, category: LODGING,
+       split_with: [aarav, jake, mia]}
+    - {id: e2, paid_by: jake, amount: 48000, description: Dinner, category: FOOD,
+       split_with: [aarav, jake, mia]}
+  activities:
+    - {id: boat_tour, name: Boat tour, start: "2027-03-17T10:00", est_cost_cents: 12000}
+    - {id: jet_ski, name: Jet ski, start: "2027-03-18T11:00", est_cost_cents: 9000, attendees: [mia, jake]}
+turns:
+  - sender: jake
+    text: "@tripbot lunch was $180, I paid, split with everyone"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: jake, amount: 18000, split_with: [aarav, jake, mia]}}
+      # Advice only: never take Mia off anything or change her budget for her.
+      forbid: [set_budget, remove_member, add_activity]
+      messages:
+        - {to: group, contains: ["$60"], not_matches: ["budget", "\\$500", "\\$520", "over by"]}
+        - {to: mia, contains: ["$20"], contains_any: [boat tour, jet ski], matches: ["skip|raise|cheaper"]}
+      no_messages_to: [aarav, jake]
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: jake, amount: 18000, currency: USD,
+                                     description: Lunch, category: FOOD, split_with: [aarav, jake, mia]}}
+      messages:
+        - {to: group, text: "Logged 🌮 Lunch, $180, paid by Jake, split 3 ways ($60 each). Venmo: @jake-venmo"}
+        - {to: mia, text: "Heads up: you're $20 over your $500 budget ($520 spent). Still coming up: the boat tour (~$120) and jet ski (~$90). You could skip one of those, raise your budget, or I can look for something cheaper. What would you like to do?"}

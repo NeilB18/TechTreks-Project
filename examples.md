@@ -132,7 +132,37 @@ get_budget_status(trip_id="miami", person_id="mia")
 > Location changes follow the same pattern as 2a: leader approval if routed, keep expenses, and flag bookings and activities tied to the old place.
 
 ## Example 3 — Running out of budget early
-TBD — waiting on Romir's budget warning logic
+
+### State snapshot
+- Trip: Miami Spring Break (ACTIVE), Mar 14–18. It's the evening of Mar 15: day 2 of 5.
+- Members: Aarav (leader), Jake, Mia. Base currency USD.
+- Private budgets: Jake $700, Mia $2,000.
+- Expenses: Airbnb $900 paid by Aarav, split 3 ways. Jake has spent $300 so far (43% of his budget).
+
+### Turn 1
+**Aarav (group):** @tripbot boat tour was $360, I paid, split with everyone
+
+**Reasoning**
+1. A clear expense: $360, paid by Aarav, split equally 3 ways, so $120 each. Log it right away.
+2. The backend checks everyone's budget and returns `budget_warnings`. Jake is now at $420 of $700 (60%). That crosses his 50% checkpoint, and 60% used on day 2 of 5 (40% of the trip) is 20 points ahead of pace.
+3. Group gets the normal confirmation. Jake's warning is private, so it goes to his DM only. One DM covering both points.
+4. Mia's budget is fine, so she gets no DM.
+
+**Tool calls**
+```
+log_expense(trip_id="miami", paid_by="aarav", amount=36000, currency="USD",
+            description="Boat tour", category="ACTIVITIES",
+            split_with=["aarav", "jake", "mia"], source_message="...")
+  → { expense_id: "e2", splits: { aarav: 12000, jake: 12000, mia: 12000 },
+      budget_warnings: { jake: ["You've used 60% of your budget ($420 of $700).",
+                                "You've used 60% of your budget and it's only day 2 of 5. That leaves about $93.33 a day for the rest of the trip."] } }
+```
+
+**Reply (group):**
+> Logged 🚤 Boat tour, $360, paid by Aarav, split 3 ways ($120 each). Venmo: @aarav-venmo
+
+**Reply (DM → Jake):**
+> Heads up: you've used 60% of your budget ($420 of $700) and it's only day 2 of 5. That leaves about $93 a day for the rest of the trip. Want me to flag cheaper options for the next few days?
 
 ## Example 4a — Exclude someone from a split
 
@@ -397,7 +427,36 @@ log_expense(trip_id="miami", paid_by="jake", amount=35000, currency="USD",
 > Logged 🍻 Bar tab, $350, paid by Jake, split between the 7 drinkers ($50 each). Jake's not included (opted out of drinks), so everyone owes Jake $50. Venmo: @jake-venmo
 
 ## Example 8 — Overspend advice
-TBD — waiting on Romir's budget warning logic
+
+### State snapshot
+- Trip: Miami Spring Break (ACTIVE), Mar 14–18. It's Mar 16.
+- Members: Aarav (leader), Jake, Mia. Base currency USD.
+- Mia's private budget: $500. She's spent $460 so far (Airbnb $300 + dinner $160).
+- Upcoming plans Mia signed up for: Boat tour on Mar 17 (~$120/person), Jet ski on Mar 18 (~$90/person).
+
+### Turn 1
+**Jake (group):** @tripbot lunch was $180, I paid, split with everyone
+
+**Reasoning**
+1. A clear expense: $180, paid by Jake, split 3 ways, so $60 each. Log it.
+2. `budget_warnings` says Mia is now $20 over her $500 budget, and lists her upcoming plans.
+3. Overspend advice goes to Mia's DM only: how much over, her priciest upcoming plans, and options (skip one, raise her budget, or something cheaper). Ask what she wants.
+4. Don't take her off anything or change her budget. That's her call. Nothing about it in the group.
+
+**Tool calls**
+```
+log_expense(trip_id="miami", paid_by="jake", amount=18000, currency="USD",
+            description="Lunch", category="FOOD",
+            split_with=["aarav", "jake", "mia"], source_message="...")
+  → { expense_id: "e3", splits: { aarav: 6000, jake: 6000, mia: 6000 },
+      budget_warnings: { mia: ["You're $20 over your $500 budget ($520 spent). Coming up: Boat tour ~$120, Jet ski ~$90."] } }
+```
+
+**Reply (group):**
+> Logged 🌮 Lunch, $180, paid by Jake, split 3 ways ($60 each). Venmo: @jake-venmo
+
+**Reply (DM → Mia):**
+> Heads up: you're $20 over your $500 budget ($520 spent). Still coming up: the boat tour (~$120) and jet ski (~$90). You could skip one of those, raise your budget, or I can look for something cheaper. What would you like to do?
 
 ## Example 9 — Refunds
 

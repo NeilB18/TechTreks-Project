@@ -1,6 +1,35 @@
 example: "3"
 title: Running out of budget early
-skip: "budget warning logic TBD (Romir)"
 seed:
-  trip: {id: miami}
-turns: []
+  now: "2027-03-15T20:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: ACTIVE, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  budgets:
+    jake: {total: 70000}
+    mia: {total: 200000}
+  expenses:
+    - {id: e1, paid_by: aarav, amount: 90000, description: Airbnb, category: LODGING,
+       split_with: [aarav, jake, mia]}
+turns:
+  - sender: aarav
+    text: "@tripbot boat tour was $360, I paid, split with everyone"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: aarav, amount: 36000, split_with: [aarav, jake, mia]}}
+      forbid: [set_budget, remove_member]
+      messages:
+        - {to: group, contains: ["$120"], not_matches: ["budget", "\\$700", "60%", "\\bpace\\b"]}
+        - {to: jake, matches: ["60%|\\$420", "day 2"]}
+      no_messages_to: [mia, aarav]
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: aarav, amount: 36000, currency: USD,
+                                     description: Boat tour, category: ACTIVITIES, split_with: [aarav, jake, mia]}}
+      messages:
+        - {to: group, text: "Logged 🚤 Boat tour, $360, paid by Aarav, split 3 ways ($120 each). Venmo: @aarav-venmo"}
+        - {to: jake, text: "Heads up: you've used 60% of your budget ($420 of $700) and it's only day 2 of 5. That leaves about $93 a day for the rest of the trip. Want me to flag cheaper options for the next few days?"}
