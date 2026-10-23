@@ -29,6 +29,7 @@ from pathlib import Path
 import yaml
 
 from agent.backend.fake.store import FakeBackend
+from agent.travel.provider import FakeTravel
 from agent.backend.protocol import ToolError, dispatch, is_mutation
 from agent.runner import ChatEvent, ToolCall, TurnResult
 
@@ -49,7 +50,7 @@ def load_scenarios() -> list[dict]:
 def make_backend(scn: dict, backend=None):
     """Seed `backend` (default: a new FakeBackend) with the scenario's state snapshot.
     Any backend with load_seed() works; HttpBackend is seeded through its `state` backend."""
-    b = backend or FakeBackend()
+    b = backend or FakeBackend(travel=FakeTravel())  # canned travel data: evals stay free and repeatable
     (getattr(b, "state", None) or b).load_seed(scn["seed"])
     return b
 
