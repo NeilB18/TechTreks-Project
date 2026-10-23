@@ -108,6 +108,5 @@ The live Qwen scenarios run only when started by hand: Actions → Tests → Run
 
 ## Placeholders
 
-- Budget warnings: remaining < 10% (`agent/backend/fake/rules.py`). The real logic is still TBD, so Examples 3 and 8 are skipped.
 - FX: fixed rate table in `rules.py`. The provider is still TBD.
 - Travel tips and itineraries: canned text in the fake backend. Google Places and SerpAPI come later.

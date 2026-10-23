@@ -114,7 +114,7 @@ Added since the first draft: `get_trip` (full trip state, never budgets) and `se
 - The Oct 16 drafts (`schema.sql`, `examples.json`, etc.) were never in this repo and are superseded by the code above
 
 ## 8. Open questions (ask Romir — don't decide)
-- [ ] **Budget warning logic** — more complex than "< 10% of total" (placeholder in use); Romir to explain. Blocks Examples 3 and 8.
+- [x] **Budget warning logic** → pace (20 points ahead), 50/80/100% checkpoints, plans won't fit, category limits at 90/100%; only newly crossed lines (Oct 23). Examples 3 and 8 written.
 - [ ] FX rate provider (asking mentor; fixed table in use)
 - [ ] Can GroupMe DM people privately? Run `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in
 - [ ] Mentor: demo date + what must work
@@ -127,4 +127,3 @@ Added since the first draft: `get_trip` (full trip state, never budgets) and `se
 2. Real GroupMe test: create the bot, `manage.py link_group`, chat end to end.
 3. Deploy the backend + trip page on one domain; connect Supabase; set up Google OAuth (`docs/google-signin.md`).
 4. Replace placeholder travel tips / FX with Google Places, SerpAPI and a real FX provider.
-5. Finish Examples 3 and 8 once the budget-warning logic is defined.

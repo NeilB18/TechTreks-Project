@@ -13,7 +13,7 @@ Agent in a group chat that plans a group trip, builds the itinerary, and manages
 Category enum: LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT
 
 - **Person**: id, name, chat_user_id, payment_handle, budget (private), trips
-- **Budget**: owner_id, total_cents, limits {Category: cents}; remaining(category, expenses); warn when remaining < 10% of total
+- **Budget**: owner_id, total_cents, limits {Category: cents}; remaining(category, expenses); warnings: see Budget warnings below
 - **Expense**: id, paid_by, amount_cents, description, category, splits {person_id: cents} (sums to amount_cents), created_at, source_message
 - **Activity**: id, name, location, start, end, est_cost_cents, cost_is_per_person, attendees, important, booking_url, expense_id
 - **Poll**: id, question, options, votes {person_id: option}, closes_at, is_open
@@ -48,6 +48,14 @@ Category enum: LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT
 - **Category opt-outs:** can be set by DM or in the group. When an expense auto-excludes someone, the confirmation names them and gives the reason.
 - **Refunds:** only the original payer reports a refund. If people already paid the payer back, balances update and the agent DMs the payer who to pay back and how much.
 - **Opt-out conflict:** if someone opted out of a category but is explicitly named in a split for that category, the agent asks before logging.
+- **Budget warnings (Oct 23, 2026):** all private, DM only:
+  - **Too fast:** during the trip, % of budget used is 20+ points ahead of % of the trip done (ignored under 20% used).
+  - **Checkpoints:** 50%, 80% and 100% of the total budget.
+  - **Plans won't fit:** spent plus upcoming signed-up activities is over the total.
+  - **Category limits:** 90% and 100% of a limit (spent + planned).
+
+  An expense, edit, refund or dropout warns only about lines it newly crosses, so nobody hears the same warning twice. `get_budget_status` shows all current ones.
+- **Overspend advice:** DM how much over, the priciest upcoming plans, and options (skip one, raise the budget, something cheaper). Never change anything for them.
 - **Budget checks:** the backend checks budgets itself. `log_expense`, `edit_expense`, `record_refund` and `remove_member` return `budget_warnings` (`{person_id: [warnings]}`, only people who need one), and the agent DMs each of those people. Decided Oct 22, 2026 after live tests showed the model sometimes skipped per-person checks.
 - **Travel info:** tips and itinerary places come from external APIs (Google Places / SerpAPI), not the model's own knowledge.
 
@@ -108,7 +116,7 @@ Amounts in cents. "Confirm" = agent must get the stated confirmation before call
 - Exclusion: new (person_id, category) — category opt-outs
 
 ## Open questions
-- [ ] Budget warning logic — Romir to explain (more complex than < 10% of total; harness uses < 10% as a placeholder)
+- [x] Budget warning logic → see Budget warnings (Oct 23, 2026)
 - [ ] FX rate provider — ask mentor (harness uses a fixed rate table for now)
 - [x] How tier prices are derived from the average → 6 presets (0.5×–2×) + custom multiplier; anyone proposes, leader confirms
 - [x] How the agent reads saved trip state on later messages → both: injected summary every turn + `get_trip` tool

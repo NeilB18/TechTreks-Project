@@ -42,6 +42,8 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 22 | GroupMe DMs: test first with `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in |
 | Oct 22 | Account linking works without DMs: sign in with Google, then post `@tripbot link <code>` in the group |
 | Oct 22 | Each piece of work gets its own branch and PR, stacked so work doesn't wait on reviews |
+| Oct 22 | Budget checks run in the backend; tools return `budget_warnings` so none get skipped |
+| Oct 23 | Budget warnings: pace (20 points ahead of the trip), 50/80/100% checkpoints, plans won't fit, category limits at 90/100%; only newly crossed lines. Overspend advice: how much over, priciest plans, options |
 
 ## Pull requests (stacked, merge in order)
 
@@ -56,7 +58,6 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 ## Blocked / waiting on
 
 - **Qwen access** (Alibaba account in verification): live agent tests (`pytest -m live`), prompt tuning, a real GroupMe demo.
-- **Budget-warning rule** (Romir): Examples 3 and 8.
 - **GroupMe DM spike**: needs a GroupMe account and a teammate to receive a test DM.
 - **Google OAuth client**: see [google-signin.md](google-signin.md).
 - **Mentor**: demo date and what must work, exchange-rate provider.
