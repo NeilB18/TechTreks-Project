@@ -1,0 +1,37 @@
+kind: edge
+title: Deleting someone else's expense waits for the payer
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  expenses:
+    - {id: e1, paid_by: aarav, amount: 12000, description: Dinner, category: FOOD, split_with: [aarav, jake, mia]}
+    - {id: e2, paid_by: mia, amount: 3000, description: Uber, category: TRANSPORT, split_with: [aarav, jake, mia]}
+turns:
+  - sender: jake
+    text: "@tripbot delete the uber, it got logged by mistake"
+    expect:
+      forbid: [delete_expense]
+      forbid_mutations: true
+      messages:
+        - {to: group, contains: [Mia]}
+    golden:
+      messages:
+        - {to: group, text: "@Mia, you paid for the Uber ($30). OK to delete it?"}
+  - sender: mia
+    text: "@tripbot yeah delete it"
+    expect:
+      calls:
+        - {name: delete_expense, args: {expense_id: e2}}
+      end_state:
+        - expense_count: 1
+    golden:
+      calls:
+        - {name: delete_expense, args: {expense_id: e2, requested_by: mia}}
+      messages:
+        - {to: group, text: "Deleted the Uber ($30). 🗑️"}

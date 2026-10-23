@@ -1,0 +1,25 @@
+kind: edge
+title: A euro amount is unambiguous, so it's logged without asking
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: "Paris, France",
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: jake
+    text: "@tripbot €90 for museum tickets, I paid, split with everyone"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: jake, amount: 9000, currency: EUR, split_with: [aarav, jake, mia]}}
+      messages:
+        - {to: group, matches: ["€90", "\\$97"]}
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: jake, amount: 9000, currency: EUR,
+                                     description: Museum tickets, category: ACTIVITIES, split_with: [aarav, jake, mia]}}
+      messages:
+        - {to: group, text: "Logged 🖼️ Museum tickets, €90 (≈ $97.20), paid by Jake. $32.40 each. Venmo: @jake-venmo"}

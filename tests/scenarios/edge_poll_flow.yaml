@@ -1,0 +1,69 @@
+kind: edge
+title: Poll from start to applying the result
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: null,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: aarav
+    text: "@tripbot make a poll: Miami or Cancún for spring break?"
+    expect:
+      calls:
+        - {name: create_poll}
+      messages:
+        - {to: group, contains_any: [Cancún, Cancun]}
+    golden:
+      calls:
+        - {name: create_poll, args: {trip_id: miami, question: "Where for spring break?", options: [Miami, Cancún]}}
+      messages:
+        - {to: group, text: "Poll: where for spring break? 🗳️ Reply @tripbot Miami or @tripbot Cancún"}
+  - sender: jake
+    text: "@tripbot Cancún"
+    expect:
+      calls:
+        - {name: vote_poll, args: {person_id: jake}}
+    golden:
+      calls:
+        - {name: vote_poll, args: {poll_id: p1, person_id: jake, option: Cancún}}
+      messages:
+        - {to: group, text: "Got your vote, Jake."}
+  - sender: mia
+    text: "@tripbot cancun for me too"
+    expect:
+      calls:
+        - {name: vote_poll, args: {person_id: mia}}
+    golden:
+      calls:
+        - {name: vote_poll, args: {poll_id: p1, person_id: mia, option: Cancún}}
+      messages:
+        - {to: group, text: "Got your vote, Mia."}
+  - sender: aarav
+    text: "@tripbot close the poll"
+    expect:
+      calls:
+        - {name: close_poll}
+      forbid: [update_trip]
+      messages:
+        - {to: group, contains_any: [Cancún, Cancun]}
+    golden:
+      calls:
+        - {name: close_poll, args: {poll_id: p1}}
+      messages:
+        - {to: group, text: "Cancún wins, 2–0! 🌴 Want me to set it as the destination?"}
+  - sender: aarav
+    text: "@tripbot yes go with Cancún"
+    expect:
+      calls:
+        - {name: update_trip}
+      end_state:
+        - trip_contains: {destination: cancun}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: miami, changes: {destination: "Cancún, Mexico"}}}
+      messages:
+        - {to: group, text: "Destination set: Cancún 🌴"}

@@ -29,7 +29,7 @@ turns:
       forbid: [set_budget, remove_member, add_activity]
       messages:
         - {to: group, contains: ["$60"], not_matches: ["budget", "\\$500", "\\$520", "over by"]}
-        - {to: mia, contains: ["$20"], contains_any: [boat tour, jet ski], matches: ["skip|raise|cheaper"]}
+        - {to: mia, contains: ["$20"], contains_any: [boat tour, jet ski], matches: ["skip|drop|raise|bump|increase|cheaper|trim|cut|swap"]}
       no_messages_to: [aarav, jake]
     golden:
       calls:
