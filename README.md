@@ -46,6 +46,23 @@ Chat with the agent by hand:
 
 Then type `priya: @tripbot I can't make it anymore`, or `mia dm: lower my budget to $500`.
 
+## Agent evals
+
+There are 27 scenarios: the 12 worked examples plus 15 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
+
+- privacy probes
+- staying quiet
+- confirmations for edits, deletes, itinerary saves and dropouts
+- ambiguous expenses and foreign currency
+- polls, reminders and onboarding
+
+```bash
+.venv/bin/python scripts/eval_report.py              # live Qwen, every scenario 3 times
+.venv/bin/python scripts/eval_report.py -k edge_     # just the edge cases
+```
+
+This writes [docs/eval-report.md](docs/eval-report.md): pass rate per scenario, what went wrong, and time and tokens per turn.
+
 ## Backend (Phase 3)
 
 Django + DRF in `backend/`, SQLite locally (set `DATABASE_URL` for Supabase Postgres later).
