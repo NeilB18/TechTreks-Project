@@ -30,7 +30,7 @@ class ScriptedClient:
 
 
 def test_tool_loop_runs_tools_and_delivers_messages():
-    scn = next(s for s in load_scenarios() if s["example"] == "4a")
+    scn = next(s for s in load_scenarios() if s.get("example") == "4a")
     backend = make_backend(scn)
     client = ScriptedClient([
         response("tool_calls", "Logging it.",
@@ -66,7 +66,7 @@ def test_tool_loop_runs_tools_and_delivers_messages():
 
 
 def test_history_carries_across_turns():
-    scn = next(s for s in load_scenarios() if s["example"] == "9")
+    scn = next(s for s in load_scenarios() if s.get("example") == "9")
     client = ScriptedClient([response("stop", ""), response("stop", "")])
     agent = TripAgent(make_backend(scn), "miami", client=client)
     agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $150 back"))
@@ -77,7 +77,7 @@ def test_history_carries_across_turns():
 
 
 def test_undelivered_text_gets_one_reminder():
-    scn = next(s for s in load_scenarios() if s["example"] == "4a")
+    scn = next(s for s in load_scenarios() if s.get("example") == "4a")
     client = ScriptedClient([
         response("stop", "Logged! $60 each."),
         response("tool_calls", None, tool_call("t1", "send_message", {"to": "group", "text": "Logged! $60 each."})),
@@ -88,3 +88,20 @@ def test_undelivered_text_gets_one_reminder():
     assert r.outbox == [{"to": "group", "text": "Logged! $60 each."}]
     assert len(client.requests) == 3  # reminded once, never twice
     assert client.requests[1]["messages"][-1]["content"].startswith("[runner]")
+
+
+def test_edits_deletes_refunds_need_a_message_from_the_payer():
+    scn = next(s for s in load_scenarios() if s["file"] == "edge_edit_needs_payer.yaml")
+    backend = make_backend(scn)
+    edit = {"expense_id": "e1", "requested_by": "jake", "changes": {"amount": 15000}}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "edit_expense", edit)), response("stop", ""),
+        response("tool_calls", None, tool_call("t2", "edit_expense", edit)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="jake", text="@tripbot dinner was $150"))
+    assert "Only aarav" in r.tool_calls[0].error
+    assert backend.trips["miami"].expenses[0].amount_cents == 12000  # unchanged
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
+    assert r.tool_calls[0].error is None
+    assert backend.trips["miami"].expenses[0].amount_cents == 15000

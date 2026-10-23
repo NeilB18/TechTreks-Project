@@ -16,6 +16,7 @@ from agent.backend.protocol import Backend, ToolError, dispatch
 from agent.tools.schemas import ALL_TOOLS
 
 SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "system_prompt.md").read_text()
+PAYER_CONFIRMS = {"edit_expense", "delete_expense", "record_refund"}
 UNDELIVERED_NOTE = (
     "[runner] Your last text was not delivered: nobody sees text outside send_message. "
     "If it was meant for someone, send it now with send_message (to \"group\", or a person id for "
@@ -54,7 +55,7 @@ def make_client() -> OpenAI:
     if not key:
         raise RuntimeError(f"Set {config.API_KEY_ENV} to your Model Studio API key")
     # A stuck request otherwise waits 10 minutes; fail fast and let the client retry.
-    return OpenAI(api_key=key, base_url=config.base_url(), timeout=config.REQUEST_TIMEOUT_S, max_retries=2)
+    return OpenAI(api_key=key, base_url=config.base_url(), timeout=config.REQUEST_TIMEOUT_S, max_retries=4)
 
 
 class TripAgent:
@@ -68,6 +69,7 @@ class TripAgent:
         self.enable_thinking = enable_thinking
         # Plain JSON-serializable dicts, so the bot can store and reload them between webhooks.
         self.history: list[dict] = list(history or [])
+        self.sender_id: str | None = None
 
     def _event_text(self, ev: ChatEvent) -> str:
         state = self.backend.summary(self.trip_id)
@@ -91,6 +93,18 @@ class TripAgent:
             extra_body={"enable_thinking": self.enable_thinking},
         )
 
+    def _payer_guard(self, name: str, args: dict) -> str | None:
+        """Edits, deletes and refunds need the payer's OK (specs.md). Enforce it here instead of trusting
+        the model: they only go through on a message from the payer, e.g. their "yes" to the question."""
+        if name not in PAYER_CONFIRMS:
+            return None
+        expense = next((e for e in self.backend.get_trip(trip_id=self.trip_id)["expenses"]
+                        if e["expense_id"] == args.get("expense_id")), None)
+        if expense is None or expense["paid_by"] == self.sender_id:
+            return None  # unknown ids are left to the backend's own error
+        return (f"Only {expense['paid_by']} (who paid for {expense['description']}) can confirm this. "
+                f"Nothing was changed. Ask them in the group, and do it once they reply yes.")
+
     def _run_tool(self, name: str, raw_args: str, result: TurnResult) -> str:
         try:
             args = json.loads(raw_args or "{}")
@@ -110,6 +124,10 @@ class TripAgent:
             result.outbox.append({"to": to, "text": text})
             call.result = {"sent": True}
             return json.dumps(call.result)
+        blocked = self._payer_guard(name, args)
+        if blocked:
+            call.error = blocked
+            return f"Error: {blocked}"
         try:
             call.result = dispatch(self.backend, name, args)
             return json.dumps(call.result, default=str)
@@ -119,6 +137,7 @@ class TripAgent:
 
     def handle(self, event: ChatEvent) -> TurnResult:
         result = TurnResult()
+        self.sender_id = event.sender_id
         self.history.append({"role": "user", "content": self._event_text(event)})
         nudged = False
         for _ in range(config.MAX_TOOL_ROUNDS):
