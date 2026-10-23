@@ -97,6 +97,15 @@ Google-only sign-in through django-allauth. A signed-in person links themselves 
 
 Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtures by default, or the Django API when `TRIP_API_URL` is set.
 
+## CI
+
+GitHub Actions (`.github/workflows/tests.yml`) runs on every PR and push to `main`:
+
+- the offline Python tests
+- the trip page's lint, tests and build
+
+The live Qwen scenarios run only when started by hand: Actions → Tests → Run workflow → tick "live". They need the `DASHSCOPE_API_KEY` and `QWEN_BASE_URL` repo secrets.
+
 ## Placeholders
 
 - Budget warnings: remaining < 10% (`agent/backend/fake/rules.py`). The real logic is still TBD, so Examples 3 and 8 are skipped.
