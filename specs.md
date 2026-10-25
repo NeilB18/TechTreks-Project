@@ -10,7 +10,7 @@ Agent in a group chat that plans a group trip, builds the itinerary, and manages
 - Generate itinerary
 
 ## Data model
-The models and money rules are implemented in `classes/` (see `classes/README.md`); the backend uses them through `agent/backend/fake/ledger.py`.
+The data model and its rules are implemented in `trip_model/` (see `trip_model/README.md`); `TripEngine` (`agent/backend/core/engine.py`) runs the tools on it. The MVP is USD-only; the currency fields and decisions below are post-MVP.
 
 Category enum: LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT
 

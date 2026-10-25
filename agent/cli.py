@@ -1,4 +1,4 @@
-"""Fake multi-person chat with the agent, backed by the in-memory FakeBackend.
+"""Fake multi-person chat with the agent, backed by an in-memory TripEngine.
 
     python -m agent.cli                       # default seed (Example 7b's 8-person Miami trip)
     python -m agent.cli tests/scenarios/ex1_dropout.yaml
@@ -14,7 +14,7 @@ import sys
 
 import yaml
 
-from agent.backend.fake.store import FakeBackend
+from agent.backend.core.engine import TripEngine
 from agent.runner import ChatEvent, TripAgent
 from agent.scenarios import SCENARIO_DIR
 
@@ -24,7 +24,7 @@ LINE = re.compile(r"^(\w+)(\s+dm)?\s*:\s*(.+)$", re.I)
 def main(argv: list[str]) -> None:
     path = argv[1] if len(argv) > 1 else SCENARIO_DIR / "ex7b_payer_outside_split.yaml"
     seed = yaml.safe_load(open(path))["seed"]
-    backend = FakeBackend()
+    backend = TripEngine()
     backend.load_seed(seed)
     trip_id = seed["trip"]["id"]
     agent = TripAgent(backend, trip_id)

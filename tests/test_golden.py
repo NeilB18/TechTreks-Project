@@ -1,7 +1,7 @@
 """Offline: replay the tool calls and replies from examples.md against every backend.
 
-Runs against the in-memory fake, the Django database backend, and the HTTP API
-(through Django's test client). If the fake passes but Django or HTTP fails,
+Runs against the in-memory engine, the Django database backend, and the HTTP API
+(through Django's test client). If the in-memory run passes but Django or HTTP fails,
 the real backend has drifted from the contract.
 """
 

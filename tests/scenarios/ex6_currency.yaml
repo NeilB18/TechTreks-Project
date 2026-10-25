@@ -1,5 +1,5 @@
 example: "6"
-title: Currency conversion
+title: Currency conversion (post-MVP; the MVP is USD-only)
 seed:
   trip: {id: cancun, name: Cancún Spring Break, destination: "Cancún, Mexico",
          start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,

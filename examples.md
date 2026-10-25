@@ -319,6 +319,8 @@ update_trip(trip_id="miami", changes={ group_budget: 91700 })
 
 ## Example 6 — Currency conversion
 
+> **Post-MVP.** The MVP is USD-only. This example stays so the currency code keeps being tested.
+
 ### State snapshot
 - Trip: Cancún, base currency USD. Members: Aarav (leader), Jake, Mia
 - Rates below are illustrative. The FX provider is TBD.

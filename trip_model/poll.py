@@ -1,17 +1,18 @@
 # class Poll:
 #     id; question; options: list[str]
 #     votes: dict[person_id, str]; closes_at; is_open
-#     vote(person, option); results() -> dict; winner() -> list[str]   # all tied options
+#     check_open(now) -> bool   # closes itself once closes_at has passed
+#     vote(person, option, now); results() -> dict; winner() -> list[str]   # all tied options
 
 from datetime import datetime
 
 class Poll:
     def __init__(self, id, question, options: list[str], closes_at: datetime | None = None,
-                 is_open: bool = True):
+                 is_open: bool = True, votes: dict | None = None):
         self.id = id
         self.question = question
         self.options = options
-        self.votes = {}
+        self.votes = votes if votes is not None else {}
         self.closes_at = closes_at
         self.is_open = is_open
 
@@ -24,11 +25,11 @@ class Poll:
             self.close()
         return self.is_open
 
-    def vote(self, person_id, option):
-        if not self.check_open():
-            raise ValueError("Poll is closed.")
+    def vote(self, person_id, option, now: datetime | None = None):
+        if not self.check_open(now):
+            raise ValueError("That poll is closed.")
         if option not in self.options:
-            raise ValueError("Invalid option.")
+            raise ValueError(f"{option!r} isn't an option. Options: {self.options}")
         self.votes[person_id] = option
 
     def results(self):

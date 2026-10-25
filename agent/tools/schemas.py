@@ -5,12 +5,14 @@ Schemas stick to plain JSON Schema (type, properties, required, items, enum,
 description) because Model Studio's docs don't confirm anyOf/oneOf support.
 Amounts are integer cents in the given currency. Person ids are the `id` values
 in the injected trip summary. Keep inputs in sync with agent/backend/protocol.py
-(tests/test_schemas.py checks this).
+(tests/test_schemas.py checks this). Category and status names come from trip_model/.
 """
 
+from trip_model.category import Category
+from trip_model.trip_status import TripStatus
+
 # Spending categories. SETTLEMENT (paybacks) is only created by record_payback.
-CATEGORY = {"type": "string",
-            "enum": ["LODGING", "TRANSPORT", "FOOD", "DRINKS", "ACTIVITIES", "OTHER"]}
+CATEGORY = {"type": "string", "enum": [c.name for c in Category if c != Category.SETTLEMENT]}
 CENTS = {"type": "integer", "minimum": 0}
 PERSON = {"type": "string", "description": "Person id from the trip summary"}
 PEOPLE = {"type": "array", "items": PERSON}
@@ -89,7 +91,7 @@ BACKEND_TOOL_SCHEMAS = [
           {"trip_id": TRIP_ID, "changes": {"type": "object", "properties": {
               "name": {"type": "string"}, "destination": {"type": "string"},
               "start_date": ISO_DATE, "end_date": ISO_DATE, "base_currency": CURRENCY,
-              "status": {"type": "string", "enum": ["PLANNING", "BOOKED", "ACTIVE", "DONE"]},
+              "status": {"type": "string", "enum": [s.name for s in TripStatus]},
               "target_break": {"type": "string"},
               "group_budget": {**CENTS, "description": "Per-person cents of the tier the leader locked in"},
               "leader_id": PERSON,

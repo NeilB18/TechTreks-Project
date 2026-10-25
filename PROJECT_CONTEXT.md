@@ -33,30 +33,34 @@ Working style: Romir, Roger, and Shriya make the design decisions — when somet
 - **Sign-in:** Google via django-allauth
 - **Travel data:** Google Places + SerpAPI (Duffel only if in-app booking is added later)
 - **Payments:** Venmo/Zelle deep links only (no money moves through us)
+- **Currency:** the MVP is **USD-only**. Multi-currency (FX conversion, `convert_currency`, Example 6) stays in the code and keeps passing, but is post-MVP: no new work on it for now
 - **Trip page:** Next.js + Tailwind
 
 ## 4. Data model
-**`classes/` is the data model and money rules** (decided Oct 25, 2026). The backend uses it through `agent/backend/fake/ledger.py`: the fake backend's dataclasses stay the storage shape (the database mirrors them), and the rules (splits, balances, settle-up, paybacks, budget warnings) come from `classes/`. Tests: `tests/test_classes.py`. Design notes: `classes/README.md`.
+**`trip_model/` is the one data model** (decided Oct 25, 2026; it started as Roger's `classes/`). It holds the trip's data and its rules: splits, refunds, balances, settle-up, paybacks, dropouts, opt-outs, polls, reminders, budget warnings. `TripEngine` (`agent/backend/core/engine.py`) runs every tool on these objects; the Django backend loads a trip from the database into them and saves it back. Tests: `tests/test_trip_model.py`. Design notes: `trip_model/README.md`.
 
-Category and TripStatus are Python enums in `classes/` (int values); tools, the database and the web page keep using the names (`"FOOD"`), converted at the edges. All money in **cents**.
+Category and TripStatus are Python enums in `trip_model/` (int values); tools, the database and the web page keep using the names (`"FOOD"`), converted at the edges (the engine and `backend/trips/services.py`), as are ISO strings ↔ dates/datetimes and person ids ↔ `Person` objects. The tool schemas take their category and status lists from the enums. All money in **cents**.
 
-- **Person**: id, name, chat_user_id, payment_handle, budget (private), trips
+- **Person**: id, name, chat_user_id, payment_handle, budget (private), active (False after dropping out), trips
 - **Budget**: owner_id, total_cents, limits {Category: cents}; `spent(category, expenses)` (their split share; SETTLEMENT never counts), `remaining(category, expenses)` (None if no limit), `warning(category, expenses, planned_cents)` = under 10% of that category's limit left, counting planned (unpaid) activities. Category limits only; the total doesn't warn
 - **Expense**: id, paid_by, amount_cents, currency, original amount + base amount + FX rate, description, category, created_at, source_message
   - **splits {person_id: cents} are net changes, not shares**: + means owed money, − means owes; they sum to **0**. A person's share = what they paid − their split (`share_of(person_id)`)
   - `split_equal(ids)`, `split_custom({id: cents})` (covers the whole bill), `split_percentage({id: %})`
   - Leftover cents go to people in **id order** (equal split) or to the largest remainders (percentage split), so the same input always gives the same split
-- **Refund**: separate record against an expense
-- **Exclusion**: (person_id, category) category opt-outs; per-expense exclusions via `exclude[]` on `log_expense`
-- **Activity**: id, name, location, start, end, est_cost_cents, cost_is_per_person, attendees, important, booking_url, expense_id
-- **Poll**: id, question, options, votes {person_id: option}, closes_at, is_open; closes itself once `closes_at` passes; `winner()` returns every tied option
-- **Reminder**: message, due_at, audience (list | "all"), sent, created_by ("agent" | "system"); `is_due()`, `mark_sent()`
+  - `original_amount`, `original_currency`, `fx_rate` are stored as typed in chat (post-MVP; USD and 1.0 for now)
+- **Refund**: id, expense_id, amount_cents, per_person (same ratio as the shares), note, created_at. Made by `Expense.add_refund()`: can't exceed the expense, paybacks can't be refunded. Balances, spending and budgets take refunds off automatically
+- **Opt-outs**: `Trip.opt_outs` {(person_id, Category)}; per-expense exclusions via `exclude[]` on `log_expense`. `Trip.split_people()` works out who's in an equal split (dropouts, exclusions, opt-outs, overrides)
+- **Activity**: id, name, location?, start? (date or datetime), end?, est_cost_cents?, cost_is_per_person, attendees, important, booking_url?, expense_id; `est_per_person_cents()`; can't end before it starts
+- **Poll**: id, question, options, votes {person_id: option}, closes_at, is_open; closes itself once `closes_at` passes; `vote()` checks the option; `winner()` returns every tied option
+- **Reminder**: id, message, due_at, audience (list | "all"), sent, created_by ("agent" | "system"); `is_due()` (the bot uses it), `mark_sent()`
 - **Trip**: id, name, status (PLANNING / BOOKED / ACTIVE / DONE), destination?, start_date?, end_date?, target_break?, base_currency, group_budget, members, activities, expenses, polls, reminders
-  - methods: add_* (reject non-members and duplicate expense ids), itinerary_by_day, spent_by_category, `summary()` → **the context contract fed to the agent each turn** (align with Shriya/Roger)
+  - stored settings: base_currency, group_budget, leader_id, leader_approval, auto_log_mode, itinerary_drafts. **The leader fields are carried over unchanged while the team decides whether to keep the leader feature**
+  - methods: add_* (reject non-members and duplicate expense ids), get_member, remove_member, set/remove_opt_out, split_people, get/delete_expense, add_refund, itinerary_by_day (not used by the backend yet), spent_by_category
+  - `summary()` → **the context contract fed to the agent each turn** lives in the engine, not the model
   - `balances()` → one net number per person (sums to 0)
   - `settlement_plan()` → suggested payments, **netted across the group**: exact opposites pay each other first, then the biggest debtor pays the biggest creditor. At most n − 1 payments; money only goes from people who owe to people who are owed. A suggestion only; it never changes balances
   - `record_settlement(from, to, amount_cents, payment_id)` → call only after a real payment; saved as a SETTLEMENT expense; the same payment_id can't be recorded twice
-- **Not in `classes/`** (handled in `agent/backend/fake/`): currency fields, Refund, category opt-outs, dropouts (`active`), leader / leader_approval / group_budget / auto_log_mode, itinerary drafts, `summary()`
+- **In the engine, not the model:** id generation, the leader/approval rules, travel tips and tier prices, itinerary drafts, FX conversion (post-MVP), `summary()`
 
 ## 5. Tools (21 + `send_message`) — the agent ↔ backend contract
 Added since the first draft: `get_trip` (full trip state, never budgets), `send_message` (the agent's only way to talk: the group, or one person privately) and `record_payback` (Oct 25). Current inputs are in `specs.md` and `agent/tools/schemas.py`.
@@ -108,7 +112,7 @@ Added since the first draft: `get_trip` (full trip state, never budgets), `send_
 - **Big changes** (dropout, destination/date/budget change, poll result applied) need confirmation; edits/deletes need the payer's confirmation.
 - **Dropout:** needs both the person's and the leader's confirmation. Group gets the new per-person cost; the dropout gets a DM with what they owe.
 - **Exclusion conflict:** if someone opted out of a category but is explicitly named on an expense, ask before logging.
-- **Currency:** ambiguous symbol (e.g. "$" abroad) → ask. Confirmations show both ("€90 (≈ $97)"). Settle up in payer's choice of currency; agent converts.
+- **Currency (post-MVP; the MVP is USD-only):** ambiguous symbol (e.g. "$" abroad) → ask. Confirmations show both ("€90 (≈ $97)"). Settle up in payer's choice of currency; agent converts.
 - **Travel tips:** 3 tiers (budget / mid / splurge) built from the group average; leader picks the tier; tips cover lodging, food, activities, money-saving. If someone's budget is below the chosen tier → DM them + DM the leader naming them.
 - **Date change:** flag activities that fall outside the new dates; group decides. (See examples.md for location/budget-change handling.)
 - **Travel info** comes from external APIs, not the model's own knowledge.
@@ -118,16 +122,16 @@ Added since the first draft: `get_trip` (full trip state, never budgets), `send_
 - ✅ Concept, stack, data model, Trip object + methods designed
 - ✅ `specs.md` and `examples.md` (plus Example 7b, payer outside the split; Example 5 rewritten for the 6-tier flow)
 - ✅ Agent: system prompt v1, 21 backend tools + `send_message`, Qwen tool-calling loop, fake-chat CLI (`agent/`)
-- ✅ Tests: every example replayed offline against the fake backend, the database and the API; live Qwen tests ready to run
+- ✅ Tests: every example replayed offline against the in-memory engine, the database and the API; live Qwen tests ready to run
 - ✅ Django backend + tool API, GroupMe bot, Google sign-in, Next.js trip page (all tested offline)
-- ✅ `classes/`: data model + money rules (splits, net balances, settlement plan, paybacks, budget warnings), wired into the backend Oct 25 (see §10)
+- ✅ `trip_model/` (was `classes/`): the one data model and its rules, used by the whole backend (see §10)
 - ✅ Examples 3 (running out of budget early) and 8 (overspend advice) drafted and in the test suite. Drafts: review welcome
 - ⏳ Live Qwen runs and prompt tuning: waiting on Alibaba account verification
 - ⏳ Not deployed yet; Supabase not connected
 - The Oct 16 drafts (`schema.sql`, `examples.json`, etc.) were never in this repo and are superseded by the code above
 
 ## 8. Open questions (ask Romir, Roger or Shriya — don't decide)
-- [x] **Budget warning logic** → under 10% of a category's limit left, counting planned (unpaid) activities; category limits only (`classes/budget.py`)
+- [x] **Budget warning logic** → under 10% of a category's limit left, counting planned (unpaid) activities; category limits only (`trip_model/budget.py`)
 - [x] **Percentage splits** → `percentages{}` on `log_expense` / `edit_expense`, per expense
 - [x] **Paybacks** → new `record_payback` tool; the backend makes the payment id (the bot already drops repeated GroupMe messages)
 - [x] **Shares in results** → `log_expense`, `get_trip` and the trip summary return each person's share alongside the net-change `splits`
@@ -145,14 +149,20 @@ Added since the first draft: `get_trip` (full trip state, never budgets), `send_
 4. Replace placeholder travel tips / FX with Google Places, SerpAPI and a real FX provider.
 5. Run the trip page tests (`cd web && npm install && npm test`); they weren't run after the Oct 25 changes.
 
-## 10. `classes/` wiring (done Oct 25, 2026)
-The Django backend runs the fake backend's logic on every tool call (`backend/trips/services.py`), so the classes plug into `agent/backend/fake/` through `ledger.py` and reach the database, API and trip page from there. No database schema change: `ExpenseSplit.cents` now holds net changes.
+## 10. Data model work (done Oct 25, 2026)
+**Step 1: Roger's classes wired in.** The money rules started coming from the classes; behavior changes:
 
 - **Splits** are net changes (sum to 0); every result that shows an expense also gives `shares`. Refunds go back by share and lower the payer's paid amount.
 - **Balances:** `get_balances` returns `net_balances` and `suggested_payments` (netted, with handles). The scenario checker's `balance` checks read the suggested payments. Example 9 now settles as Mia → Jake $50.
 - **Paybacks:** `record_payback`; `log_expense` and `edit_expense` refuse SETTLEMENT. Scenario seeds use `paybacks:`.
 - **Rounding:** id order everywhere; the random seed is gone.
-- **Budget warnings:** `classes/budget.py` rule; planned activities count.
+- **Budget warnings:** `trip_model/budget.py` rule; planned activities count.
 - **Smaller rules:** activities can't end before they start; polls close themselves at `closes_at` (which must be ISO).
 - **Agent text:** system prompt, tool descriptions, specs.md, examples.md, docs/build-plan.md decisions log.
 - **Trip page:** `Expenses.tsx` uses `shares`, `Balances.tsx` shows suggested payments, types and fixtures updated. The web tests weren't run (see §9).
+
+**Step 2: one data model, no repeated rules.** A refactor; tool results are unchanged except `created_at` dropping `:00` seconds.
+- `classes/` → `trip_model/`, now the only data model: Refund, dropouts, opt-outs and `split_people`, optional Activity fields, Poll votes, Reminder ids and the trip settings moved in. The old dataclasses (`agent/backend/fake/models.py`) and the `ledger.py` bridge are gone.
+- `agent/backend/fake/` → `agent/backend/core/`, `FakeBackend` → `TripEngine` (`engine.py`): it was never fake, the database runs the same code. `rules.py` keeps the placeholders (FX table, tier prices). Tests call the in-memory backend `"memory"`.
+- One version of each rule: poll closing, voting and winners (`Poll`); activity times and per-person cost (`Activity`); "reminder is due" (`Reminder.is_due`, now used by `send_due_reminders`); spending by category (`trip_model.budget.spent`); payback and expense checks (`Trip`); proportional splits (`trip_model.money.split_proportional`, used by percentages, refunds and FX); category and status names (the enums, also used by the tool schemas). Model errors reach the agent as tool errors in one place.
+- Kept on purpose: the trip page's own day grouping and category labels (display code). The leader approval-type list still appears in both the engine and the tool schema; left alone while the leader feature is undecided.

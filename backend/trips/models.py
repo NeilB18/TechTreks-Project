@@ -1,4 +1,4 @@
-"""Database models. They mirror agent/backend/fake/models.py field for field.
+"""Database models. Each table stores one part of a trip_model/ Trip (loaded and saved in services.py).
 
 All money is integer cents; expense and refund amounts are in the trip's base
 currency, with the original amount, currency and FX rate kept alongside.

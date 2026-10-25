@@ -406,7 +406,7 @@
           "priya": -25000,
           "sam": -25000
         },
-        "created_at": "2027-03-01T12:00:00",
+        "created_at": "2027-03-01T12:00",
         "refunded_cents": 0
       },
       {
@@ -433,7 +433,7 @@
           "sam": -7000,
           "jake": 35000
         },
-        "created_at": "2027-03-01T12:00:00",
+        "created_at": "2027-03-01T12:00",
         "refunded_cents": 0
       },
       {
@@ -459,7 +459,7 @@
           "priya": -2400,
           "sam": -2400
         },
-        "created_at": "2027-03-01T12:00:00",
+        "created_at": "2027-03-01T12:00",
         "refunded_cents": 0
       },
       {
@@ -481,7 +481,7 @@
           "mia": -3336,
           "sam": 6672
         },
-        "created_at": "2027-03-01T12:00:00",
+        "created_at": "2027-03-01T12:00",
         "refunded_cents": 0
       },
       {
@@ -503,7 +503,7 @@
           "jake": -10000,
           "priya": -10000
         },
-        "created_at": "2027-03-01T12:00:00",
+        "created_at": "2027-03-01T12:00",
         "refunded_cents": 15000
       },
       {
@@ -522,7 +522,7 @@
           "priya": 10000,
           "aarav": -10000
         },
-        "created_at": "2027-03-01T12:00:00",
+        "created_at": "2027-03-01T12:00",
         "refunded_cents": 0
       }
     ],
@@ -539,7 +539,7 @@
           "jake": 5000,
           "priya": 5000
         },
-        "created_at": "2027-03-01T12:00:00"
+        "created_at": "2027-03-01T12:00"
       }
     ],
     "polls": [],

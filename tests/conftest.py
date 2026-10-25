@@ -33,10 +33,10 @@ def _dumps(obj):
 
 
 def make_backend(kind: str):
-    """'fake' | 'django' | 'http'. Callers must have the pytest-django `db` fixture active."""
-    from agent.backend.fake.store import FakeBackend
-    if kind == "fake":
-        return FakeBackend()
+    """'memory' | 'django' | 'http'. Callers must have the pytest-django `db` fixture active."""
+    from agent.backend.core.engine import TripEngine
+    if kind == "memory":
+        return TripEngine()
     from trips.services import DjangoBackend
     if kind == "django":
         return DjangoBackend()
@@ -48,6 +48,6 @@ def make_backend(kind: str):
     return http
 
 
-@pytest.fixture(params=["fake", "django", "http"])
+@pytest.fixture(params=["memory", "django", "http"])
 def any_backend(request, db):
     return make_backend(request.param)

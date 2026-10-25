@@ -1,8 +1,10 @@
-# Trip Bot — Data Models and Ledger Pseudocode
+# trip_model — Data Models and Ledger Pseudocode
 
 All money is stored as **integer cents**. Person IDs are dictionary keys. Pseudocode describes behavior, not executable Python. All methods accept structured parameters and do not parse natural language.
 
 ## Models
+
+`trip_model/` is the project's one data model: the agent's tools (`agent/backend/core/engine.py`) and the database (`backend/trips/services.py`) both work on these objects. Tool and database edges convert names (`"FOOD"`) to the enums, ISO text to dates/datetimes, and person ids to `Person` objects. Rule violations raise `ValueError`, which the engine passes to the agent as a tool error.
 
 ```text
 enum Category:
@@ -11,18 +13,24 @@ enum Category:
 enum TripStatus:
     PLANNING, BOOKED, ACTIVE, DONE
 
+split_proportional(amount_cents, weights) -> dict[person_id, int]   # money.py
+    # whole cents in the ratio of weights; leftover cents to the largest remainders, ties in id order
+    # used by percentage splits, refunds and foreign-currency exact amounts
+
 class Person:
     id; name; chat_user_id; payment_handle
     budget: Budget | None                # private to this person
+    active: bool                         # False once they drop out; they still owe past splits
     trips: list[Trip]
+
+spent(person_id, category, expenses) -> int   # budget.py: their shares after refunds; SETTLEMENT never counts
 
 class Budget:
     owner_id; total_cents
     limits: dict[Category, int]          # e.g. {DRINKS: 8000}
 
     remaining(category, expenses) -> int:
-        spent = sum of this owner's assigned expense shares in category
-        return limits[category] - spent  # if category has a limit
+        return limits[category] - spent(owner, category, expenses)  # None if category has no limit
 
     warning(category, expenses, planned_cents=0) -> bool:
         # planned_cents = this owner's share of planned, unpaid activities
@@ -33,6 +41,8 @@ class Expense:
     id; paid_by: Person; amount_cents; description; category
     splits: dict[person_id, int]         # NET balance DELTAS, not amounts owed
     created_at; source_message
+    original_amount; original_currency; fx_rate   # as typed in chat; post-MVP (USD, 1.0 for now)
+    refunds: list[Refund]
 
     # Positive: this person is owed money. Negative: this person owes money.
     # Must satisfy sum(splits.values()) == 0.
@@ -42,32 +52,61 @@ class Expense:
     split_percentage(percents: dict[person_id, number]) -> dict[person_id, int]
     _calculate_net_splits(shares_cents: dict[person_id, int]) -> dict[person_id, int]
 
+    shares() -> dict[person_id, int]     # what each person owes for it, before refunds
+    share_of(person_id) -> int           # after refunds
+    net_changes() -> dict[person_id, int]  # splits with refunds applied; what balances use
+    add_refund(refund_id, amount_cents, ...) -> Refund
+        require not a SETTLEMENT, amount > 0, refunds total <= amount_cents
+        per_person = split_proportional(amount_cents, shares())
+
+class Refund:
+    id; expense_id; amount_cents
+    per_person: dict[person_id, int]     # same ratio as the shares; sums to amount_cents
+    note; created_at; original_amount; currency
+
 class Activity:
-    id; name; location; start: datetime; end: datetime
-    est_cost_cents; cost_is_per_person: bool
-    attendees: list[Person]; important: bool; booking_url
+    id; name; location | None; start | None; end | None   # date or datetime
+    est_cost_cents | None; cost_is_per_person: bool
+    attendees: list[Person]; important: bool; booking_url | None
     expense_id | None                   # links plan to real cost once paid
+    est_per_person_cents() -> int | None  # group total / attendees, unless already per person
+    update(**changes)                   # rejected (and undone) if it would end before it starts
 
 class Poll:
     id; question; options: list[str]
     votes: dict[person_id, str]; closes_at; is_open
-    vote(person, option); results() -> dict; winner()
+    check_open(now) -> bool             # closes itself once closes_at has passed
+    vote(person, option, now); results() -> dict; winner() -> list[str]   # all tied options
 
 class Reminder:
-    message; due_at; audience: list[Person] | "all"
+    id; message; due_at; audience: list[Person] | "all"
     sent: bool; created_by: "agent" | "system"
+    is_due(now) -> bool; mark_sent()
 
 class Trip:
     id; name; status: TripStatus
     destination | None; start_date | None; end_date | None
     target_break | None                 # e.g. "spring break", "fall break"
+    base_currency                       # "USD"
+    group_budget | None; leader_id | None; leader_approval; auto_log_mode | None
+        # stored only; the leader feature is still being decided
     members: list[Person]
     activities: list[Activity]
     expenses: list[Expense]
     polls: list[Poll]
     reminders: list[Reminder]
+    opt_outs: set[(person_id, Category)]
+    itinerary_drafts: dict[draft_id, list[day]]
+    refunds -> list[Refund]             # every expense's refunds
 
-    add_member(); add_expense(); add_activity(); add_poll()
+    get_member(person_id, active_only=False); active_member_ids()
+    add_member(); remove_member(person_id) -> ids of activities they left
+    set_opt_out(); remove_opt_out()
+    split_people(person_ids, category, exclude, overrides) -> (people, opted_out)
+        # equal-split people: no dropouts, minus exclude, minus opt-outs unless overridden
+    add_expense(); get_expense(); delete_expense()   # deleting takes its refunds and unlinks activities
+    add_refund(expense_id, refund_id, amount_cents, ...) -> Refund
+    add_activity(); add_poll(); add_reminder()
     itinerary_by_day() -> dict[date, list[Activity]]
     spent_by_category(person=None) -> dict[Category, int]
     balances() -> dict[person_id, int]
@@ -138,7 +177,7 @@ Trip.add_expense(expense):
 Trip.balances():
     balance = {member.id: 0 for member in members}
     for expense in expenses:
-        for person_id, delta in expense.splits:
+        for person_id, delta in expense.net_changes():   # splits with refunds applied
             balance[person_id] += delta
     require sum(balance.values()) == 0
     return balance
