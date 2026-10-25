@@ -54,8 +54,7 @@ def demo() -> dict:
                   category="ACTIVITIES", split_with=["sam", "mia", "leo"])
     e = b.log_expense(**log, paid_by="aarav", amount=30000, description="Concert tickets",
                       category="ACTIVITIES", split_with=["aarav", "priya", "jake"])["expense_id"]
-    b.log_expense(**log, paid_by="priya", amount=10000, description="Priya paid Aarav back",
-                  category="SETTLEMENT", exact_amounts={"aarav": 10000})
+    b.record_payback(trip_id=t, from_person="priya", to_person="aarav", amount=10000, currency="USD")
     b.record_refund(expense_id=e, amount=15000, currency="USD", note="Concert moved")
     return page_data(b, t)
 

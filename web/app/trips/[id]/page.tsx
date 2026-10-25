@@ -59,7 +59,7 @@ export default async function TripPage(props: PageProps<"/trips/[id]">) {
       </section>
 
       <section className="mt-8" aria-labelledby="balances">
-        <h2 id="balances" className="mb-3 text-lg font-semibold">Who owes whom</h2>
+        <h2 id="balances" className="mb-3 text-lg font-semibold">Settle up</h2>
         <Balances balances={balances} members={members} tripName={trip.name} />
       </section>
 

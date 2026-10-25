@@ -49,6 +49,9 @@ export type Expense = {
   original_amount: number;
   original_currency: string;
   fx_rate: number;
+  // What each person owes for this expense (people with no share are left out).
+  shares: Record<string, number>;
+  // Net change per person: + is owed, - owes; sums to 0.
   splits: Record<string, number>;
   created_at: string;
   refunded_cents: number;
@@ -62,10 +65,13 @@ export type TripDetail = {
   expenses: Expense[];
 };
 
-export type Debt = { to: string; amount_cents: number; handle: string | null };
+// Suggested payments are netted across the group, so someone may pay a person
+// other than the one who paid for their stuff.
+export type Payment = { from: string; to: string; amount_cents: number; handle: string | null };
 
 export type Balances = {
-  balances: Record<string, { owes: Debt[] }>;
+  net_balances: Record<string, number>;
+  suggested_payments: Payment[];
   currency: string;
 };
 

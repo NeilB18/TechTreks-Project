@@ -15,14 +15,11 @@ const fixture = (name: string): TripPageData =>
 afterEach(cleanup);
 
 describe("Balances", () => {
-  it("shows Example 9's pair-by-pair debts after the refund", () => {
+  it("shows Example 9's netted settle-up after the refund", () => {
     const { detail, balances } = fixture("ex9-refund");
     render(<Balances balances={balances} members={detail.members} tripName={detail.trip.name} />);
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
-    expect(items).toEqual([
-      expect.stringContaining("Aarav owes Jake $50"),
-      expect.stringContaining("Mia owes Aarav $50"),
-    ]);
+    expect(items).toEqual([expect.stringContaining("Mia pays Jake $50")]);
     const pay = screen.getAllByRole("link", { name: "Pay on Venmo" });
     expect(pay[0].getAttribute("href")).toContain("venmo.com/jake-venmo?txn=pay&amount=50.00");
   });
@@ -32,7 +29,7 @@ describe("Balances", () => {
     render(<Balances balances={balances} members={detail.members} tripName="Miami" />);
     expect(screen.getAllByRole("button", { name: /sam@example.com/ }).length).toBeGreaterThan(0);
     cleanup();
-    render(<Balances balances={{ balances: {}, currency: "USD" }} members={[]} tripName="x" />);
+    render(<Balances balances={{ net_balances: {}, suggested_payments: [], currency: "USD" }} members={[]} tripName="x" />);
     expect(screen.getByText(/settled up/)).toBeTruthy();
   });
 });
@@ -41,6 +38,8 @@ describe("Expenses", () => {
   it("shows foreign-currency originals and refunds", () => {
     const { detail } = fixture("miami-demo");
     render(<Expenses expenses={detail.expenses} members={detail.members} currency="USD" />);
+    // Jake paid the bar tab but opted out of drinks: 5 people share it, not 6.
+    expect(screen.getByText(/paid by Jake · split 5 ways/)).toBeTruthy();
     expect(screen.getByText("MX$1,800")).toBeTruthy();
     expect(screen.getByText("$150 refunded")).toBeTruthy();
     expect(screen.getByText(/Payback · paid by Priya to Aarav/)).toBeTruthy();

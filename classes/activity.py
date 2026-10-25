@@ -5,7 +5,7 @@
 #     expense_id | None              # links the plan to the real cost once someone pays
 
 from datetime import datetime
-from person import Person
+from .person import Person
 
 class Activity:
     def __init__(self, id, name, location, start: datetime, end: datetime,

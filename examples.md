@@ -46,7 +46,7 @@ remove_member(trip_id="miami", person_id="priya")
   → { removed: true, removed_from_activities: ["boat_tour"] }
 
 get_balances(trip_id="miami")
-  → { priya: { owes: [{ to: "aarav", amount_cents: 30000, handle: "@aarav-venmo" }] } }
+  → { suggested_payments: [{ from: "priya", to: "aarav", amount_cents: 30000, handle: "@aarav-venmo" }, ...] }
 
 get_budget_status(trip_id="miami", person_id="aarav")  → { warnings: [] }
 get_budget_status(trip_id="miami", person_id="jake")   → { warnings: [] }
@@ -135,7 +135,40 @@ get_budget_status(trip_id="miami", person_id="mia")
 > Location changes follow the same pattern as 2a: leader approval if routed, keep expenses, and flag bookings and activities tied to the old place.
 
 ## Example 3 — Running out of budget early
-TBD — waiting on Romir's budget warning logic
+
+### State snapshot
+- Trip in progress: Miami, Mar 14–18. It's the evening of Mar 15.
+- Members: Aarav (leader), Jake, Mia
+- Mia's private budget: $900 total, FOOD limit $150. Aarav: $1,500 total, no category limits. Jake hasn't set one.
+- Expenses so far: Brunch $120 (paid by Aarav), Dinner $210 (paid by Jake), both split 3 ways. Mia's food spending: $40 + $70 = $110.
+
+### Turn 1
+**Jake (group):** @tripbot tacos were $90, I got it, split with everyone
+
+**Reasoning**
+1. Clear payer, amount and split: log it right away. $90 / 3 = $30 each.
+2. After every expense, check the budget of everyone in the split.
+3. Mia's food spending is now $140 of her $150 limit: under 10% left, and the trip has three more days. That's a warning, so DM her.
+4. Her budget is private: the group confirmation doesn't mention it.
+
+**Tool calls**
+```
+log_expense(trip_id="miami", paid_by="jake", amount=9000, currency="USD",
+            description="Tacos", category="FOOD",
+            split_with=["aarav", "jake", "mia"], source_message="...")
+  → { expense_id: "e3", shares: { aarav: 3000, jake: 3000, mia: 3000 } }
+get_budget_status(trip_id="miami", person_id="aarav")  → { warnings: [] }
+get_budget_status(trip_id="miami", person_id="jake")   → { budget_set: false, warnings: [] }
+get_budget_status(trip_id="miami", person_id="mia")
+  → { by_category: { FOOD: { limit_cents: 15000, spent_cents: 14000 } },
+      warnings: ["FOOD under 10% remaining"] }
+```
+
+**Reply (group):**
+> Logged 🌮 Tacos, $90, paid by Jake, split 3 ways ($30 each).
+
+**Reply (DM → Mia):**
+> Heads up: you've got $10 left of your $150 food budget, and the trip runs through Mar 18. Want some cheaper food ideas, or should I raise your food limit?
 
 ## Example 4a — Exclude someone from a split
 
@@ -156,7 +189,7 @@ TBD — waiting on Romir's budget warning logic
 log_expense(trip_id="miami", paid_by="mia", amount=12000, currency="USD",
             description="Dinner", category="FOOD",
             split_with=["aarav", "mia"], exclude=["jake"], source_message="...")
-  → { expense_id: "e7", splits: { aarav: 6000, mia: 6000 } }
+  → { expense_id: "e7", shares: { aarav: 6000, mia: 6000 } }
 get_budget_status(trip_id="miami", person_id="aarav")  → { warnings: [] }
 get_budget_status(trip_id="miami", person_id="mia")    → { warnings: [] }
 ```
@@ -308,7 +341,7 @@ update_trip(trip_id="miami", changes={ group_budget: 91700 })
 
 **Reasoning**
 1. 1,800 MXN needs converting to the base currency (USD), with the rate saved.
-2. Equal split 3 ways. The leftover cent goes to a random person.
+2. Equal split 3 ways. The leftover cent goes to the first person in id order (Aarav).
 3. The confirmation shows both amounts.
 4. Check budgets for all 3 people in the split.
 
@@ -319,7 +352,7 @@ convert_currency(amount=180000, from="MXN", to="USD")
 log_expense(trip_id="cancun", paid_by="jake", amount=180000, currency="MXN",
             description="Snorkel tour", category="ACTIVITIES",
             split_with=["aarav", "jake", "mia"], source_message="...")
-  → { expense_id: "e9", base_amount: 10000, splits: { aarav: 3334, jake: 3333, mia: 3333 } }
+  → { expense_id: "e9", base_amount: 10000, shares: { aarav: 3334, jake: 3333, mia: 3333 } }
 get_budget_status(...) × 3  → { warnings: [] }
 ```
 
@@ -362,7 +395,7 @@ set_exclusion(trip_id="miami", person_id="jake", category="DRINKS")
 log_expense(trip_id="miami", paid_by="mia", amount=6000, currency="USD",
             description="Rooftop drinks", category="DRINKS",
             split_with=["aarav", "mia"], exclude=["jake"], source_message="...")
-  → { expense_id: "e10", splits: { aarav: 3000, mia: 3000 } }
+  → { expense_id: "e10", shares: { aarav: 3000, mia: 3000 } }
 get_budget_status(...) × 2  → { warnings: [] }
 ```
 
@@ -392,7 +425,7 @@ log_expense(trip_id="miami", paid_by="jake", amount=35000, currency="USD",
             description="Bar tab", category="DRINKS",
             split_with=["aarav", "priya", "mia", "sam", "leo", "nina", "zoe"],
             exclude=["jake"], source_message="...")
-  → { expense_id: "e11", splits: { aarav: 5000, priya: 5000, mia: 5000, sam: 5000,
+  → { expense_id: "e11", shares: { aarav: 5000, priya: 5000, mia: 5000, sam: 5000,
                                    leo: 5000, nina: 5000, zoe: 5000 } }
 get_budget_status(...) × 7  → { warnings: [] }
 ```
@@ -401,7 +434,51 @@ get_budget_status(...) × 7  → { warnings: [] }
 > Logged 🍻 Bar tab, $350, paid by Jake, split between the 7 drinkers ($50 each). Jake's not included (opted out of drinks), so everyone owes Jake $50. Venmo: @jake-venmo
 
 ## Example 8 — Overspend advice
-TBD — waiting on Romir's budget warning logic
+
+### State snapshot
+- Trip in progress: Miami, Mar 14–18. It's midday on Mar 16.
+- Members: Aarav (leader), Jake, Mia
+- Mia's private budget: $900 total, FOOD limit $150
+- Food so far, all split 3 ways: Brunch $120, Dinner $210, Tacos $90, Lunch $60. Mia's share: $160, so she's $10 over her food limit.
+
+### Turn 1
+**Mia (DM):** I'm over on food aren't I? what should I do
+
+**Reasoning**
+1. Budget talk, and she asked in a DM: answer only in her DM.
+2. Check her real numbers with `get_budget_status` instead of guessing.
+3. Advice should come from the travel-tips tool, not my own knowledge. The cheapest tier (0.5×) has the money-saving food ideas.
+4. She's over on one category but has plenty left overall, so offer to raise the food limit. Don't change anything until she says so.
+
+**Tool calls**
+```
+get_budget_status(trip_id="miami", person_id="mia")
+  → { total_cents: 90000, remaining_cents: 74000,
+      by_category: { FOOD: { limit_cents: 15000, spent_cents: 16000 } },
+      warnings: ["FOOD over limit by $10 including planned activities"] }
+get_travel_tips(trip_id="miami", destination="Miami", multipliers=[0.5])
+  → { tiers: [{ multiplier: 0.5, food: "Street food, food trucks and grocery-store breakfasts", ... }] }
+```
+
+**Reply (DM → Mia):**
+> Yeah, you're $10 over your $150 food limit, but you've still got $740 left overall. Cheaper ideas for the next two days: street food, food trucks and grocery-store breakfasts. Want me to raise your food limit (say to $200) so it matches how you're actually spending?
+
+### Turn 2
+**Mia (DM):** yeah make it $200
+
+**Reasoning**
+1. Setting your own budget needs no confirmation. Keep her $900 total; only the food limit changes.
+2. Check the new status and tell her what's left.
+
+**Tool calls**
+```
+set_budget(trip_id="miami", person_id="mia", total=90000, limits={ FOOD: 20000 })
+get_budget_status(trip_id="miami", person_id="mia")
+  → { by_category: { FOOD: { limit_cents: 20000, spent_cents: 16000 } }, warnings: [] }
+```
+
+**Reply (DM → Mia):**
+> Done, your food limit is now $200 (total still $900). You've got $40 left for food.
 
 ## Example 9 — Refunds
 
@@ -409,7 +486,7 @@ TBD — waiting on Romir's budget warning logic
 - Members: Aarav (leader), Jake, Mia
 - leader_approval: [member changes, trip changes] (refunds not routed to leader)
 - Expense e5: Concert tickets $300, paid by Aarav, split $100 each
-- Jake already paid Aarav back $100 (SETTLEMENT). Mia hasn't paid yet.
+- Jake already paid Aarav back $100 (recorded with `record_payback`). Mia hasn't paid yet.
 
 ### Turn 1
 **Aarav (group):** @tripbot concert got moved, got $150 back on the tickets
@@ -417,7 +494,7 @@ TBD — waiting on Romir's budget warning logic
 **Reasoning**
 1. Aarav is the original payer of e5, so he can report the refund.
 2. Refunds are a big change, so confirm first. Refunds aren't routed to the leader in this group, so Aarav's confirmation is enough.
-3. Same ratio as the original splits: $150 / 3 = $50 each.
+3. Same ratio as the original shares: $150 / 3 = $50 each.
 4. Show him what will happen before recording anything.
 
 **Tool calls:** none yet
@@ -430,20 +507,21 @@ TBD — waiting on Romir's budget warning logic
 
 **Reasoning**
 1. Confirmed, so record the refund.
-2. Jake already paid his $100, so Aarav now owes Jake $50. Mia hasn't paid, so her debt drops from $100 to $50.
-3. Update balances, post in the group, and DM Aarav who to pay back.
+2. Everyone's share drops to $50. Jake already paid $100, so he's owed $50 back. Mia hasn't paid, so she owes $50. Aarav comes out even.
+3. Balances are netted across the group, so the suggested payment is Mia → Jake $50 directly. Aarav doesn't have to pass money along.
+4. Post the new settle-up in the group, and DM Jake so he knows where his $50 is coming from.
 
 **Tool calls**
 ```
 record_refund(expense_id="e5", amount=15000, currency="USD", note="Concert moved")
   → { refund_id: "r1", per_person: { aarav: 5000, jake: 5000, mia: 5000 } }
 get_balances(trip_id="miami")
-  → { aarav: { owes: [{ to: "jake", amount_cents: 5000 }] },
-      mia:   { owes: [{ to: "aarav", amount_cents: 5000 }] } }
+  → { net_balances: { jake: 5000, mia: -5000 },
+      suggested_payments: [{ from: "mia", to: "jake", amount_cents: 5000, handle: "@jake-venmo" }] }
 ```
 
 **Reply (group):**
-> Refund logged 🎟️ $150 back on Concert tickets, $50 per person. Mia now owes Aarav $50 (was $100).
+> Refund logged 🎟️ $150 back on Concert tickets, $50 per person. To settle up: Mia sends Jake $50 (Venmo: @jake-venmo) and Aarav's all square.
 
-**Reply (DM → Aarav):**
-> Jake already paid you his $100, so send him $50 back. Venmo: @jake-venmo
+**Reply (DM → Jake):**
+> You'd already paid Aarav your $100, so after the refund you're owed $50. Mia's sending it to you directly, so Aarav doesn't need to pay you back.

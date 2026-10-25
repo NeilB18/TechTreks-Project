@@ -24,8 +24,10 @@ class Budget:
         spent = sum of this owner's assigned expense shares in category
         return limits[category] - spent  # if category has a limit
 
-    warning(category, expenses) -> bool:
-        return remaining(category, expenses) < 0.10 * total_cents
+    warning(category, expenses, planned_cents=0) -> bool:
+        # planned_cents = this owner's share of planned, unpaid activities
+        # only category limits warn; the total is informational
+        return remaining(category, expenses) - planned_cents < 0.10 * limits[category]
 
 class Expense:
     id; paid_by: Person; amount_cents; description; category
@@ -53,7 +55,7 @@ class Poll:
 
 class Reminder:
     message; due_at; audience: list[Person] | "all"
-    sent: bool; created_by: "claude" | "system"
+    sent: bool; created_by: "agent" | "system"
 
 class Trip:
     id; name; status: TripStatus
@@ -70,7 +72,7 @@ class Trip:
     spent_by_category(person=None) -> dict[Category, int]
     balances() -> dict[person_id, int]
     settlement_plan() -> list[tuple[from_person_id, to_person_id, amount_cents]]
-    _minimum_settlements(balances) -> list[tuple[from_person_id, to_person_id, amount_cents]]
+    _greedy_settlements(balances) -> list[tuple[from_person_id, to_person_id, amount_cents]]
     record_settlement(from_person_id, to_person_id, amount_cents, payment_id)
 ```
 
@@ -159,62 +161,38 @@ Trip.record_settlement(from_person_id, to_person_id, amount_cents, payment_id):
 
 For edits/deletes, recalculate from current saved expenses; do not apply a second delta on top of an old one. Exclude `SETTLEMENT` expenses from `spent_by_category()` and budget calculations.
 
-## Minimum-transaction settlement plan (exact, no overpayments)
+## Settlement plan (greedy, no overpayments)
 
-**Objective:** Guarantee the fewest payments, with every payment going directly from an original debtor to an original creditor. No person pays more than they owe or receives more than they're owed. This is an exact zero-sum partition approach; worst-case runtime is exponential, suitable for small trip groups.
-
-A group is *zero-sum* when its members' balances add to zero. If there are `n` people with nonzero balances and we can partition them into `k` disjoint zero-sum groups, each group can be settled in at most `group_size - 1` payments. Maximizing `k` therefore minimizes the number of transactions: `n - k`.
+**Objective:** Suggest few payments, with every payment going directly from someone who owes to someone who is owed. Nobody pays more than they owe or receives more than they're owed. Balances are netted across the group, so a person may be told to pay someone other than the one who paid for their stuff. This is the approach most expense-splitting apps use: at most `n - 1` payments for `n` people with nonzero balances, not always the fewest possible, and fast for any group size.
 
 ```text
 Trip.settlement_plan():
     b = balances()
     remove entries with zero balance
     if b is empty: return []
-    return self._minimum_settlements(b)
+    return self._greedy_settlements(b)
 
-Trip._minimum_settlements(b):
-    ids = all person IDs with nonzero balance, in stable order
-    n = count(ids)
+Trip._greedy_settlements(b):
     require sum(b.values()) == 0
-
-    # Find a partition into the maximum number of disjoint zero-sum groups.
-    # A subset can be represented as a set or a bitmask of person IDs.
-    precompute sum_of_balances(subset) for subsets of ids
-    best_partition(remaining_subset):
-        if remaining_subset is empty: return []
-        if cached: return cached result
-
-        anchor = first person ID in remaining_subset
-        best = NO_SOLUTION
-        for every subset group of remaining_subset containing anchor:
-            if sum_of_balances(group) != 0: continue
-            rest = best_partition(remaining_subset minus group)
-            if rest is a solution:
-                candidate = [group] + rest
-                keep candidate if it has MORE groups than best
-        cache and return best
-
-    groups = best_partition(all IDs)
     payments = []
 
-    for group in groups:
-        debtors = members with b[id] < 0; remaining_debt = -b[id]
-        creditors = members with b[id] > 0; remaining_credit = b[id]
+    # 1. Exact opposites pay each other directly (one payment clears both).
+    for person in stable id order:
+        if someone unmatched has exactly -b[person]:
+            the one who owes pays the other abs(b[person])
+        else:
+            mark person unmatched
 
-        # Transfers only between original debtors and original creditors.
-        while debtors and creditors:
-            d = first debtor with remaining_debt > 0
-            c = first creditor with remaining_credit > 0
-            amount = min(remaining_debt[d], remaining_credit[c])
-            append (d, c, amount) to payments
-            remaining_debt[d] -= amount
-            remaining_credit[c] -= amount
-            remove any fully settled debtor or creditor
+    # 2. Everyone left: the biggest debtor pays the biggest creditor.
+    debtors = max-heap of unmatched people who owe (ties: smaller id first)
+    creditors = max-heap of unmatched people who are owed
+    while debtors and creditors:
+        d = biggest debtor, c = biggest creditor
+        amount = min(debt[d], credit[c])
+        append (d, c, amount) to payments
+        whoever still has money left goes back on their heap
 
-    require each original balance is fully settled
-    require no debtor paid more than originally owed
-    require no creditor received more than originally owed
-    require count(payments) == n - count(groups)
+    require each person paid exactly what they owe / received exactly what they're owed
     return payments
 ```
 

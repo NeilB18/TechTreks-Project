@@ -3,13 +3,13 @@
 Each tool call loads the whole trip into the same dataclasses the fake backend
 uses, runs FakeBackend's logic on it, and writes the trip back in one
 transaction. The rules (splits, opt-outs, refunds, balances, warnings) live in
-one place, so the database backend can't drift from the tested fake. Trips are
-small (a dozen people, a few hundred rows), so whole-trip load/save is cheap.
+one place (the fake backend, which takes the money rules from classes/), so the
+database backend can't drift from the tested fake. Trips are small (a dozen
+people, a few hundred rows), so whole-trip load/save is cheap.
 """
 
 import functools
 import inspect
-import random
 
 from django.db import transaction
 from django.utils import timezone
@@ -175,14 +175,11 @@ def _tool(name: str):
 class DjangoBackend:
     """Implements every tool in BACKEND_TOOLS with FakeBackend's signatures and results."""
 
-    def __init__(self, seed: int | None = None, now: str | None = None):
-        self.rng = random.Random(seed)
+    def __init__(self, now: str | None = None):
         self.now = now
 
     def _fake(self) -> FakeBackend:
-        fb = _DbScopedFake(now=self.now or timezone.now().isoformat(timespec="seconds"))
-        fb.rng = self.rng
-        return fb
+        return _DbScopedFake(now=self.now or timezone.now().isoformat(timespec="seconds"))
 
     def _run(self, name: str, args: dict) -> dict:
         fb = self._fake()
@@ -217,8 +214,8 @@ class DjangoBackend:
         """Read access shaped like FakeBackend.trips, for the scenario checker."""
         return _TripsView()
 
-    def pairwise_debts(self, trip: dc.Trip) -> dict:
-        return FakeBackend().pairwise_debts(trip)
+    def settle_up(self, trip: dc.Trip) -> dict:
+        return FakeBackend().settle_up(trip)
 
 
 class _TripsView:

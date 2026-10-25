@@ -1,6 +1,45 @@
 example: "3"
 title: Running out of budget early
-skip: "budget warning logic TBD (Romir)"
 seed:
-  trip: {id: miami}
-turns: []
+  now: "2027-03-15T20:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: ACTIVE, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes]}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  budgets:
+    aarav: {total: 150000}
+    mia: {total: 90000, limits: {FOOD: 15000}}
+  expenses:
+    - {id: e1, paid_by: aarav, amount: 12000, description: Brunch, category: FOOD,
+       split_with: [aarav, jake, mia]}
+    - {id: e2, paid_by: jake, amount: 21000, description: Dinner, category: FOOD,
+       split_with: [aarav, jake, mia]}
+turns:
+  - sender: jake
+    text: "@tripbot tacos were $90, I got it, split with everyone"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: jake, amount: 9000, currency: USD, category: FOOD,
+                                     split_with: [aarav, jake, mia]}}
+      count_min: {get_budget_status: 3}
+      messages:
+        - {to: group, contains: ["$90", "$30"], not_contains: [budget]}
+        - {to: mia, contains_any: [food, budget]}
+      no_messages_to: [aarav, jake]
+      end_state:
+        - expense_count: 3
+        - balance: {from: mia, to: jake, amount: 14000}
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: jake, amount: 9000, currency: USD,
+                                     description: Tacos, category: FOOD, split_with: [aarav, jake, mia],
+                                     source_message: "tacos were $90, I got it, split with everyone"}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: aarav}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: jake}}
+        - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
+      messages:
+        - {to: group, text: "Logged 🌮 Tacos, $90, paid by Jake, split 3 ways ($30 each)."}
+        - {to: mia, text: "Heads up: you've got $10 left of your $150 food budget, and the trip runs through Mar 18. Want some cheaper food ideas, or should I raise your food limit?"}

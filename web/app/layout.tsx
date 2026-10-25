@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Trip page",
-  description: "Your group trip's plans, expenses and who owes whom.",
+  description: "Your group trip's plans, expenses and how to settle up.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

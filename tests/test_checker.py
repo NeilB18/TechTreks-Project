@@ -41,5 +41,5 @@ def test_catches_wrong_split_and_balance():
 
 def test_catches_missing_dm():
     fails = mutate("ex9_refund.yaml", 1, messages=[
-        {"to": "group", "text": "Refund logged, Mia now owes Aarav $50"}])
-    assert any("no message sent to aarav" in f for f in fails)
+        {"to": "group", "text": "Refund logged. Mia sends Jake $50"}])
+    assert any("no message sent to jake" in f for f in fails)

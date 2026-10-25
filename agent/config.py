@@ -22,6 +22,3 @@ def base_url() -> str:
         raise RuntimeError("Set QWEN_WORKSPACE_ID (Model Studio console, US region) or QWEN_BASE_URL")
     return US_BASE_URL.format(workspace_id=workspace_id)
 
-
-# Seed for the fake backend's random leftover-cent assignment, so tests are repeatable.
-RNG_SEED = 7

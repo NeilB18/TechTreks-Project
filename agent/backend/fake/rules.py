@@ -1,34 +1,9 @@
 """Business rules that are still placeholders or will move to the real backend.
 
 Each one is a single function so it can be swapped without touching the store.
+Money rules (splits, balances, settling up, budget warnings) come from classes/
+through ledger.py.
 """
-
-import random
-
-# --- Budget warnings -------------------------------------------------------
-# PLACEHOLDER: specs.md says the real logic is "more complex than < 10% of total".
-# Romir to define it; Examples 3 and 8 are blocked on this.
-WARN_FRACTION = 0.10
-
-
-def budget_warnings(total_cents: int, limits: dict[str, int],
-                    spent_by_cat: dict[str, int], planned_by_cat: dict[str, int]) -> list[str]:
-    warnings = []
-    spent = sum(spent_by_cat.values())
-    planned = sum(planned_by_cat.values())
-    left = total_cents - spent - planned
-    if left < 0:
-        warnings.append(f"Over total budget by {fmt_usd(-left)} including planned activities")
-    elif left < total_cents * WARN_FRACTION:
-        warnings.append("Total budget under 10% remaining")
-    for cat, limit in sorted(limits.items()):
-        cat_left = limit - spent_by_cat.get(cat, 0) - planned_by_cat.get(cat, 0)
-        if cat_left < 0:
-            warnings.append(f"{cat} over limit by {fmt_usd(-cat_left)} including planned activities")
-        elif cat_left < limit * WARN_FRACTION:
-            warnings.append(f"{cat} under 10% remaining")
-    return warnings
-
 
 # --- FX ---------------------------------------------------------------------
 # PLACEHOLDER: fixed table until the FX provider is chosen (asking mentor).
@@ -62,21 +37,17 @@ def tier_price(average_cents: int, multiplier: float) -> int:
 
 
 # --- Splitting --------------------------------------------------------------
-def split_equal(amount_cents: int, people: list[str], rng: random.Random) -> dict[str, int]:
-    """Equal split; leftover cents go to randomly chosen people (one each)."""
-    base, leftover = divmod(amount_cents, len(people))
-    splits = {p: base for p in people}
-    for p in rng.sample(people, leftover):
-        splits[p] += 1
-    return splits
-
-
-def split_proportional(amount_cents: int, weights: dict[str, int], rng: random.Random) -> dict[str, int]:
-    """Split in the same ratio as `weights` (used for refunds and FX'd exact amounts)."""
+# Equal, exact and percentage splits live in classes/expense.py (see ledger.py).
+def split_proportional(amount_cents: int, weights: dict[str, int]) -> dict[str, int]:
+    """Split in the same ratio as `weights` (used for refunds and FX'd exact amounts).
+    Leftover cents go to the largest remainders, ties in id order, so the same input
+    always splits the same way."""
     total = sum(weights.values())
     shares = {p: amount_cents * w // total for p, w in weights.items()}
     leftover = amount_cents - sum(shares.values())
-    for p in rng.sample([p for p, w in weights.items() if w > 0], leftover):
+    by_remainder = sorted(sorted(p for p, w in weights.items() if w > 0),
+                          key=lambda p: amount_cents * weights[p] % total, reverse=True)
+    for p in by_remainder[:leftover]:
         shares[p] += 1
     return shares
 

@@ -48,7 +48,7 @@
         "category": "ACTIVITIES",
         "paid_by": "jake",
         "amount_cents": 10008,
-        "splits": {
+        "shares": {
           "aarav": 3336,
           "jake": 3336,
           "mia": 3336
@@ -67,10 +67,15 @@
         "original_amount": 180000,
         "original_currency": "MXN",
         "fx_rate": 0.0556,
-        "splits": {
+        "shares": {
           "aarav": 3336,
           "jake": 3336,
           "mia": 3336
+        },
+        "splits": {
+          "aarav": -3336,
+          "jake": 6672,
+          "mia": -3336
         },
         "created_at": "2027-03-01T12:00:00",
         "refunded_cents": 0
@@ -82,26 +87,25 @@
     "itinerary_drafts": []
   },
   "balances": {
-    "balances": {
-      "aarav": {
-        "owes": [
-          {
-            "to": "jake",
-            "amount_cents": 3336,
-            "handle": "@jake-venmo"
-          }
-        ]
-      },
-      "mia": {
-        "owes": [
-          {
-            "to": "jake",
-            "amount_cents": 3336,
-            "handle": "@jake-venmo"
-          }
-        ]
-      }
+    "net_balances": {
+      "aarav": -3336,
+      "jake": 6672,
+      "mia": -3336
     },
+    "suggested_payments": [
+      {
+        "from": "aarav",
+        "to": "jake",
+        "amount_cents": 3336,
+        "handle": "@jake-venmo"
+      },
+      {
+        "from": "mia",
+        "to": "jake",
+        "amount_cents": 3336,
+        "handle": "@jake-venmo"
+      }
+    ],
     "currency": "USD"
   }
 }

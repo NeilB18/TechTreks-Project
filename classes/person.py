@@ -7,8 +7,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from budget import Budget
-    from trip import Trip
+    from .budget import Budget
+    from .trip import Trip
 
 class Person:
     def __init__(self, id, name, chat_user_id, payment_handle, budget: Budget | None = None):

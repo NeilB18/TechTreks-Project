@@ -1,16 +1,15 @@
 """FakeBackend: an in-memory implementation of the Backend protocol.
 
-Enforces data rules (splits sum to the amount, opt-outs, leftover cents,
-refund ratios, dropouts keep past splits). It does NOT enforce confirmations;
-whether the agent asked first is checked by the scenario tests.
+Enforces data rules (splits, opt-outs, leftover cents, refund ratios, dropouts
+keep past splits). The money rules come from classes/ through ledger.py. It does
+NOT enforce confirmations; whether the agent asked first is checked by the
+scenario tests.
 """
 
-import random
 import re
 from datetime import date, datetime
 
-from agent import config
-from agent.backend.fake import rules
+from agent.backend.fake import ledger, rules
 from agent.backend.fake.models import (
     APPROVAL_TYPES, CATEGORIES, STATUSES, Activity, Budget, Expense, Person, Poll,
     Refund, Reminder, Trip,
@@ -51,9 +50,8 @@ def _slug(name: str) -> str:
 
 
 class FakeBackend:
-    def __init__(self, seed: int = config.RNG_SEED, now: str = "2027-03-01T12:00:00"):
+    def __init__(self, now: str = "2027-03-01T12:00:00"):
         self.trips: dict[str, Trip] = {}
-        self.rng = random.Random(seed)
         self.now = now
         self._counters: dict[str, int] = {}
 
@@ -114,22 +112,31 @@ class FakeBackend:
 
     def _compute_splits(self, trip: Trip, *, paid_by: str, amount: int, currency: str, category: str,
                         split_with: list[str] | None, exact_amounts: dict[str, int] | None,
+                        percentages: dict[str, float] | None,
                         exclude: list[str] | None, override_opt_outs: list[str] | None):
+        """Returns base amount, FX rate, net-change splits and auto-excluded people."""
         self._check_category(category)
+        if category == "SETTLEMENT":
+            raise ToolError("Paybacks go through record_payback, not log_expense")
         self._person(trip, paid_by)
         if amount <= 0:
             raise ToolError("amount must be a positive number of cents")
         base_amount, rate = self._to_base(trip, amount, currency)
         auto_excluded = []
-        if (split_with is None) == (exact_amounts is None):
-            raise ToolError("Pass exactly one of split_with or exact_amounts")
+        if sum(x is not None for x in (split_with, exact_amounts, percentages)) != 1:
+            raise ToolError("Pass exactly one of split_with, exact_amounts or percentages")
         if exact_amounts is not None:
             for pid in exact_amounts:
                 self._person(trip, pid, active_only=True)
             if sum(exact_amounts.values()) != amount:
                 raise ToolError(f"exact_amounts sum to {sum(exact_amounts.values())}, but amount is {amount}")
-            splits = (dict(exact_amounts) if currency == trip.base_currency
-                      else rules.split_proportional(base_amount, exact_amounts, self.rng))
+            shares = (dict(exact_amounts) if currency == trip.base_currency
+                      else rules.split_proportional(base_amount, exact_amounts))
+            splits = ledger.split(base_amount, paid_by, shares=shares)
+        elif percentages is not None:
+            for pid in percentages:
+                self._person(trip, pid, active_only=True)
+            splits = ledger.split(base_amount, paid_by, percents=percentages)
         else:
             excluded = set(exclude or [])
             overrides = set(override_opt_outs or [])
@@ -144,23 +151,16 @@ class FakeBackend:
                 people.append(pid)
             if not people:
                 raise ToolError("Nobody left in the split after exclusions")
-            splits = rules.split_equal(base_amount, people, self.rng)
+            splits = ledger.split(base_amount, paid_by, people=people)
         return base_amount, rate, splits, auto_excluded
-
-    def _refunded_by_person(self, trip: Trip, expense_id: str) -> dict[str, int]:
-        out: dict[str, int] = {}
-        for r in trip.refunds:
-            if r.expense_id == expense_id:
-                for p, c in r.per_person.items():
-                    out[p] = out.get(p, 0) + c
-        return out
 
     def _expense_view(self, trip: Trip, e: Expense) -> dict:
         return {
             "expense_id": e.id, "description": e.description, "category": e.category,
             "paid_by": e.paid_by, "amount_cents": e.amount_cents,
             "original_amount": e.original_amount, "original_currency": e.original_currency,
-            "fx_rate": e.fx_rate, "splits": e.splits, "created_at": e.created_at,
+            "fx_rate": e.fx_rate, "shares": ledger.shares(e), "splits": e.splits,
+            "created_at": e.created_at,
             "refunded_cents": sum(r.amount_cents for r in trip.refunds if r.expense_id == e.id),
         }
 
@@ -173,6 +173,18 @@ class FakeBackend:
                 "cost_is_per_person": a.cost_is_per_person, "est_per_person_cents": per_person,
                 "attendees": a.attendees, "important": a.important,
                 "booking_url": a.booking_url, "expense_id": a.expense_id}
+
+    @staticmethod
+    def _when(value: str, field: str) -> datetime:
+        # Naive datetimes, so a timezone-aware "now" from Django compares with chat-entered times.
+        try:
+            return datetime.fromisoformat(value).replace(tzinfo=None)
+        except (TypeError, ValueError) as e:
+            raise ToolError(f"{field} must be ISO, like 2027-03-12T18:00") from e
+
+    def _poll_open(self, p: Poll) -> bool:
+        """A poll closes itself once closes_at has passed."""
+        return p.is_open and not (p.closes_at and self._when(self.now, "now") >= self._when(p.closes_at, "closes_at"))
 
     def _activities_outside(self, trip: Trip) -> list[str]:
         if not (trip.start_date and trip.end_date):
@@ -204,21 +216,17 @@ class FakeBackend:
         for pid, cat in seed.get("exclusions", []):
             trip.exclusions.add((pid, cat))
         for e in seed.get("expenses", []):
-            if "splits" in e:
-                trip.expenses.append(Expense(
-                    id=e["id"], paid_by=e["paid_by"], amount_cents=e["amount"],
-                    original_amount=e["amount"], original_currency=trip.base_currency, fx_rate=1.0,
-                    description=e["description"], category=e["category"], splits=dict(e["splits"]),
-                    created_at=self.now))
-                assert sum(e["splits"].values()) == e["amount"], e
-            else:
-                r = self.log_expense(trip_id=trip.id, paid_by=e["paid_by"], amount=e["amount"],
-                                     currency=e.get("currency", trip.base_currency),
-                                     description=e["description"], category=e["category"],
-                                     split_with=e["split_with"])
-                if "id" in e:
-                    trip.expenses[-1].id = e["id"]
-                    r["expense_id"] = e["id"]
+            self.log_expense(trip_id=trip.id, paid_by=e["paid_by"], amount=e["amount"],
+                             currency=e.get("currency", trip.base_currency),
+                             description=e["description"], category=e["category"],
+                             split_with=e["split_with"])
+            if "id" in e:
+                trip.expenses[-1].id = e["id"]
+        for pb in seed.get("paybacks", []):
+            self.record_payback(trip_id=trip.id, from_person=pb["from"], to_person=pb["to"],
+                                amount=pb["amount"], currency=trip.base_currency)
+            if "id" in pb:
+                trip.expenses[-1].id = pb["id"]
         for a in seed.get("activities", []):
             a = dict(a)
             a.setdefault("attendees", trip.active_member_ids())
@@ -230,13 +238,14 @@ class FakeBackend:
     # ---------------------------------------------------------------- expenses
     def log_expense(self, trip_id: str, paid_by: str, amount: int, currency: str, description: str,
                     category: str, split_with: list[str] | None = None,
-                    exact_amounts: dict[str, int] | None = None, exclude: list[str] | None = None,
+                    exact_amounts: dict[str, int] | None = None,
+                    percentages: dict[str, float] | None = None, exclude: list[str] | None = None,
                     override_opt_outs: list[str] | None = None, source_message: str = "") -> dict:
         trip = self._trip(trip_id)
         base_amount, rate, splits, auto_excluded = self._compute_splits(
             trip, paid_by=paid_by, amount=amount, currency=currency, category=category,
-            split_with=split_with, exact_amounts=exact_amounts, exclude=exclude,
-            override_opt_outs=override_opt_outs)
+            split_with=split_with, exact_amounts=exact_amounts, percentages=percentages,
+            exclude=exclude, override_opt_outs=override_opt_outs)
         e = Expense(id=self._next_id("e", self._all_expense_ids()), paid_by=paid_by,
                     amount_cents=base_amount, original_amount=amount, original_currency=currency,
                     fx_rate=rate, description=description, category=category, splits=splits,
@@ -244,33 +253,36 @@ class FakeBackend:
         trip.expenses.append(e)
         return {"expense_id": e.id, "base_amount": base_amount, "base_currency": trip.base_currency,
                 "original_amount": amount, "original_currency": currency, "fx_rate": rate,
-                "splits": splits, "auto_excluded": auto_excluded}
+                "shares": ledger.shares(e), "splits": splits, "auto_excluded": auto_excluded}
 
     def edit_expense(self, expense_id: str, requested_by: str, changes: dict) -> dict:
         trip, e = self._find_expense(expense_id)
         self._person(trip, requested_by)
+        if e.category == "SETTLEMENT":
+            raise ToolError("That's a payback, not an expense; delete it and record the payback again")
         allowed = {"amount", "currency", "description", "category", "split_with", "exact_amounts",
-                   "exclude", "override_opt_outs", "paid_by"}
+                   "percentages", "exclude", "override_opt_outs", "paid_by"}
         bad = set(changes) - allowed
         if bad:
             raise ToolError(f"Can't change {sorted(bad)}; allowed: {sorted(allowed)}")
         if "description" in changes:
             e.description = changes["description"]
-        money_keys = {"amount", "currency", "category", "split_with", "exact_amounts", "exclude",
-                      "override_opt_outs", "paid_by"}
+        money_keys = {"amount", "currency", "category", "split_with", "exact_amounts", "percentages",
+                      "exclude", "override_opt_outs", "paid_by"}
         if money_keys & set(changes):
             split_with = changes.get("split_with")
             exact = changes.get("exact_amounts")
-            if split_with is None and exact is None:
-                split_with = list(e.splits)  # keep the same people
+            percentages = changes.get("percentages")
+            if split_with is None and exact is None and percentages is None:
+                split_with = list(ledger.shares(e))  # keep the same people
             amount = changes.get("amount", e.original_amount)
             currency = changes.get("currency", e.original_currency)
             category = changes.get("category", e.category)
             paid_by = changes.get("paid_by", e.paid_by)
             base_amount, rate, splits, auto_excluded = self._compute_splits(
                 trip, paid_by=paid_by, amount=amount, currency=currency, category=category,
-                split_with=split_with, exact_amounts=exact, exclude=changes.get("exclude"),
-                override_opt_outs=changes.get("override_opt_outs"))
+                split_with=split_with, exact_amounts=exact, percentages=percentages,
+                exclude=changes.get("exclude"), override_opt_outs=changes.get("override_opt_outs"))
             e.amount_cents, e.fx_rate, e.splits = base_amount, rate, splits
             e.original_amount, e.original_currency, e.category, e.paid_by = amount, currency, category, paid_by
         return {"updated": True, "payer": e.paid_by, "expense": self._expense_view(trip, e)}
@@ -287,19 +299,37 @@ class FakeBackend:
 
     def record_refund(self, expense_id: str, amount: int, currency: str, note: str = "") -> dict:
         trip, e = self._find_expense(expense_id)
+        if e.category == "SETTLEMENT":
+            raise ToolError("Paybacks can't be refunded; delete it instead")
         if amount <= 0:
             raise ToolError("amount must be a positive number of cents")
         base, _ = self._to_base(trip, amount, currency)
         already = sum(r.amount_cents for r in trip.refunds if r.expense_id == expense_id)
         if base + already > e.amount_cents:
             raise ToolError(f"Refunds would total {base + already} cents, more than the expense ({e.amount_cents})")
-        per_person = rules.split_proportional(base, e.splits, self.rng)
+        per_person = ledger.refund_shares(e, base)
         r = Refund(id=self._next_id("r", {r.id for r in trip.refunds}), expense_id=expense_id,
                    amount_cents=base, original_amount=amount, currency=currency, note=note,
                    per_person=per_person, created_at=self.now)
         trip.refunds.append(r)
         return {"refund_id": r.id, "expense_id": expense_id, "payer": e.paid_by,
                 "base_amount": base, "per_person": per_person}
+
+    def record_payback(self, trip_id: str, from_person: str, to_person: str, amount: int,
+                       currency: str) -> dict:
+        trip = self._trip(trip_id)
+        if amount <= 0:
+            raise ToolError("amount must be a positive number of cents")
+        base, rate = self._to_base(trip, amount, currency)
+        s = ledger.record_payback(trip, from_person, to_person, base,
+                                  self._next_id("e", self._all_expense_ids()))
+        e = Expense(id=s.id, paid_by=from_person, amount_cents=base, original_amount=amount,
+                    original_currency=currency, fx_rate=rate, description=s.description,
+                    category="SETTLEMENT", splits=s.splits, created_at=self.now)
+        trip.expenses.append(e)
+        return {"expense_id": e.id, "from": from_person, "to": to_person, "base_amount": base,
+                "base_currency": trip.base_currency, "original_amount": amount,
+                "original_currency": currency}
 
     # ---------------------------------------------------------- trip & members
     def add_member(self, trip_id: str, chat_user_id: str, name: str, payment_handle: str | None = None) -> dict:
@@ -440,10 +470,14 @@ class FakeBackend:
                   "attendees": attendees, "important": important, "booking_url": booking_url,
                   "expense_id": expense_id}
         fields = {k: v for k, v in fields.items() if v is not None}
+        match = [a for a in trip.activities if a.id == activity_id] if activity_id else []
+        if activity_id and not match:
+            raise ToolError(f"No activity {activity_id!r}")
+        new_start = fields.get("start", match[0].start if match else None)
+        new_end = fields.get("end", match[0].end if match else None)
+        if new_start and new_end and self._when(new_end, "end") < self._when(new_start, "start"):
+            raise ToolError("An activity can't end before it starts")
         if activity_id:
-            match = [a for a in trip.activities if a.id == activity_id]
-            if not match:
-                raise ToolError(f"No activity {activity_id!r}")
             for k, v in fields.items():
                 setattr(match[0], k, v)
             return {"activity_id": activity_id, "updated": True}
@@ -480,6 +514,8 @@ class FakeBackend:
         trip = self._trip(trip_id)
         if len(options) < 2:
             raise ToolError("A poll needs at least 2 options")
+        if closes_at is not None:
+            self._when(closes_at, "closes_at")
         p = Poll(id=self._next_id("p", self._all_poll_ids()), question=question,
                  options=list(options), closes_at=closes_at)
         trip.polls.append(p)
@@ -488,7 +524,7 @@ class FakeBackend:
     def vote_poll(self, poll_id: str, person_id: str, option: str) -> dict:
         trip, p = self._find_poll(poll_id)
         self._person(trip, person_id, active_only=True)
-        if not p.is_open:
+        if not self._poll_open(p):
             raise ToolError("That poll is closed")
         if option not in p.options:
             raise ToolError(f"{option!r} isn't an option. Options: {p.options}")
@@ -525,42 +561,19 @@ class FakeBackend:
         return {"reminder_id": r.id, "due_at": due_at, "audience": audience}
 
     # ------------------------------------------------------ money info & reads
-    def pairwise_debts(self, trip: Trip) -> dict[tuple[str, str], int]:
-        """(debtor, creditor) -> cents, netted per pair only (never across the group)."""
-        raw: dict[tuple[str, str], int] = {}
-        for e in trip.expenses:
-            refunded = self._refunded_by_person(trip, e.id)
-            for p, share in e.splits.items():
-                if p != e.paid_by:
-                    raw[(p, e.paid_by)] = raw.get((p, e.paid_by), 0) + share - refunded.get(p, 0)
-        net: dict[tuple[str, str], int] = {}
-        for (a, b), amt in raw.items():
-            if (b, a) in net or (a, b) in net:
-                continue
-            diff = amt - raw.get((b, a), 0)
-            if diff > 0:
-                net[(a, b)] = diff
-            elif diff < 0:
-                net[(b, a)] = -diff
-        return net
+    def settle_up(self, trip: Trip) -> dict[tuple[str, str], int]:
+        """(from, to) -> cents: the suggested payments, netted across the group."""
+        return {(d, c): amt for d, c, amt in ledger.settle_up(trip)}
 
     def get_balances(self, trip_id: str) -> dict:
         trip = self._trip(trip_id)
-        out: dict[str, dict] = {}
-        for (debtor, creditor), amt in sorted(self.pairwise_debts(trip).items()):
-            out.setdefault(debtor, {"owes": []})["owes"].append({
-                "to": creditor, "amount_cents": amt,
-                "handle": trip.members[creditor].payment_handle})
-        return {"balances": out, "currency": trip.base_currency}
-
-    def _spent_by_category(self, trip: Trip, pid: str) -> dict[str, int]:
-        spent: dict[str, int] = {}
-        for e in trip.expenses:
-            if e.category == "SETTLEMENT" or pid not in e.splits:
-                continue
-            share = e.splits[pid] - self._refunded_by_person(trip, e.id).get(pid, 0)
-            spent[e.category] = spent.get(e.category, 0) + share
-        return spent
+        return {
+            "net_balances": ledger.net_balances(trip),
+            "suggested_payments": [
+                {"from": d, "to": c, "amount_cents": amt, "handle": trip.members[c].payment_handle}
+                for d, c, amt in ledger.settle_up(trip)],
+            "currency": trip.base_currency,
+        }
 
     def _planned_by_category(self, trip: Trip, pid: str) -> dict[str, int]:
         planned = 0
@@ -574,7 +587,7 @@ class FakeBackend:
         trip = self._trip(trip_id)
         self._person(trip, person_id)
         b = trip.budgets.get(person_id)
-        spent_by_cat = self._spent_by_category(trip, person_id)
+        spent_by_cat = ledger.spent_by_category(trip, person_id)
         planned_by_cat = self._planned_by_category(trip, person_id)
         spent, planned = sum(spent_by_cat.values()), sum(planned_by_cat.values())
         if b is None:
@@ -588,7 +601,7 @@ class FakeBackend:
             "remaining_after_planned_cents": b.total_cents - spent - planned,
             "by_category": {c: {"limit_cents": b.limits.get(c), "spent_cents": spent_by_cat.get(c, 0),
                                 "planned_cents": planned_by_cat.get(c, 0)} for c in cats},
-            "warnings": rules.budget_warnings(b.total_cents, b.limits, spent_by_cat, planned_by_cat),
+            "warnings": ledger.budget_warnings(trip, person_id, planned_by_cat),
         }
 
     def convert_currency(self, amount: int, **kw) -> dict:
@@ -608,7 +621,7 @@ class FakeBackend:
         s = self.summary(trip_id)
         s["expenses"] = [self._expense_view(trip, e) for e in trip.expenses]
         s["refunds"] = [vars(r) for r in trip.refunds]
-        s["polls"] = [vars(p) for p in trip.polls]
+        s["polls"] = [vars(p) | {"is_open": self._poll_open(p)} for p in trip.polls]
         s["reminders"] = [vars(r) for r in trip.reminders]
         s["itinerary_drafts"] = sorted(trip.itinerary_drafts)
         return s
@@ -629,9 +642,9 @@ class FakeBackend:
             "category_opt_outs": sorted([pid, cat] for pid, cat in trip.exclusions),
             "recent_expenses": [
                 {"id": e.id, "description": e.description, "category": e.category,
-                 "paid_by": e.paid_by, "amount_cents": e.amount_cents, "splits": e.splits}
+                 "paid_by": e.paid_by, "amount_cents": e.amount_cents, "shares": ledger.shares(e)}
                 for e in trip.expenses[-10:]],
             "activities": [self._activity_view(trip, a) for a in trip.activities],
             "open_polls": [{"id": p.id, "question": p.question, "options": p.options,
-                            "votes": len(p.votes)} for p in trip.polls if p.is_open],
+                            "votes": len(p.votes)} for p in trip.polls if self._poll_open(p)],
         }
