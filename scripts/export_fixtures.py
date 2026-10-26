@@ -1,6 +1,6 @@
 """Write web/fixtures/*.json for the trip page, using the real backend logic.
 
-Each examples.md scenario is replayed (golden tool calls) through FakeBackend, and
+Each examples.md scenario is replayed (golden tool calls) through TripEngine, and
 a fuller demo trip is built too. The JSON is exactly what GET /api/trips/<id> and
 /balances return, so the page is built against the real contract.
 
@@ -14,19 +14,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from agent.backend.fake.store import FakeBackend  # noqa: E402
+from agent.backend.core.engine import TripEngine  # noqa: E402
 from agent.scenarios import golden_turn, load_scenarios  # noqa: E402
 
 OUT = ROOT / "web" / "fixtures"
 PEOPLE = ["aarav", "priya", "jake", "mia", "sam", "leo"]
 
 
-def page_data(backend: FakeBackend, trip_id: str) -> dict:
+def page_data(backend: TripEngine, trip_id: str) -> dict:
     return {"detail": backend.get_trip(trip_id), "balances": backend.get_balances(trip_id)}
 
 
 def demo() -> dict:
-    b = FakeBackend()
+    b = TripEngine()
     b.load_seed({
         "now": "2027-03-01T12:00:00",
         "trip": {"id": "miami-demo", "name": "Miami Spring Break", "status": "BOOKED", "destination": "Miami",
@@ -67,7 +67,7 @@ def main() -> None:
     for scn in load_scenarios():
         if scn.get("skip"):
             continue
-        b = FakeBackend()
+        b = TripEngine()
         b.load_seed(scn["seed"])
         for turn in scn["turns"]:
             golden_turn(b, turn.get("golden", {}))

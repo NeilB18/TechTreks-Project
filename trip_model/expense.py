@@ -2,26 +2,35 @@
 #     id; paid_by: Person; amount_cents; description; category
 #     splits: dict[person_id, int]   # NET balance DELTAS, not amounts owed
 #     created_at; source_message     # original chat text, useful for debugging the agent
+#     original_amount; original_currency; fx_rate   # as typed in chat; the MVP is USD-only
+#     refunds: list[Refund]
 #
 #     Positive: this person is owed money. Negative: this person owes money.
 #     Must satisfy sum(splits.values()) == 0.
 #
 #     split_equal(participant_ids) / split_custom(shares_cents) / split_percentage(percents)
 #         -> update splits via _calculate_net_splits(shares_cents)
+#     shares() -> each person's share before refunds; share_of(person_id) -> after refunds
+#     net_changes() -> splits with refunds applied (what balances use)
+#     add_refund(...) -> Refund, shared back in the same ratio as the shares
 
 from __future__ import annotations
 from datetime import datetime
 from fractions import Fraction
 from typing import TYPE_CHECKING
 
+from .category import Category
+from .money import split_proportional
+from .refund import Refund
+
 if TYPE_CHECKING:
-    from .category import Category
     from .person import Person
 
 class Expense:
     def __init__(self, id, paid_by: Person, amount_cents, description, category: Category,
                  splits: dict | None = None, created_at: datetime | None = None,
-                 source_message=None):
+                 source_message=None, original_amount=None, original_currency="USD",
+                 fx_rate=1.0):
         self.id = id
         self.paid_by = paid_by
         self.amount_cents = amount_cents
@@ -30,11 +39,54 @@ class Expense:
         self.splits = splits if splits is not None else {}
         self.created_at = created_at if created_at is not None else datetime.now()
         self.source_message = source_message
+        self.original_amount = original_amount if original_amount is not None else amount_cents
+        self.original_currency = original_currency
+        self.fx_rate = fx_rate
+        self.refunds: list[Refund] = []
 
-    def share_of(self, person_id):
+    def original_share_of(self, person_id):
         # delta = amount_paid - share_owed, so share_owed = amount_paid - delta
         paid = self.amount_cents if self.paid_by.id == person_id else 0
         return paid - self.splits.get(person_id, 0)
+
+    def share_of(self, person_id):
+        # What this person owes for the expense once refunds are taken off.
+        refunded = sum(refund.per_person.get(person_id, 0) for refund in self.refunds)
+        return self.original_share_of(person_id) - refunded
+
+    def shares(self):
+        # Before refunds; people with no share (like a payer outside the split) are left out.
+        people = list(self.splits)
+        if self.paid_by.id not in self.splits:
+            people.append(self.paid_by.id)
+        return {person_id: self.original_share_of(person_id) for person_id in people
+                if self.original_share_of(person_id) > 0}
+
+    def refunded_cents(self):
+        return sum(refund.amount_cents for refund in self.refunds)
+
+    def net_changes(self):
+        # A refund gives the payer money back and lowers each person's share by their part of it.
+        changes = dict(self.splits)
+        for refund in self.refunds:
+            for person_id, cents in refund.per_person.items():
+                changes[person_id] = changes.get(person_id, 0) + cents
+            changes[self.paid_by.id] = changes.get(self.paid_by.id, 0) - refund.amount_cents
+        return {person_id: delta for person_id, delta in changes.items() if delta != 0}
+
+    def add_refund(self, refund_id, amount_cents, note="", created_at: datetime | None = None,
+                   original_amount=None, currency="USD"):
+        if self.category == Category.SETTLEMENT:
+            raise ValueError("Paybacks can't be refunded; delete it instead.")
+        if not isinstance(amount_cents, int) or amount_cents <= 0:
+            raise ValueError("Refund must be a positive number of cents.")
+        total = self.refunded_cents() + amount_cents
+        if total > self.amount_cents:
+            raise ValueError(f"Refunds would total {total} cents, more than the expense ({self.amount_cents}).")
+        refund = Refund(refund_id, self.id, amount_cents, split_proportional(amount_cents, self.shares()),
+                        note, created_at, original_amount, currency)
+        self.refunds.append(refund)
+        return refund
 
     def split_equal(self, participant_ids: list):
         if not participant_ids:
@@ -61,19 +113,7 @@ class Expense:
             raise ValueError("Percentages must be >= 0.")
         if sum(exact_percents.values()) != 100:
             raise ValueError("Percentages must sum to 100.")
-
-        exact_shares = {person_id: self.amount_cents * p / 100
-                        for person_id, p in exact_percents.items()}
-        shares = {person_id: int(share) for person_id, share in exact_shares.items()}
-        leftover = self.amount_cents - sum(shares.values())
-
-        # Largest fractional remainder first; ties broken by stable ID order.
-        by_remainder = sorted(sorted(exact_shares),
-                              key=lambda person_id: exact_shares[person_id] - shares[person_id],
-                              reverse=True)
-        for person_id in by_remainder[:leftover]:
-            shares[person_id] += 1
-        return self._calculate_net_splits(shares)
+        return self._calculate_net_splits(split_proportional(self.amount_cents, exact_percents))
 
     def _calculate_net_splits(self, shares_cents: dict):
         if not isinstance(self.amount_cents, int) or self.amount_cents < 0:

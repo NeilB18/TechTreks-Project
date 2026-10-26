@@ -1,15 +1,16 @@
 import unittest
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from itertools import count
 
-from classes.activity import Activity
-from classes.budget import Budget
-from classes.category import Category
-from classes.expense import Expense
-from classes.person import Person
-from classes.poll import Poll
-from classes.reminder import Reminder
-from classes.trip import Trip
+from trip_model.activity import Activity
+from trip_model.budget import Budget
+from trip_model.category import Category
+from trip_model.expense import Expense
+from trip_model.money import split_proportional
+from trip_model.person import Person
+from trip_model.poll import Poll
+from trip_model.reminder import Reminder
+from trip_model.trip import Trip
 
 expense_ids = count(1)
 
@@ -173,6 +174,110 @@ class TestPlanning(unittest.TestCase):
         self.assertTrue(r.is_due())
         r.mark_sent()
         self.assertFalse(r.is_due())
+
+
+    def test_activity_optional_fields_and_per_person_cost(self):
+        trip, (x, y) = make_trip("x", "y")
+        boat = Activity("boat", "Boat tour", start=date(2027, 3, 15), est_cost_cents=40000,
+                        cost_is_per_person=False, attendees=[x, y])
+        self.assertEqual(boat.est_per_person_cents(), 20000)
+        self.assertIsNone(Activity("free", "Beach day").est_per_person_cents())
+        with self.assertRaises(ValueError):
+            boat.update(end=datetime(2027, 3, 14, 18))
+        self.assertIsNone(boat.end)  # a rejected edit changes nothing
+        trip.add_activity(boat)
+        trip.remove_member("y")
+        self.assertEqual(boat.est_per_person_cents(), 40000)
+
+    def test_poll_uses_the_given_time_and_explains_bad_votes(self):
+        poll = Poll(1, "Where?", ["Miami", "Denver"], closes_at=datetime(2027, 3, 1, 12))
+        poll.vote("x", "Miami", now=datetime(2027, 3, 1, 11))
+        with self.assertRaisesRegex(ValueError, "isn't an option"):
+            poll.vote("x", "Boston", now=datetime(2027, 3, 1, 11))
+        with self.assertRaisesRegex(ValueError, "closed"):
+            poll.vote("y", "Denver", now=datetime(2027, 3, 1, 12))
+        self.assertFalse(poll.is_open)
+
+
+class TestRefunds(unittest.TestCase):
+    def test_refund_goes_back_by_share_and_updates_balances_and_spending(self):
+        trip, (a, b, c) = make_trip("a", "b", "c")
+        e = make_expense(a, 30000, Category.ACTIVITIES)
+        e.split_equal(["a", "b", "c"])
+        trip.add_expense(e)
+        trip.record_settlement("b", "a", 10000, "pay-1")
+        refund = trip.add_refund(e.id, "r1", 15000, note="Concert moved")
+        self.assertEqual(refund.per_person, {"a": 5000, "b": 5000, "c": 5000})
+        self.assertEqual(e.shares(), {"a": 10000, "b": 10000, "c": 10000})  # before refunds
+        self.assertEqual(e.share_of("c"), 5000)                             # after refunds
+        self.assertEqual(trip.balances(), {"a": 0, "b": 5000, "c": -5000})
+        self.assertEqual(trip.settlement_plan(), [("c", "b", 5000)])
+        self.assertEqual(Budget("c", 50000).spent(Category.ACTIVITIES, trip.expenses), 5000)
+        self.assertEqual(trip.spent_by_category()[Category.ACTIVITIES], 15000)
+        self.assertEqual(trip.refunds, [refund])
+
+    def test_refund_limits(self):
+        trip, (a, b) = make_trip("a", "b")
+        e = make_expense(a, 10000)
+        e.split_equal(["a", "b"])
+        trip.add_expense(e)
+        trip.add_refund(e.id, "r1", 6000)
+        with self.assertRaisesRegex(ValueError, "more than the expense"):
+            trip.add_refund(e.id, "r2", 4001)
+        with self.assertRaises(ValueError):
+            trip.add_refund(e.id, "r1", 100)  # same refund id twice
+        payback = trip.record_settlement("b", "a", 1000, "pay-1")
+        with self.assertRaisesRegex(ValueError, "Paybacks can't be refunded"):
+            trip.add_refund(payback.id, "r3", 500)
+
+    def test_deleting_an_expense_takes_its_refunds_and_unlinks_activities(self):
+        trip, (a, b) = make_trip("a", "b")
+        e = make_expense(a, 10000)
+        e.split_equal(["a", "b"])
+        trip.add_expense(e)
+        trip.add_refund(e.id, "r1", 2000)
+        trip.add_activity(Activity("dinner", "Dinner", attendees=[a, b], expense_id=e.id))
+        trip.delete_expense(e.id)
+        self.assertEqual((trip.refunds, trip.activities[0].expense_id), ([], None))
+        self.assertEqual(trip.balances(), {"a": 0, "b": 0})
+
+
+class TestMembersAndOptOuts(unittest.TestCase):
+    def test_dropout_keeps_past_splits_but_leaves_new_ones_and_activities(self):
+        trip, (a, b, c) = make_trip("a", "b", "c")
+        e = make_expense(a, 9000)
+        e.split_equal(["a", "b", "c"])
+        trip.add_expense(e)
+        trip.add_activity(Activity("boat", "Boat tour", attendees=[a, b, c]))
+        self.assertEqual(trip.remove_member("c"), ["boat"])
+        self.assertEqual(trip.balances()["c"], -3000)  # still owes
+        self.assertEqual(trip.active_member_ids(), ["a", "b"])
+        with self.assertRaisesRegex(ValueError, "removed from the trip"):
+            trip.split_people(["a", "c"], Category.FOOD)
+        with self.assertRaisesRegex(ValueError, "already removed"):
+            trip.remove_member("c")
+
+    def test_split_people_applies_exclusions_opt_outs_and_overrides(self):
+        trip, _ = make_trip("a", "b", "c", "d")
+        trip.set_opt_out("b", Category.DRINKS)
+        self.assertEqual(trip.split_people(["a", "b", "c", "d", "a"], Category.DRINKS, exclude={"d"}),
+                         (["a", "c"], ["b"]))
+        self.assertEqual(trip.split_people(["a", "b"], Category.DRINKS, overrides={"b"}), (["a", "b"], []))
+        self.assertEqual(trip.split_people(["a", "b"], Category.FOOD), (["a", "b"], []))
+        trip.remove_opt_out("b", Category.DRINKS)
+        self.assertEqual(trip.split_people(["b"], Category.DRINKS), (["b"], []))
+        with self.assertRaisesRegex(ValueError, "Nobody left"):
+            trip.split_people(["a"], Category.FOOD, exclude={"a"})
+        with self.assertRaisesRegex(ValueError, "not a member"):
+            trip.split_people(["zed"], Category.FOOD)
+
+
+class TestMoney(unittest.TestCase):
+    def test_split_proportional_largest_remainder_then_id_order(self):
+        self.assertEqual(split_proportional(10000, {"b": 1, "a": 1, "c": 1}), {"b": 3333, "a": 3334, "c": 3333})
+        self.assertEqual(split_proportional(101, {"x": 3, "y": 1}), {"x": 76, "y": 25})
+        with self.assertRaises(ValueError):
+            split_proportional(100, {"x": 0})
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 import inspect
 import json
 
-from agent.backend.fake.store import FakeBackend
+from agent.backend.core.engine import TripEngine
 from agent.backend.protocol import BACKEND_TOOLS
 from agent.tools.schemas import ALL_TOOLS, BACKEND_TOOL_SCHEMAS
 
@@ -16,10 +16,10 @@ def test_one_schema_per_backend_tool():
     assert all(t["type"] == "function" for t in ALL_TOOLS)
 
 
-def test_schema_params_match_fake_backend():
+def test_schema_params_match_engine():
     for tool in BACKEND_TOOL_SCHEMAS:
         fn_schema = tool["function"]
-        fn = getattr(FakeBackend, fn_schema["name"])
+        fn = getattr(TripEngine, fn_schema["name"])
         params = inspect.signature(fn).parameters
         props = fn_schema["parameters"]["properties"]
         if any(p.kind is p.VAR_KEYWORD for p in params.values()):

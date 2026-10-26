@@ -113,7 +113,7 @@
           "jake": -4000,
           "mia": -4000
         },
-        "created_at": "2027-03-16T13:00:00",
+        "created_at": "2027-03-16T13:00",
         "refunded_cents": 0
       },
       {
@@ -135,7 +135,7 @@
           "jake": 14000,
           "mia": -7000
         },
-        "created_at": "2027-03-16T13:00:00",
+        "created_at": "2027-03-16T13:00",
         "refunded_cents": 0
       },
       {
@@ -157,7 +157,7 @@
           "jake": 6000,
           "mia": -3000
         },
-        "created_at": "2027-03-16T13:00:00",
+        "created_at": "2027-03-16T13:00",
         "refunded_cents": 0
       },
       {
@@ -179,7 +179,7 @@
           "jake": -2000,
           "mia": 4000
         },
-        "created_at": "2027-03-16T13:00:00",
+        "created_at": "2027-03-16T13:00",
         "refunded_cents": 0
       }
     ],

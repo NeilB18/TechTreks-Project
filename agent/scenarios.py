@@ -4,7 +4,7 @@ A scenario (tests/scenarios/*.yaml) has a `seed` (state snapshot) and `turns`.
 Each turn is one chat event plus:
   expect:  what must (not) happen - checked against both the live agent and the golden replay
   golden:  the tool calls and replies from examples.md, replayed offline to validate
-           the scenario, the fake backend and this checker without calling the model
+           the scenario, the engine and this checker without calling the model
 
 expect keys (all optional):
   calls:            [{name, args?}]   each must appear; args is a subset match
@@ -21,13 +21,16 @@ Every turn is also checked for privacy: no group message may contain a budget to
 
 import json
 import re
+from datetime import date
+from enum import Enum
 from pathlib import Path
 
 import yaml
 
-from agent.backend.fake.store import FakeBackend
+from agent.backend.core.engine import TripEngine, iso
 from agent.backend.protocol import ToolError, dispatch, is_mutation
 from agent.runner import ChatEvent, ToolCall, TurnResult
+from trip_model.category import Category
 
 ROOT = Path(__file__).resolve().parent.parent
 SCENARIO_DIR = ROOT / "tests" / "scenarios"
@@ -44,9 +47,9 @@ def load_scenarios() -> list[dict]:
 
 
 def make_backend(scn: dict, backend=None):
-    """Seed `backend` (default: a new FakeBackend) with the scenario's state snapshot.
+    """Seed `backend` (default: a new TripEngine) with the scenario's state snapshot.
     Any backend with load_seed() works; HttpBackend is seeded through its `state` backend."""
-    b = backend or FakeBackend()
+    b = backend or TripEngine()
     (getattr(b, "state", None) or b).load_seed(scn["seed"])
     return b
 
@@ -138,10 +141,16 @@ def check_privacy(tr: TurnResult, backend, trip_id: str) -> list[str]:
     for o in tr.outbox:
         if o["to"] != "group":
             continue
-        for pid, b in trip.budgets.items():
-            if b.total_cents and _dollar_pattern(b.total_cents).search(o["text"]):
-                fails.append(f"PRIVACY: group message reveals {pid}'s budget: {o['text']!r}")
+        for p in trip.members:
+            if p.budget and p.budget.total_cents and _dollar_pattern(p.budget.total_cents).search(o["text"]):
+                fails.append(f"PRIVACY: group message reveals {p.id}'s budget: {o['text']!r}")
     return fails
+
+
+def _trip_field(trip, field: str):
+    """A trip field the way scenarios write it: enum names and ISO dates."""
+    value = getattr(trip, field)
+    return value.name if isinstance(value, Enum) else iso(value) if isinstance(value, date) else value
 
 
 def _check_state(check: dict, backend, trip_id: str) -> list[str]:
@@ -155,15 +164,15 @@ def _check_state(check: dict, backend, trip_id: str) -> list[str]:
         owed = {k: v for k, v in debts.items() if k[0] == spec}
         return [] if not owed else [f"{spec} should owe nothing, owes {owed}"]
     if kind == "member_active":
-        return [f"{pid} active should be {v}" for pid, v in spec.items() if trip.members[pid].active != v]
+        return [f"{pid} active should be {v}" for pid, v in spec.items() if trip.get_member(pid).active != v]
     if kind == "trip":
-        return [f"trip.{k} should be {v!r}, is {getattr(trip, k)!r}" for k, v in spec.items()
-                if getattr(trip, k) != v]
+        return [f"trip.{k} should be {v!r}, is {_trip_field(trip, k)!r}" for k, v in spec.items()
+                if _trip_field(trip, k) != v]
     if kind == "budget_total":
         return [f"{pid} budget should be {v}" for pid, v in spec.items()
-                if pid not in trip.budgets or trip.budgets[pid].total_cents != v]
+                if trip.get_member(pid).budget is None or trip.get_member(pid).budget.total_cents != v]
     if kind == "opt_out":
-        return [] if tuple(spec) in trip.exclusions else [f"missing opt-out {spec}"]
+        return [] if (spec[0], Category[spec[1]]) in trip.opt_outs else [f"missing opt-out {spec}"]
     if kind == "expense_count":
         return [] if len(trip.expenses) == spec else [f"expected {spec} expenses, have {len(trip.expenses)}"]
     if kind == "refund_count":
@@ -187,7 +196,7 @@ def golden_turn(backend, golden: dict) -> TurnResult:
 
 def run_scenario(scn: dict, agent_factory=None, dump_name: str | None = None, backend=None) -> list[str]:
     """Run every turn; return failure strings. agent_factory=None replays the golden turns.
-    `backend` defaults to a FakeBackend; pass a DjangoBackend or HttpBackend to test those."""
+    `backend` defaults to a TripEngine; pass a DjangoBackend or HttpBackend to test those."""
     backend = make_backend(scn, backend)
     trip_id = scn["seed"]["trip"]["id"]
     agent = agent_factory(backend, trip_id) if agent_factory else None

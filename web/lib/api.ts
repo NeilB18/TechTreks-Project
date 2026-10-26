@@ -7,7 +7,7 @@ import type { Balances, TripDetail, TripPageData } from "./types";
 
 // With TRIP_API_URL set, data comes from the Django API (server-side only, so the
 // token never reaches the browser). Without it, the page reads JSON fixtures that
-// scripts/export_fixtures.py generates from the fake backend.
+// scripts/export_fixtures.py generates from the backend's TripEngine.
 const API_URL = process.env.TRIP_API_URL;
 const API_TOKEN = process.env.TRIP_API_TOKEN;
 const FIXTURE_DIR = path.join(process.cwd(), "fixtures");

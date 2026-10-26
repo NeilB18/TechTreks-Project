@@ -1,6 +1,6 @@
 """The agent <-> backend contract: one method per tool in agent/tools/schemas.py.
 
-FakeBackend (agent/backend/fake/store.py) implements it in memory; HttpBackend
+TripEngine (agent/backend/core/engine.py) implements it in memory; HttpBackend
 (Phase 3) will implement it against the Django API. Both must return the same
 JSON shapes, so the scenario tests can run against either.
 """

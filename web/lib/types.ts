@@ -1,5 +1,5 @@
 // Shapes returned by the backend's get_trip and get_balances tools
-// (agent/backend/fake/store.py, served by GET /api/trips/<id> and /balances).
+// (agent/backend/core/engine.py, served by GET /api/trips/<id> and /balances).
 // Budgets are never part of these.
 
 export type Member = {

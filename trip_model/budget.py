@@ -1,3 +1,5 @@
+# spent(person_id, category, expenses) -> int    # their shares after refunds; SETTLEMENT is never spending
+#
 # class Budget:
 #     owner_id; total_cents
 #     limits: dict[Category, int]                       # e.g. {DRINKS: 8000}
@@ -13,6 +15,13 @@ from .category import Category
 if TYPE_CHECKING:
     from .expense import Expense
 
+def spent(person_id, category, expenses: list[Expense]):
+    # Settlements move debt around; they are not spending.
+    if category == Category.SETTLEMENT:
+        return 0
+    return sum(expense.share_of(person_id)
+               for expense in expenses if expense.category == category)
+
 class Budget:
     def __init__(self, owner_id, total_cents, limits: dict[Category, int] | None = None):
         self.owner_id = owner_id
@@ -20,11 +29,7 @@ class Budget:
         self.limits = limits if limits is not None else {}
 
     def spent(self, category, expenses: list[Expense]):
-        # Settlements move debt around; they are not spending.
-        if category == Category.SETTLEMENT:
-            return 0
-        return sum(expense.share_of(self.owner_id)
-                   for expense in expenses if expense.category == category)
+        return spent(self.owner_id, category, expenses)
 
     def remaining(self, category, expenses: list[Expense]):
         if category not in self.limits:

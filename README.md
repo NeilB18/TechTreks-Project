@@ -10,11 +10,12 @@ agent/
   prompts/system_prompt.md  system prompt v1
   tools/schemas.py          21 backend tools + send_message
   backend/protocol.py       the agent <-> backend contract
-  backend/fake/             in-memory data model + FakeBackend (money rules from classes/ via ledger.py; placeholders in rules.py)
+  backend/core/engine.py    TripEngine: every tool, run on trip_model objects (in memory for tests)
+  backend/core/rules.py     placeholders: FX table (post-MVP), tier prices
   runner.py                 Qwen function-calling loop for one chat message
   scenarios.py              runs + checks the examples.md scenarios
   cli.py                    fake multi-person chat
-classes/                    data model + money rules (splits, balances, settle-up, budget warnings); see classes/README.md
+trip_model/                 the data model and its rules (splits, refunds, balances, settle-up, budgets, polls); see trip_model/README.md
 tests/
   scenarios/*.yaml          one per example in examples.md
 ```
@@ -51,7 +52,7 @@ Then type `priya: @tripbot I can't make it anymore`, or `mia dm: lower my budget
 ## Backend (Phase 3)
 
 Django + DRF in `backend/`, SQLite locally (set `DATABASE_URL` for Supabase Postgres later).
-`trips/services.py` (`DjangoBackend`) runs the same rules as the fake backend over the database,
+`trips/services.py` (`DjangoBackend`) loads a trip from the database into `trip_model` objects, runs the same `TripEngine`,
 so the examples.md replays pass against the fake, the database, and the HTTP API.
 
 ```bash
@@ -102,4 +103,5 @@ Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtu
 ## Placeholders
 
 - FX: fixed rate table in `rules.py`. The provider is still TBD.
-- Travel tips and itineraries: canned text in the fake backend. Google Places and SerpAPI come later.
+- Travel tips and itineraries: canned text in the engine. Google Places and SerpAPI come later.
+- Currency: the MVP is USD-only. The FX code keeps working but multi-currency is post-MVP.

@@ -1,17 +1,19 @@
 # class Reminder:
 #     message; due_at; audience: list[Person] | "all"
-#     sent: bool; created_by: "agent" | "system"
+#     sent: bool; created_by: "agent" | "system"; id
+#     is_due(now) -> bool; mark_sent()
 
 from datetime import datetime
 from .person import Person
 
 class Reminder:
     def __init__(self, message, due_at: datetime, audience: list[Person] | str = "all",
-                 sent: bool = False, created_by: str = "system"):
+                 sent: bool = False, created_by: str = "system", id=None):
         if isinstance(audience, str) and audience != "all":
             raise ValueError('audience must be a list of people or "all".')
         if created_by not in ("agent", "system"):
             raise ValueError('created_by must be "agent" or "system".')
+        self.id = id
         self.message = message
         self.due_at = due_at
         self.audience = audience

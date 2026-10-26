@@ -19,7 +19,8 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Piece | Where | What it does |
 |---|---|---|
 | Agent | `agent/` | System prompt, 22 tools, Qwen tool-calling loop, CLI for a fake group chat |
-| Fake backend | `agent/backend/fake/` | In-memory version of every tool, used for tests; the rules live here once, with the money rules from `classes/` (via `ledger.py`) |
+| Data model | `trip_model/` | The trip's data and rules: splits, refunds, balances, settle-up, opt-outs, dropouts, polls, reminders, budgets |
+| Engine | `agent/backend/core/` | `TripEngine`: every tool, run on `trip_model` objects; in memory for tests, and inside the Django backend |
 | Backend | `backend/trips/` | Django models and `DjangoBackend`, which runs the same rules over the database; tool API |
 | Bot | `backend/bot/` | GroupMe webhook, replies, private notices, reminders |
 | Sign-in | `backend/accounts/` | Google sign-in, link code, "my budget" API |
@@ -41,12 +42,16 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 22 | GroupMe DMs: test first with `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in |
 | Oct 22 | Account linking works without DMs: sign in with Google, then post `@tripbot link <code>` in the group |
 | Oct 22 | Each piece of work gets its own branch and PR, stacked so work doesn't wait on reviews |
-| Oct 25 | `classes/` is the data model and money rules; the backend uses it through `agent/backend/fake/ledger.py` |
+| Oct 25 | `classes/` is the data model and money rules (later renamed `trip_model/`, see below) |
 | Oct 25 | Expense splits are net changes per person (sum to 0); tool results also give each person's share |
 | Oct 25 | Balances are netted across the group; the agent suggests payments (exact opposites first, then biggest debtor pays biggest creditor) |
 | Oct 25 | Leftover cents go in id order instead of randomly |
 | Oct 25 | Budget warnings: under 10% of a category limit left, counting planned activities; category limits only |
 | Oct 25 | Percentage splits per expense (`percentages` on `log_expense`); new `record_payback` tool for real paybacks (21 backend tools) |
+| Oct 25 | MVP is USD-only; multi-currency stays in the code but is post-MVP |
+| Oct 25 | `trip_model/` (was `classes/`) is the only data model; the fake backend's dataclasses are gone, and it's renamed `agent/backend/core/` / `TripEngine` |
+| Oct 25 | Each rule has one version, in `trip_model/` where it's a data rule |
+| Oct 25 | Leader fields carried over unchanged while the team decides whether to keep the leader feature |
 
 ## Pull requests (stacked, merge in order)
 
