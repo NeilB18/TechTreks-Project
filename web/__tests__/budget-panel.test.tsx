@@ -61,14 +61,14 @@ describe("BudgetPanel", () => {
         person_id: "mia", name: "Mia",
         budget: { person_id: "mia", budget_set: true, total_cents: 50000, spent_cents: 30000,
                   remaining_cents: 20000, planned_cents: 21300, remaining_after_planned_cents: -1300,
-                  warnings: ["Over total budget by $13 including planned activities"] },
+                  warnings: ["ACTIVITIES over limit by $13 including planned activities"] },
         notices: [{ text: "Heads up: club night puts you over.", created_at: "2027-03-01T12:00:00" }],
       },
     });
     render(<BudgetPanel tripId="miami" live currency="USD" />);
     expect(await screen.findByText("$500")).toBeTruthy();
     expect(screen.getByText("-$13")).toBeTruthy();
-    expect(screen.getByText(/Over total budget by \$13/)).toBeTruthy();
+    expect(screen.getByText(/ACTIVITIES over limit by \$13/)).toBeTruthy();
     expect(screen.getByText("Heads up: club night puts you over.")).toBeTruthy();
   });
 

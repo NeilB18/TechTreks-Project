@@ -15,8 +15,8 @@ from fractions import Fraction
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from category import Category
-    from person import Person
+    from .category import Category
+    from .person import Person
 
 class Expense:
     def __init__(self, id, paid_by: Person, amount_cents, description, category: Category,

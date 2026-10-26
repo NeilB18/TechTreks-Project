@@ -12,20 +12,18 @@ export function Balances({
   tripName: string;
 }) {
   const name = (id: string) => members.find((m) => m.id === id)?.name ?? id;
-  const debts = Object.entries(balances.balances).flatMap(([from, { owes }]) =>
-    owes.map((d) => ({ from, ...d })),
-  );
-  if (debts.length === 0) {
+  const payments = balances.suggested_payments;
+  if (payments.length === 0) {
     return <p className="text-sm text-muted">Everyone&rsquo;s settled up. 🎉</p>;
   }
   return (
     <ul className="divide-y divide-line rounded-xl border border-line bg-card">
-      {debts.map((d) => {
+      {payments.map((d) => {
         const link = payLink(d.handle, d.amount_cents, tripName);
         return (
           <li key={`${d.from}-${d.to}`} className="flex flex-wrap items-center justify-between gap-2 p-3">
             <p>
-              <span className="font-medium">{name(d.from)}</span> owes{" "}
+              <span className="font-medium">{name(d.from)}</span> pays{" "}
               <span className="font-medium">{name(d.to)}</span>{" "}
               <span className="font-semibold tabular-nums">{formatMoney(d.amount_cents, balances.currency)}</span>
             </p>

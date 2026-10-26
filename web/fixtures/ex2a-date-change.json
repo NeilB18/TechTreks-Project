@@ -48,7 +48,7 @@
         "category": "LODGING",
         "paid_by": "aarav",
         "amount_cents": 120000,
-        "splits": {
+        "shares": {
           "aarav": 40000,
           "jake": 40000,
           "mia": 40000
@@ -104,10 +104,15 @@
         "original_amount": 120000,
         "original_currency": "USD",
         "fx_rate": 1.0,
-        "splits": {
+        "shares": {
           "aarav": 40000,
           "jake": 40000,
           "mia": 40000
+        },
+        "splits": {
+          "aarav": 80000,
+          "jake": -40000,
+          "mia": -40000
         },
         "created_at": "2027-03-01T12:00:00",
         "refunded_cents": 0
@@ -119,26 +124,25 @@
     "itinerary_drafts": []
   },
   "balances": {
-    "balances": {
-      "jake": {
-        "owes": [
-          {
-            "to": "aarav",
-            "amount_cents": 40000,
-            "handle": "@aarav-venmo"
-          }
-        ]
-      },
-      "mia": {
-        "owes": [
-          {
-            "to": "aarav",
-            "amount_cents": 40000,
-            "handle": "@aarav-venmo"
-          }
-        ]
-      }
+    "net_balances": {
+      "aarav": 80000,
+      "jake": -40000,
+      "mia": -40000
     },
+    "suggested_payments": [
+      {
+        "from": "jake",
+        "to": "aarav",
+        "amount_cents": 40000,
+        "handle": "@aarav-venmo"
+      },
+      {
+        "from": "mia",
+        "to": "aarav",
+        "amount_cents": 40000,
+        "handle": "@aarav-venmo"
+      }
+    ],
     "currency": "USD"
   }
 }

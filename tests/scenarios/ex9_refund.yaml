@@ -10,8 +10,8 @@ seed:
   expenses:
     - {id: e5, paid_by: aarav, amount: 30000, description: Concert tickets, category: ACTIVITIES,
        split_with: [aarav, jake, mia]}
-    - {id: e6, paid_by: jake, amount: 10000, description: "Jake paid Aarav back (concert)",
-       category: SETTLEMENT, splits: {aarav: 10000}}
+  paybacks:
+    - {id: e6, from: jake, to: aarav, amount: 10000}
 turns:
   - sender: aarav
     text: "@tripbot concert got moved, got $150 back on the tickets"
@@ -29,16 +29,16 @@ turns:
       calls:
         - {name: record_refund, args: {expense_id: e5, amount: 15000}}
       messages:
-        - {to: group, contains: [Mia, "$50"]}
-        - {to: aarav, contains: [Jake, "$50"]}
+        - {to: group, contains: [Mia, Jake, "$50"]}
+        - {to: jake, contains: ["$50", Mia]}
       end_state:
         - refund_count: 1
-        - balance: {from: aarav, to: jake, amount: 5000}
-        - balance: {from: mia, to: aarav, amount: 5000}
+        - balance: {from: mia, to: jake, amount: 5000}
+        - no_debts_for: aarav
     golden:
       calls:
         - {name: record_refund, args: {expense_id: e5, amount: 15000, currency: USD, note: Concert moved}}
         - {name: get_balances, args: {trip_id: miami}}
       messages:
-        - {to: group, text: "Refund logged 🎟️ $150 back on Concert tickets, $50 per person. Mia now owes Aarav $50 (was $100)."}
-        - {to: aarav, text: "Jake already paid you his $100, so send him $50 back. Venmo: @jake-venmo"}
+        - {to: group, text: "Refund logged 🎟️ $150 back on Concert tickets, $50 per person. To settle up: Mia sends Jake $50 (Venmo: @jake-venmo) and Aarav's all square."}
+        - {to: jake, text: "You'd already paid Aarav your $100, so after the refund you're owed $50. Mia's sending it to you directly, so Aarav doesn't need to pay you back."}

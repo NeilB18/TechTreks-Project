@@ -39,12 +39,12 @@ def make_backend(kind: str):
         return FakeBackend()
     from trips.services import DjangoBackend
     if kind == "django":
-        return DjangoBackend(seed=7)
+        return DjangoBackend()
     from django.test import Client
 
     from agent.backend.http import HttpBackend
     http = HttpBackend("http://testserver", token=AGENT_TOKEN, session=DjangoClientSession(Client()))
-    http.state = DjangoBackend(seed=7)
+    http.state = DjangoBackend()
     return http
 
 

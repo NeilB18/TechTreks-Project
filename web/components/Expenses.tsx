@@ -19,7 +19,7 @@ export function Expenses({ expenses, members, currency }: { expenses: Expense[];
   return (
     <ul className="divide-y divide-line rounded-xl border border-line bg-card">
       {[...expenses].reverse().map((e) => {
-        const people = Object.keys(e.splits);
+        const people = Object.keys(e.shares);
         const foreign = e.original_currency !== currency;
         return (
           <li key={e.expense_id} className="flex items-start justify-between gap-3 p-3">

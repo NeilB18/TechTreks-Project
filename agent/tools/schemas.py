@@ -1,4 +1,4 @@
-"""Qwen function-calling tool definitions (OpenAI format): the 20 backend tools
+"""Qwen function-calling tool definitions (OpenAI format): the 21 backend tools
 from specs.md plus send_message.
 
 Schemas stick to plain JSON Schema (type, properties, required, items, enum,
@@ -8,8 +8,9 @@ in the injected trip summary. Keep inputs in sync with agent/backend/protocol.py
 (tests/test_schemas.py checks this).
 """
 
+# Spending categories. SETTLEMENT (paybacks) is only created by record_payback.
 CATEGORY = {"type": "string",
-            "enum": ["LODGING", "TRANSPORT", "FOOD", "DRINKS", "ACTIVITIES", "OTHER", "SETTLEMENT"]}
+            "enum": ["LODGING", "TRANSPORT", "FOOD", "DRINKS", "ACTIVITIES", "OTHER"]}
 CENTS = {"type": "integer", "minimum": 0}
 PERSON = {"type": "string", "description": "Person id from the trip summary"}
 PEOPLE = {"type": "array", "items": PERSON}
@@ -25,9 +26,11 @@ def _tool(name: str, description: str, properties: dict, required: list[str]) ->
 
 
 SPLIT_FIELDS = {
-    "split_with": {**PEOPLE, "description": "Equal split among these people. Leftover cents go to a random person in the split. People who opted out of this category are removed automatically and listed in auto_excluded."},
+    "split_with": {**PEOPLE, "description": "Equal split among these people. Leftover cents go to people in id order. People who opted out of this category are removed automatically and listed in auto_excluded."},
     "exact_amounts": {"type": "object", "additionalProperties": CENTS,
                       "description": "person_id -> cents in the expense currency. Must sum to amount. Use instead of split_with."},
+    "percentages": {"type": "object", "additionalProperties": {"type": "number", "minimum": 0},
+                    "description": "person_id -> percent of this expense, e.g. {\"aarav\": 40, \"jake\": 30, \"mia\": 30}. Must sum to 100. Use instead of split_with."},
     "exclude": {**PEOPLE, "description": "People to leave out of split_with for this expense only (e.g. 'everyone except Jake')."},
     "override_opt_outs": {**PEOPLE, "description": "Only after the person confirmed: include them even though they opted out of this category."},
 }
@@ -37,7 +40,9 @@ BACKEND_TOOL_SCHEMAS = [
     _tool("log_expense",
           "Log a payment and split it. Call right away once payer, amount, currency and who it's for are clear; "
           "if who it's for is unclear, or the currency symbol is ambiguous, ask instead. The payer does not have to be in the split. "
-          "Stores the original amount and the base-currency amount with the FX rate. Returns expense_id, splits (base-currency cents) and auto_excluded.",
+          "Stores the original amount and the base-currency amount with the FX rate. Pass exactly one of split_with, exact_amounts or percentages. "
+          "Returns expense_id, shares (what each person owes for it, base-currency cents; use these in confirmations), "
+          "splits (net change per person: + is owed, - owes; sums to 0) and auto_excluded. Paybacks go through record_payback instead.",
           {"trip_id": TRIP_ID, "paid_by": PERSON, "amount": {**CENTS, "description": "Total in `currency`, in cents"},
            "currency": CURRENCY, "description": {"type": "string"}, "category": CATEGORY,
            **SPLIT_FIELDS,
@@ -61,6 +66,12 @@ BACKEND_TOOL_SCHEMAS = [
           "Refund is shared in the same ratio as the original split.",
           {"expense_id": {"type": "string"}, "amount": CENTS, "currency": CURRENCY, "note": {"type": "string"}},
           ["expense_id", "amount", "currency"]),
+    _tool("record_payback",
+          "Record that someone paid someone back outside the app (Venmo, Zelle, cash). Only call once the payment really happened: "
+          "the sender says they paid, or the receiver confirms. Lowers what they owe; it's not spending and doesn't count toward budgets.",
+          {"trip_id": TRIP_ID, "from_person": PERSON, "to_person": PERSON,
+           "amount": {**CENTS, "description": "Amount paid in `currency`, in cents"}, "currency": CURRENCY},
+          ["trip_id", "from_person", "to_person", "amount", "currency"]),
     # ------------------------------------------------------ trip & members
     _tool("add_member", "Add someone to the trip.",
           {"trip_id": TRIP_ID, "chat_user_id": {"type": "string"}, "name": {"type": "string"},
@@ -143,17 +154,21 @@ BACKEND_TOOL_SCHEMAS = [
            "audience": {**PEOPLE, "description": "Person ids, or [\"all\"] for everyone"}},
           ["trip_id", "message", "due_at", "audience"]),
     # ------------------------------------------------ money info & reads
-    _tool("get_balances", "Who owes whom, pair by pair, with payment handles. Safe to share in the group.",
+    _tool("get_balances",
+          "Each person's net balance (+ is owed, - owes) and suggested_payments: the fewest-ish payments that settle everyone up, "
+          "netted across the group, with the receiver's payment handle. Someone may be told to pay a person other than the one who paid for their stuff. "
+          "Safe to share in the group.",
           {"trip_id": TRIP_ID}, ["trip_id"]),
     _tool("get_budget_status",
           "One person's budget: total, spent (their split shares, not what they paid), planned activity costs, remaining, and warnings. "
+          "Warnings come from category limits only (under 10% of a limit left, counting planned activities). "
           "PRIVATE: anything from this result may only go to that person's DM, never the group. "
           "Call it for every person in the split after each expense.",
           {"trip_id": TRIP_ID, "person_id": PERSON}, ["trip_id", "person_id"]),
     _tool("convert_currency", "Convert an amount between currencies.",
           {"amount": CENTS, "from": CURRENCY, "to": CURRENCY}, ["amount", "from", "to"]),
     _tool("get_trip",
-          "Full trip state beyond the summary: every expense with splits and refunds, polls with votes, reminders, itinerary drafts. Never budgets.",
+          "Full trip state beyond the summary: every expense with shares, splits and refunds, polls with votes, reminders, itinerary drafts. Never budgets.",
           {"trip_id": TRIP_ID}, ["trip_id"]),
 ]
 

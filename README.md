@@ -8,12 +8,13 @@ Group-trip agent for a GroupMe chat: plans the trip, logs and splits expenses, g
 agent/
   config.py                 model (qwen3.8-max), thinking, endpoint
   prompts/system_prompt.md  system prompt v1
-  tools/schemas.py          20 backend tools + send_message
+  tools/schemas.py          21 backend tools + send_message
   backend/protocol.py       the agent <-> backend contract
-  backend/fake/             in-memory data model + FakeBackend (placeholder rules in rules.py)
+  backend/fake/             in-memory data model + FakeBackend (money rules from classes/ via ledger.py; placeholders in rules.py)
   runner.py                 Qwen function-calling loop for one chat message
   scenarios.py              runs + checks the examples.md scenarios
   cli.py                    fake multi-person chat
+classes/                    data model + money rules (splits, balances, settle-up, budget warnings); see classes/README.md
 tests/
   scenarios/*.yaml          one per example in examples.md
 ```
@@ -61,7 +62,7 @@ cd backend
 
 API (all routes need `Authorization: Bearer $AGENT_API_TOKEN`; the dev default is `dev-agent-token`):
 
-- `POST /api/tools/<tool_name>`: any of the 20 tools, with the tool's arguments as the JSON body. Returns 400 `{"error": ...}` on bad input.
+- `POST /api/tools/<tool_name>`: any of the 21 tools, with the tool's arguments as the JSON body. Returns 400 `{"error": ...}` on bad input.
 - `GET /api/trips/<id>/summary`: the state injected into each agent turn.
 - `GET /api/trips/<id>` and `GET /api/trips/<id>/balances`: for the trip page. These never include budgets.
 
@@ -100,6 +101,5 @@ Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtu
 
 ## Placeholders
 
-- Budget warnings: remaining < 10% (`agent/backend/fake/rules.py`). The real logic is still TBD, so Examples 3 and 8 are skipped.
 - FX: fixed rate table in `rules.py`. The provider is still TBD.
 - Travel tips and itineraries: canned text in the fake backend. Google Places and SerpAPI come later.

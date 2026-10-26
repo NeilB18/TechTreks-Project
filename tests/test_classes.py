@@ -2,14 +2,14 @@ import unittest
 from datetime import datetime, timedelta
 from itertools import count
 
-from activity import Activity
-from budget import Budget
-from category import Category
-from expense import Expense
-from person import Person
-from poll import Poll
-from reminder import Reminder
-from trip import Trip
+from classes.activity import Activity
+from classes.budget import Budget
+from classes.category import Category
+from classes.expense import Expense
+from classes.person import Person
+from classes.poll import Poll
+from classes.reminder import Reminder
+from classes.trip import Trip
 
 expense_ids = count(1)
 
@@ -75,6 +75,12 @@ class TestBudget(unittest.TestCase):
         self.assertEqual(budget.remaining(Category.DRINKS, trip.expenses), 500)
         self.assertTrue(budget.warning(Category.DRINKS, trip.expenses))
 
+    def test_planned_costs_count_toward_warning(self):
+        budget = Budget("a", 50000, {Category.ACTIVITIES: 14000})
+        self.assertFalse(budget.warning(Category.ACTIVITIES, []))
+        self.assertFalse(budget.warning(Category.ACTIVITIES, [], planned_cents=10000))
+        self.assertTrue(budget.warning(Category.ACTIVITIES, [], planned_cents=13333))
+
     def test_no_limit_returns_none(self):
         budget = Budget("a", 50000, {})
         self.assertIsNone(budget.remaining(Category.FOOD, []))
@@ -109,12 +115,18 @@ class TestTripLedger(unittest.TestCase):
         with self.assertRaises(ValueError):
             trip.add_expense(e)
 
-    def test_minimum_settlements_uses_zero_sum_groups(self):
+    def test_greedy_settlements_pairs_exact_opposites_first(self):
         trip, _ = make_trip()
-        # {a,b} and {c,d,e} are both zero-sum, so 5 people need only 3 payments.
+        # a and b cancel exactly, so they settle directly and c covers d and e: 3 payments.
         b = {"a": -500, "b": 500, "c": -700, "d": 300, "e": 400}
-        payments = trip._minimum_settlements(b)
-        self.assertEqual(len(payments), 3)
+        payments = trip._greedy_settlements(b)
+        self.assertEqual(payments, [("a", "b", 500), ("c", "e", 400), ("c", "d", 300)])
+
+    def test_greedy_settlements_clears_everyone(self):
+        trip, _ = make_trip()
+        b = {"a": -1000, "b": -600, "c": 900, "d": 500, "e": 200}
+        payments = trip._greedy_settlements(b)
+        self.assertLessEqual(len(payments), len(b) - 1)
         net = dict.fromkeys(b, 0)
         for debtor, creditor, amount in payments:
             self.assertLess(b[debtor], 0)
@@ -156,6 +168,7 @@ class TestPlanning(unittest.TestCase):
     def test_reminder_validation(self):
         with self.assertRaises(ValueError):
             Reminder("Pack!", datetime.now(), created_by="bob")
+        self.assertEqual(Reminder("Pack!", datetime.now(), created_by="agent").created_by, "agent")
         r = Reminder("Pack!", datetime.now() - timedelta(minutes=1))
         self.assertTrue(r.is_due())
         r.mark_sent()

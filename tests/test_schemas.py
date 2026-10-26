@@ -10,7 +10,7 @@ from agent.tools.schemas import ALL_TOOLS, BACKEND_TOOL_SCHEMAS
 
 def test_one_schema_per_backend_tool():
     names = [t["function"]["name"] for t in BACKEND_TOOL_SCHEMAS]
-    assert len(names) == len(set(names)) == 20
+    assert len(names) == len(set(names)) == 21
     assert set(names) == set(BACKEND_TOOLS)
     assert ALL_TOOLS[-1]["function"]["name"] == "send_message"
     assert all(t["type"] == "function" for t in ALL_TOOLS)

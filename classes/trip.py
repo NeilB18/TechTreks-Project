@@ -11,15 +11,16 @@
 #     settlement_plan() -> list[(from_person_id, to_person_id, amount_cents)]   # suggestion only
 #     record_settlement(from_person_id, to_person_id, amount_cents, payment_id)
 
+import heapq
 from datetime import date
 
-from activity import Activity
-from category import Category
-from expense import Expense
-from person import Person
-from poll import Poll
-from reminder import Reminder
-from trip_status import TripStatus
+from .activity import Activity
+from .category import Category
+from .expense import Expense
+from .person import Person
+from .poll import Poll
+from .reminder import Reminder
+from .trip_status import TripStatus
 
 class Trip:
     def __init__(self, id, name, status: TripStatus = TripStatus.PLANNING,
@@ -109,81 +110,53 @@ class Trip:
         b = {person_id: amount for person_id, amount in self.balances().items() if amount != 0}
         if not b:
             return []
-        return self._minimum_settlements(b)
+        return self._greedy_settlements(b)
 
-    def _minimum_settlements(self, b: dict):
-        # Exact minimum: split people into the most disjoint zero-sum groups, since n people
-        # in k groups settle in n - k payments. Exponential in n; fine for small trip groups.
-        ids = sorted(b)
-        n = len(ids)
+    def _greedy_settlements(self, b: dict):
+        # Exact opposites pay each other first, then the largest debtor repeatedly pays the
+        # largest creditor. At most n - 1 payments; not always the fewest possible.
         if sum(b.values()) != 0:
             raise ValueError("Balances must sum to zero.")
-
-        # sums[mask] = total balance of the people whose bits are set in mask
-        sums = [0] * (1 << n)
-        for mask in range(1, 1 << n):
-            low_bit = mask & -mask
-            sums[mask] = sums[mask ^ low_bit] + b[ids[low_bit.bit_length() - 1]]
-
-        cache = {}
-
-        def best_partition(remaining):
-            if remaining == 0:
-                return []
-            if remaining in cache:
-                return cache[remaining]
-
-            anchor = remaining & -remaining
-            others = remaining ^ anchor
-            best = None
-            sub = others
-            while True:
-                group = sub | anchor
-                if sums[group] == 0:
-                    rest = best_partition(remaining ^ group)
-                    if rest is not None and (best is None or len(rest) + 1 > len(best)):
-                        best = [group] + rest
-                if sub == 0:
-                    break
-                sub = (sub - 1) & others
-            cache[remaining] = best
-            return best
-
-        groups = best_partition((1 << n) - 1)
         payments = []
 
-        for group in groups:
-            members = [ids[i] for i in range(n) if group & (1 << i)]
-            remaining_debt = {pid: -b[pid] for pid in members if b[pid] < 0}
-            remaining_credit = {pid: b[pid] for pid in members if b[pid] > 0}
-            debtors = list(remaining_debt)
-            creditors = list(remaining_credit)
+        # Pair anyone who owes exactly what someone else is owed.
+        unmatched = {}
+        for pid in sorted(b):
+            partners = unmatched.get(-b[pid])
+            if partners:
+                other = partners.pop(0)
+                debtor, creditor = (pid, other) if b[pid] < 0 else (other, pid)
+                payments.append((debtor, creditor, abs(b[pid])))
+            else:
+                unmatched.setdefault(b[pid], []).append(pid)
+        rest = [pid for pids in unmatched.values() for pid in pids]
 
-            # Transfers only between original debtors and original creditors.
-            while debtors and creditors:
-                d = debtors[0]
-                c = creditors[0]
-                amount = min(remaining_debt[d], remaining_credit[c])
-                payments.append((d, c, amount))
-                remaining_debt[d] -= amount
-                remaining_credit[c] -= amount
-                if remaining_debt[d] == 0:
-                    debtors.pop(0)
-                if remaining_credit[c] == 0:
-                    creditors.pop(0)
+        # Max-heaps of (-amount, person_id); ties go to the smaller id so plans are stable.
+        debtors = [(b[pid], pid) for pid in rest if b[pid] < 0]
+        creditors = [(-b[pid], pid) for pid in rest if b[pid] > 0]
+        heapq.heapify(debtors)
+        heapq.heapify(creditors)
 
-        paid = {pid: 0 for pid in ids}
-        received = {pid: 0 for pid in ids}
+        while debtors and creditors:
+            debt, d = heapq.heappop(debtors)
+            credit, c = heapq.heappop(creditors)
+            amount = min(-debt, -credit)
+            payments.append((d, c, amount))
+            if -debt > amount:
+                heapq.heappush(debtors, (debt + amount, d))
+            if -credit > amount:
+                heapq.heappush(creditors, (credit + amount, c))
+
+        paid = {pid: 0 for pid in b}
+        received = {pid: 0 for pid in b}
         for d, c, amount in payments:
             paid[d] += amount
             received[c] += amount
-        for pid in ids:
+        for pid in b:
             if b[pid] < 0 and paid[pid] != -b[pid]:
                 raise RuntimeError(f"{pid} did not pay exactly what they owe.")
             if b[pid] > 0 and received[pid] != b[pid]:
                 raise RuntimeError(f"{pid} did not receive exactly what they are owed.")
-        if len(payments) != n - len(groups):
-            raise RuntimeError("Settlement plan is not minimal.")
         return payments
 
     def record_settlement(self, from_person_id, to_person_id, amount_cents, payment_id):

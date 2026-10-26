@@ -147,7 +147,7 @@ def check_privacy(tr: TurnResult, backend, trip_id: str) -> list[str]:
 def _check_state(check: dict, backend, trip_id: str) -> list[str]:
     trip = backend.trips[trip_id]
     (kind, spec), = check.items()
-    debts = backend.pairwise_debts(trip)
+    debts = backend.settle_up(trip)  # suggested payments: (from, to) -> cents
     if kind == "balance":
         got = debts.get((spec["from"], spec["to"]), 0)
         return [] if got == spec["amount"] else [f"{spec['from']} should owe {spec['to']} {spec['amount']}, owes {got}"]

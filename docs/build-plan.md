@@ -2,7 +2,7 @@
 
 How the MVP is put together, the decisions behind it, and what's left. Design rules
 live in [specs.md](../specs.md) and [examples.md](../examples.md); this file covers
-the build. Last updated Oct 22, 2026.
+the build. Last updated Oct 25, 2026.
 
 ## How the pieces fit
 
@@ -18,8 +18,8 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 
 | Piece | Where | What it does |
 |---|---|---|
-| Agent | `agent/` | System prompt, 21 tools, Qwen tool-calling loop, CLI for a fake group chat |
-| Fake backend | `agent/backend/fake/` | In-memory version of every tool, used for tests; the rules live here once |
+| Agent | `agent/` | System prompt, 22 tools, Qwen tool-calling loop, CLI for a fake group chat |
+| Fake backend | `agent/backend/fake/` | In-memory version of every tool, used for tests; the rules live here once, with the money rules from `classes/` (via `ledger.py`) |
 | Backend | `backend/trips/` | Django models and `DjangoBackend`, which runs the same rules over the database; tool API |
 | Bot | `backend/bot/` | GroupMe webhook, replies, private notices, reminders |
 | Sign-in | `backend/accounts/` | Google sign-in, link code, "my budget" API |
@@ -41,6 +41,12 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 22 | GroupMe DMs: test first with `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in |
 | Oct 22 | Account linking works without DMs: sign in with Google, then post `@tripbot link <code>` in the group |
 | Oct 22 | Each piece of work gets its own branch and PR, stacked so work doesn't wait on reviews |
+| Oct 25 | `classes/` is the data model and money rules; the backend uses it through `agent/backend/fake/ledger.py` |
+| Oct 25 | Expense splits are net changes per person (sum to 0); tool results also give each person's share |
+| Oct 25 | Balances are netted across the group; the agent suggests payments (exact opposites first, then biggest debtor pays biggest creditor) |
+| Oct 25 | Leftover cents go in id order instead of randomly |
+| Oct 25 | Budget warnings: under 10% of a category limit left, counting planned activities; category limits only |
+| Oct 25 | Percentage splits per expense (`percentages` on `log_expense`); new `record_payback` tool for real paybacks (21 backend tools) |
 
 ## Pull requests (stacked, merge in order)
 
@@ -55,7 +61,6 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 ## Blocked / waiting on
 
 - **Qwen access** (Alibaba account in verification): live agent tests (`pytest -m live`), prompt tuning, a real GroupMe demo.
-- **Budget-warning rule** (Romir): Examples 3 and 8.
 - **GroupMe DM spike**: needs a GroupMe account and a teammate to receive a test DM.
 - **Google OAuth client**: see [google-signin.md](google-signin.md).
 - **Mentor**: demo date and what must work, exchange-rate provider.

@@ -51,7 +51,8 @@
     "itinerary_drafts": []
   },
   "balances": {
-    "balances": {},
+    "net_balances": {},
+    "suggested_payments": [],
     "currency": "USD"
   }
 }
