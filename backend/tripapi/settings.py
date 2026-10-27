@@ -19,6 +19,11 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,test
 # cookie lives on the page's domain. Build URLs (e.g. Google's callback) from the host the browser
 # used. Only safe behind that proxy; the host is still checked against ALLOWED_HOSTS.
 USE_X_FORWARDED_HOST = os.environ.get("DJANGO_USE_X_FORWARDED_HOST", "1") == "1"
+# A hosted trip page (https) posts sign-in forms through that proxy: trust its origin, and its
+# https scheme from the tunnel's X-Forwarded-Proto so the Google callback URL is https too.
+CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+if os.environ.get("DJANGO_TRUST_FORWARDED_PROTO") == "1":
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Shared secret the agent sends as "Authorization: Bearer <token>" on /api/tools and /api/trips.
 AGENT_API_TOKEN = os.environ.get("AGENT_API_TOKEN") or ("dev-agent-token" if DEBUG else None)
