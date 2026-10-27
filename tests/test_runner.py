@@ -317,3 +317,17 @@ def test_no_dms_to_others_on_a_turn_that_checked_or_changed_nothing():
     r = TripAgent(engine(), "miami", client=client).handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back"))
     assert "no private news for jake" in r.tool_calls[1].error
     assert [m["to"] for m in r.outbox] == ["group", "aarav"]  # the sender's own DM is fine
+
+
+def test_event_spells_out_the_week_and_near_duplicates_are_dropped():
+    client = ScriptedClient([
+        response("tool_calls", None,
+                 tool_call("t1", "send_message", {"to": "group", "text": "Reminder set for Friday Mar 12 ✅"}),
+                 tool_call("t2", "send_message", {"to": "group", "text": "Reminder set for Friday, Mar 12 ✅"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(engine(), "miami", client=client).handle(
+        ChatEvent(sender_id="aarav", text="@tripbot remind everyone by Friday", time="2027-03-10T12:00"))
+    event = client.requests[0]["messages"][-1]["content"]
+    assert "calendar: Wed 2027-03-10 (today), Thu 2027-03-11, Fri 2027-03-12, Sat 2027-03-13" in event
+    assert len(r.outbox) == 1 and "nearly the same" in r.tool_calls[1].error

@@ -7,6 +7,8 @@ through Model Studio's OpenAI-compatible endpoint.
 import json
 import os
 import re
+from datetime import date, timedelta
+from difflib import SequenceMatcher
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -94,6 +96,13 @@ class TripAgent:
                  f"mentioned: {str(ev.mentioned).lower()}"]
         if ev.time:
             lines.append(f"time: {ev.time}")
+            today = _day_of(ev.time)
+            if today:
+                # Live evals: "by Friday" became Mar 13, a Saturday. Spell the week out instead of trusting the
+                # model's weekday arithmetic.
+                lines.append("calendar: " + ", ".join(
+                    f"{(today + timedelta(n)):%a} {(today + timedelta(n)).isoformat()}" + (" (today)" if n == 0 else "")
+                    for n in range(8)))
         lines.append(f"message: {ev.text}")
         return (f"<trip_state>\n{json.dumps(state, sort_keys=True)}\n</trip_state>\n"
                 f"<event>\n" + "\n".join(lines) + "\n</event>")
@@ -213,6 +222,10 @@ class TripAgent:
                 # Live run: someone set their budget in the group and the reply repeated it there.
                 call.error = (f"Not sent: this group message contains a private budget number ({leaked}). Budgets "
                               "only go to the person's DM. In the group, say at most \"sent you a DM 🔒\".")
+                return f"Error: {call.error}"
+            if any(m["to"] == to and SequenceMatcher(None, m["text"], text or "").ratio() > 0.8 for m in result.outbox):
+                # The no-thinking follow-up sometimes re-sends what it just sent, slightly reworded.
+                call.error = f"Not sent: you already sent {to} nearly the same message this turn. End the turn."
                 return f"Error: {call.error}"
             members = {m["id"] for m in self.backend.summary(self.trip_id)["members"]}
             if not text or (to != "group" and to not in members):
@@ -371,3 +384,11 @@ def _mentions_amount(text: str, amounts: set[int]) -> str | None:
         if re.search(rf"\$\s?{dollars}{frac}(?![\d,]*\d)", text):
             return f"${cents / 100:,.2f}".removesuffix(".00")
     return None
+
+
+def _day_of(time_text: str) -> date | None:
+    """The date at the start of an event time like "2027-03-10T12:00 (Wednesday)"."""
+    try:
+        return date.fromisoformat(time_text[:10])
+    except ValueError:
+        return None
