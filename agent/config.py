@@ -2,23 +2,25 @@
 
 import os
 
+from agent.env import load_env
+
+load_env()
+
 # Qwen via Alibaba Cloud Model Studio's OpenAI-compatible API.
-MODEL = "qwen3.8-max"
+MODEL = "qwen3.8-flash"
 ENABLE_THINKING = True  # Qwen3 thinking mode; tool_choice must stay "auto" while it's on
 MAX_TOOL_ROUNDS = 15  # model calls per incoming chat message
+REQUEST_TIMEOUT_S = 90  # per model call
 
-# API keys are bound to the region they were created in. The team key is US (Virginia),
-# whose endpoint includes the Model Studio workspace ID from the console.
+# API keys only work on the endpoint of the region they were created in (the team key is
+# Singapore). QWEN_BASE_URL is that endpoint: "<API Host from Workspace Management>/compatible-mode/v1".
 API_KEY_ENV = "DASHSCOPE_API_KEY"
-US_BASE_URL = "https://{workspace_id}.us-east-1.maas.aliyuncs.com/compatible-mode/v1"
 
 
 def base_url() -> str:
-    """QWEN_BASE_URL overrides everything; otherwise build the US URL from QWEN_WORKSPACE_ID."""
-    if os.environ.get("QWEN_BASE_URL"):
-        return os.environ["QWEN_BASE_URL"]
-    workspace_id = os.environ.get("QWEN_WORKSPACE_ID")
-    if not workspace_id:
-        raise RuntimeError("Set QWEN_WORKSPACE_ID (Model Studio console, US region) or QWEN_BASE_URL")
-    return US_BASE_URL.format(workspace_id=workspace_id)
+    url = os.environ.get("QWEN_BASE_URL")
+    if not url:
+        raise RuntimeError("Set QWEN_BASE_URL in .env (Model Studio Workspace Management -> API Host)")
+    return url
+
 

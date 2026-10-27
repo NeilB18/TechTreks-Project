@@ -5,7 +5,10 @@ from pathlib import Path
 
 import dj_database_url
 
+from agent.env import load_env
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_env()  # repo-root .env (gitignored); added by Romir for local keys
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or ("dev-only-insecure-key" if DEBUG else None)
