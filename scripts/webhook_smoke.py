@@ -27,7 +27,7 @@ django.setup()
 from django.core.management import call_command  # noqa: E402
 from django.test import Client  # noqa: E402
 
-from bot import groupme, worker  # noqa: E402
+from bot import groupme, services, worker  # noqa: E402
 from bot.models import Conversation, PrivateNotice  # noqa: E402
 from trips.models import Person  # noqa: E402
 
@@ -44,6 +44,7 @@ SCRIPT = [
     ("aarav", "@tripbot my venmo is @aarav-v", True),
     ("aarav", "@tripbot got $200 back on the airbnb, they gave us a discount", True),
     ("aarav", "@tripbot yes", True),
+    ("priya", "@tripbot remind everyone tomorrow at 10am to pay Aarav back", True),
     # Two at once: the worker must handle them in order and keep both in the history.
     ("jake", "@tripbot dinner was $80, I paid, split with mia and me", False),
     ("mia", "@tripbot who owes who right now?", True),
@@ -85,6 +86,9 @@ def main() -> None:
         seen_notices = len(notices)
     history = Conversation.objects.get(trip_id="smoke").history
     events = sum(1 for m in history if m["role"] == "user" and "<event>" in m["content"])
+    from trips.models import Reminder
+    for r in Reminder.objects.filter(trip_id="smoke"):
+        print(f"\nReminder: {r.message!r} due {r.due_at} (local now was {services.local_now()})")
     print(f"\nMembers: {sorted(Person.objects.filter(trip_id='smoke').values_list('person_id', flat=True))}")
     print(f"History: {len(history)} messages, {events} chat turns, "
           f"{sum('<trip_state>' in m['content'] for m in history if m['role'] == 'user')} with trip state")
