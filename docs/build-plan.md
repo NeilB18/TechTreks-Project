@@ -66,6 +66,21 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 6. `trip-page-live`: trip page wired to the real API and sign-in
 7. `project-docs`: this file and the updated project context
 
+Merged since: Roger's #9–#11 (`trip_model/`, `TripEngine`, greedy settle-up, `record_payback`, category-only budget warnings).
+
+Open, on top of that (stacked, merge in order):
+
+8. `agent-qwen`: the agent on `qwen3.8-flash` with `.env` keys, plus agent-side reliability:
+   - payer guard
+   - automatic budget checks
+   - chat-ready amounts
+   - prompt fixes
+9. `ci-v2`: GitHub Actions for the offline tests and the trip page
+10. `agent-evals-v2`: 15 edge-case scenarios and a live eval report (81/81 on Oct 27)
+11. `travel-data-v2`: Google Places + SerpAPI behind a switch (a small hook in `TripEngine`)
+
+Superseded and should be closed unmerged: the earlier `agent-live-tuning`, `ci`, `budget-warnings`, `agent-evals`, `travel-data`.
+
 ## Blocked / waiting on
 
 - **Qwen access** (Alibaba account in verification): live agent tests (`pytest -m live`), prompt tuning, a real GroupMe demo.
