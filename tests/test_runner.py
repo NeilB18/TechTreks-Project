@@ -30,7 +30,7 @@ class ScriptedClient:
 
 
 def test_tool_loop_runs_tools_and_delivers_messages():
-    scn = next(s for s in load_scenarios() if s["example"] == "4a")
+    scn = next(s for s in load_scenarios() if s.get("example") == "4a")
     backend = make_backend(scn)
     client = ScriptedClient([
         response("tool_calls", "Logging it.",
@@ -46,15 +46,16 @@ def test_tool_loop_runs_tools_and_delivers_messages():
     agent = TripAgent(backend, "miami", client=client)
     r = agent.handle(ChatEvent(sender_id="mia", text="@tripbot dinner $120 split with everyone except Jake"))
 
-    assert [c.name for c in r.tool_calls] == ["log_expense", "send_message", "get_balances", "send_message"]
-    assert r.tool_calls[1].error  # bad recipient goes back to the model as an error
-    assert "Invalid JSON" in r.tool_calls[2].error
+    model_calls = [c for c in r.tool_calls if not c.by_runner]  # the runner also checks budgets after log_expense
+    assert [c.name for c in model_calls] == ["log_expense", "send_message", "get_balances", "send_message"]
+    assert model_calls[1].error  # bad recipient goes back to the model as an error
+    assert "Invalid JSON" in model_calls[2].error
     assert r.outbox == [{"to": "group", "text": "Logged $60 each"}]
     assert r.stray_text == ["Logging it."]
     assert len(backend.trips["miami"].expenses) == 1
 
     first = client.requests[0]
-    assert first["model"] == "qwen3.8-max"
+    assert first["model"] == "qwen3.8-flash"
     assert first["extra_body"] == {"enable_thinking": True}
     assert first["tool_choice"] == "auto"  # thinking mode rejects "required"/object
     assert first["messages"][0]["role"] == "system"
@@ -66,7 +67,7 @@ def test_tool_loop_runs_tools_and_delivers_messages():
 
 
 def test_history_carries_across_turns():
-    scn = next(s for s in load_scenarios() if s["example"] == "9")
+    scn = next(s for s in load_scenarios() if s.get("example") == "9")
     client = ScriptedClient([response("stop", ""), response("stop", "")])
     agent = TripAgent(make_backend(scn), "miami", client=client)
     agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $150 back"))
@@ -74,3 +75,73 @@ def test_history_carries_across_turns():
     agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
     assert agent.history[:len(before)] == before
     assert len(client.requests[1]["messages"]) == 4  # system + user + assistant + user
+
+
+def test_undelivered_text_gets_one_reminder():
+    scn = next(s for s in load_scenarios() if s.get("example") == "4a")
+    client = ScriptedClient([
+        response("stop", "Logged! $60 each."),
+        response("tool_calls", None, tool_call("t1", "send_message", {"to": "group", "text": "Logged! $60 each."})),
+        response("stop", "done"),
+    ])
+    agent = TripAgent(make_backend(scn), "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="mia", text="@tripbot dinner"))
+    assert r.outbox == [{"to": "group", "text": "Logged! $60 each."}]
+    assert len(client.requests) == 3  # reminded once, never twice
+    assert client.requests[1]["messages"][-1]["content"].startswith("[runner]")
+
+
+DINNER_TRIP = {
+    "trip": {"id": "miami", "name": "Miami", "base_currency": "USD", "leader": "aarav"},
+    "members": [{"id": "aarav", "name": "Aarav", "handle": "@aarav-venmo"},
+                {"id": "jake", "name": "Jake", "handle": "@jake-venmo"},
+                {"id": "mia", "name": "Mia", "handle": "@mia-venmo"}],
+    "budgets": {"mia": {"total": 90000, "limits": {"FOOD": 15000}}},
+    "expenses": [{"id": "e1", "paid_by": "aarav", "amount": 12000, "description": "Dinner", "category": "FOOD",
+                  "split_with": ["aarav", "jake", "mia"]}],
+}
+
+
+def engine():
+    from agent.backend.core.engine import TripEngine
+    b = TripEngine()
+    b.load_seed(DINNER_TRIP)
+    return b
+
+
+def test_edits_deletes_refunds_need_a_message_from_the_payer():
+    backend = engine()
+    edit = {"expense_id": "e1", "requested_by": "jake", "changes": {"amount": 15000}}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "edit_expense", edit)), response("stop", ""),
+        response("tool_calls", None, tool_call("t2", "edit_expense", edit)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="jake", text="@tripbot dinner was $150"))
+    assert "Only aarav" in r.tool_calls[0].error
+    assert backend.trips["miami"].expenses[0].amount_cents == 12000  # unchanged
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
+    assert r.tool_calls[0].error is None
+    assert backend.trips["miami"].expenses[0].amount_cents == 15000
+
+
+def test_results_get_chat_ready_amounts_and_automatic_budget_checks():
+    backend = engine()
+    tacos = {"trip_id": "miami", "paid_by": "jake", "amount": 33000, "currency": "USD", "description": "Tacos",
+             "category": "FOOD", "split_with": ["aarav", "jake", "mia"]}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "log_expense", tacos),
+                 tool_call("t2", "get_balances", {"trip_id": "miami"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(backend, "miami", client=client).handle(ChatEvent(sender_id="jake", text="@tripbot tacos $330"))
+    logged = r.tool_calls[0].result
+    assert logged["display"]["amount"] == "$330" and logged["display"]["shares"]["mia"] == "$110"
+    assert logged["display"]["pay_to"] == "Jake (@jake-venmo)"
+    # Everyone in the split is checked; only Mia has a budget: $40 dinner + $110 tacos uses her whole $150 food limit.
+    checks = [c for c in r.tool_calls if c.by_runner]
+    assert sorted(c.input["person_id"] for c in checks) == ["aarav", "jake", "mia"]
+    assert list(logged["budget_warnings"]) == ["mia"] and "mia" in logged["next_step"]
+    balances = next(c for c in r.tool_calls if c.name == "get_balances").result
+    assert all(line.count(" pays ") == 1 for line in balances["lines"])
+    assert any(line.startswith("Aarav pays Jake") and line.endswith("@jake-venmo") for line in balances["lines"])

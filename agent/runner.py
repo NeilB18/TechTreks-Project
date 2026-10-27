@@ -13,10 +13,14 @@ from openai import OpenAI
 
 from agent import config
 from agent.backend.protocol import Backend, ToolError, dispatch
+from agent.enrich import enrich
 from agent.tools.schemas import ALL_TOOLS
 
 SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "system_prompt.md").read_text()
 PAYER_CONFIRMS = {"edit_expense", "delete_expense", "record_refund"}
+# After these, the runner checks the budget of everyone affected (specs.md: after every expense,
+# check everyone in the split). Done in code because the model sometimes skipped people.
+BUDGET_CHECK_AFTER = {"log_expense", "edit_expense", "record_refund", "remove_member"}
 UNDELIVERED_NOTE = (
     "[runner] Your last text was not delivered: nobody sees text outside send_message. "
     "If it was meant for someone, send it now with send_message (to \"group\", or a person id for "
@@ -39,6 +43,7 @@ class ToolCall:
     input: dict
     result: dict | None = None
     error: str | None = None
+    by_runner: bool = False  # made by the runner itself (automatic budget checks), not the model
 
 
 @dataclass
@@ -130,10 +135,38 @@ class TripAgent:
             return f"Error: {blocked}"
         try:
             call.result = dispatch(self.backend, name, args)
-            return json.dumps(call.result, default=str)
         except ToolError as e:
             call.error = str(e)
             return f"Error: {e}"
+        summary = self.backend.summary(self.trip_id)
+        enrich(call.result, args, summary)
+        if name in BUDGET_CHECK_AFTER:
+            self._attach_budget_warnings(name, call.result, summary, result)
+        return json.dumps(call.result, default=str)
+
+    def _attach_budget_warnings(self, name: str, out: dict, summary: dict, result: TurnResult) -> None:
+        """Check everyone affected and add `budget_warnings` ({person_id: [warnings]}, private)."""
+        if name == "remove_member":
+            people = [m["id"] for m in summary["members"] if m["active"]]
+        else:
+            people = list(out.get("shares") or out.get("per_person") or (out.get("expense") or {}).get("shares") or {})
+        warnings = {}
+        for pid in people:  # everyone affected, as specs.md asks; people without a budget just return no warnings
+            args = {"trip_id": self.trip_id, "person_id": pid}
+            check = ToolCall(name="get_budget_status", input=args, by_runner=True)
+            result.tool_calls.append(check)
+            try:
+                check.result = dispatch(self.backend, "get_budget_status", args)
+            except ToolError as e:
+                check.error = str(e)
+                continue
+            if check.result.get("warnings"):
+                warnings[pid] = check.result["warnings"]
+        out["budget_warnings"] = warnings
+        out["next_step"] = (
+            f"Budgets were checked automatically. DM each person in budget_warnings ({', '.join(warnings)}) "
+            "about their own warning; never mention it in the group." if warnings
+            else "Budgets were checked automatically: no warnings, so don't mention budgets.")
 
     def handle(self, event: ChatEvent) -> TurnResult:
         result = TurnResult()
