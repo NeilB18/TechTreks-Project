@@ -27,7 +27,7 @@ describe("Balances", () => {
   it("offers copy for Zelle-style handles and says when everyone is settled", () => {
     const { detail, balances } = fixture("miami-demo");
     render(<Balances balances={balances} members={detail.members} tripName="Miami" />);
-    expect(screen.getAllByRole("button", { name: /sam@example.com/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /jake@example.com/ }).length).toBeGreaterThan(0);
     cleanup();
     render(<Balances balances={{ net_balances: {}, suggested_payments: [], currency: "USD" }} members={[]} tripName="x" />);
     expect(screen.getByText(/settled up/)).toBeTruthy();
