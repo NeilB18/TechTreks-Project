@@ -5,9 +5,11 @@ GroupMe has no DM callbacks for bots, so every incoming event is a group message
 
 import logging
 import re
+import time
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from openai import APIConnectionError, APITimeoutError
 
 from accounts.services import find_link_command, redeem
 from agent.runner import ChatEvent, TripAgent
@@ -18,6 +20,7 @@ from trips.services import DjangoBackend
 
 log = logging.getLogger(__name__)
 ERROR_REPLY = "Sorry, I hit a snag handling that. Try again in a minute?"
+RETRY_AFTER_S = 20
 
 
 def make_agent(backend, trip_id: str, history: list[dict]):
@@ -59,13 +62,23 @@ def handle_callback(payload: dict) -> str:
         groupme.post_to_group(chat.bot_id, redeem(code, person))
         return "linked account"
     convo, _ = Conversation.objects.get_or_create(trip=trip)
-    agent = make_agent(backend, trip.id, convo.history)
     event = ChatEvent(sender_id=person.person_id, text=text, channel="group", mentioned=mentioned,
                       chat_user_id=person.chat_user_id)
-    try:
-        result = agent.handle(event)
-    except Exception:
-        log.exception("Agent failed on message %s", message_id)
+    for attempt in range(2):
+        agent = make_agent(backend, trip.id, convo.history)  # fresh each try: a failed one may have half a turn
+        try:
+            result = agent.handle(event)
+            break
+        except (APIConnectionError, APITimeoutError):
+            # The client already retried for a few seconds; a longer outage (a DNS blip in the smoke test)
+            # gets one more try before the apology, so the message isn't simply lost.
+            if attempt == 0 and not settings.BOT_INLINE:
+                log.warning("Model unreachable on message %s; retrying in %ss", message_id, RETRY_AFTER_S)
+                time.sleep(RETRY_AFTER_S)
+                continue
+            log.exception("Agent failed on message %s", message_id)
+        except Exception:
+            log.exception("Agent failed on message %s", message_id)
         groupme.post_to_group(chat.bot_id, ERROR_REPLY)
         return "error"
     convo.history = agent.history

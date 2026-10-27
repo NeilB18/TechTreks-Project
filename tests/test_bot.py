@@ -201,3 +201,29 @@ def test_worker_keeps_order_within_a_group_and_runs_groups_side_by_side(monkeypa
     for q in worker._queues.values():
         q.join()
     assert seen.index("a1") < seen.index("a2")
+
+
+def test_model_outage_gets_one_retry_before_the_apology(bot, monkeypatch, settings):
+    import httpx2 as httpx
+    from openai import APIConnectionError
+    settings.BOT_INLINE = False  # the retry only waits in the background worker
+    monkeypatch.setattr(services, "RETRY_AFTER_S", 0)
+    attempts = []
+
+    class Flaky:
+        def __init__(self, history):
+            self.history = list(history)
+
+        def handle(self, event):
+            attempts.append(len(self.history))
+            if len(attempts) == 1:
+                self.history.append({"role": "user", "content": "half a turn"})
+                raise APIConnectionError(request=httpx.Request("POST", "https://qwen.example"))
+            self.history += [{"role": "user", "content": event.text}]
+            return TurnResult(outbox=[{"to": "group", "text": "Logged"}])
+    monkeypatch.setattr(services, "make_agent", lambda backend, trip_id, history: Flaky(history))
+    payload = {"id": "r1", "group_id": "g1", "user_id": "111", "name": "Aarav",
+               "text": "@tripbot dinner $120", "sender_type": "user"}
+    assert services.handle_callback(payload) == "handled: 1 message(s)"
+    assert attempts == [0, 0]  # the retry starts from the saved history, not the failed half turn
+    assert [p["json"]["text"] for p in bot] == ["Logged"]
