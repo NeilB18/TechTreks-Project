@@ -6,6 +6,8 @@ GroupMe has no DM callbacks for bots, so every incoming event is a group message
 import logging
 import re
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -21,6 +23,12 @@ from trips.services import DjangoBackend
 log = logging.getLogger(__name__)
 ERROR_REPLY = "Sorry, I hit a snag handling that. Try again in a minute?"
 RETRY_AFTER_S = 20
+
+
+def local_now() -> str:
+    """The group's wall-clock time, e.g. "2027-03-14T21:05". The model reads it to resolve "tomorrow at 9", and
+    the engine compares reminder and activity times with it (they're naive local times)."""
+    return datetime.now(ZoneInfo(settings.BOT_TIME_ZONE)).replace(tzinfo=None).isoformat(timespec="minutes")
 
 
 def make_agent(backend, trip_id: str, history: list[dict]):
@@ -55,7 +63,8 @@ def handle_callback(payload: dict) -> str:
         return "ignored: not mentioned"
 
     trip = chat.trip
-    backend = DjangoBackend()
+    now = local_now()
+    backend = DjangoBackend(now=now)
     person = _find_or_add_person(backend, trip.id, str(payload.get("user_id")), payload.get("name") or "")
     code = find_link_command(text) if mentioned else None
     if code:
@@ -63,7 +72,7 @@ def handle_callback(payload: dict) -> str:
         return "linked account"
     convo, _ = Conversation.objects.get_or_create(trip=trip)
     event = ChatEvent(sender_id=person.person_id, text=text, channel="group", mentioned=mentioned,
-                      chat_user_id=person.chat_user_id)
+                      chat_user_id=person.chat_user_id, time=now)
     for attempt in range(2):
         agent = make_agent(backend, trip.id, convo.history)  # fresh each try: a failed one may have half a turn
         try:

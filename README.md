@@ -131,7 +131,7 @@ cd backend
 ../.venv/bin/python manage.py link_group <group_id> <bot_id> <trip_id> --name "Miami Spring Break"
 ```
 
-Run `manage.py send_due_reminders` from cron every few minutes.
+Run `manage.py send_due_reminders` from cron every few minutes, or keep it running with `--every 60`. Times in chat are the group's local time, `BOT_TIME_ZONE` (default `America/New_York`): the bot tells the agent the local time with each message, and reminders fire on it.
 
 The webhook answers GroupMe at once and queues the message. A worker thread per group runs the agent, one message at a time, so a chat's messages stay in order and its history isn't overwritten (`backend/bot/worker.py`). The queues live in one process, so run Django as a single process for now. Set `BOT_INLINE=1` to run the agent inside the request instead (the tests do).
 

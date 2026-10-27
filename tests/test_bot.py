@@ -227,3 +227,30 @@ def test_model_outage_gets_one_retry_before_the_apology(bot, monkeypatch, settin
     assert services.handle_callback(payload) == "handled: 1 message(s)"
     assert attempts == [0, 0]  # the retry starts from the saved history, not the failed half turn
     assert [p["json"]["text"] for p in bot] == ["Logged"]
+
+
+def test_the_agent_gets_the_groups_local_time(bot, settings):
+    settings.BOT_TIME_ZONE = "America/New_York"
+    callback()
+    event = ScriptedAgent.calls[0]["event"]
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    local = datetime.now(ZoneInfo("America/New_York")).replace(tzinfo=None)
+    assert abs((datetime.fromisoformat(event.time) - local).total_seconds()) < 120
+
+
+def test_reminders_use_local_time_and_one_failure_doesnt_block_the_rest(bot, monkeypatch):
+    from bot.management.commands import send_due_reminders
+    monkeypatch.setattr(send_due_reminders, "local_now", lambda: "2027-03-14T09:00")
+    b = DjangoBackend()
+    b.create_reminder(trip_id="miami", message="Boat at 9", due_at="2027-03-14T09:00", audience="all")
+    b.create_reminder(trip_id="miami", message="Dinner at 9:30", due_at="2027-03-14T09:30", audience="all")
+    b.create_reminder(trip_id="miami", message="Bring ID", due_at="2027-03-14T08:00", audience=["mia"])
+    real_post = groupme.requests.post
+    monkeypatch.setattr(groupme.requests, "post", lambda url, **kw: (_ for _ in ()).throw(RuntimeError("GroupMe down")))
+    out = io.StringIO()
+    call_command("send_due_reminders", stdout=out)
+    assert "Sent 1" in out.getvalue()  # the group post failed; the DM (stored) still went out
+    monkeypatch.setattr(groupme.requests, "post", real_post)
+    call_command("send_due_reminders", stdout=out)
+    assert [p["json"]["text"] for p in bot] == ["⏰ Reminder: Boat at 9"]  # retried; 9:30 isn't due yet
