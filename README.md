@@ -6,7 +6,7 @@ Group-trip agent for a GroupMe chat: plans the trip, logs and splits expenses, g
 
 ```
 agent/
-  config.py                 model (qwen3.8-max), thinking, endpoint
+  config.py                 model (qwen3.8-flash), thinking, endpoint
   prompts/system_prompt.md  system prompt v1
   tools/schemas.py          21 backend tools + send_message
   backend/protocol.py       the agent <-> backend contract
@@ -32,11 +32,10 @@ Offline tests (no API key, free):
 .venv/bin/pytest
 ```
 
-Live tests against Qwen (costs credits; transcripts go to `tests/out/`). The team key is from the US (Virginia) region, and its endpoint needs your Model Studio workspace ID from the console:
+Live tests against Qwen (costs credits; transcripts go to `tests/out/`). Put the key and endpoint in the gitignored `.env` (copy `.env.example`). The endpoint is your workspace's API Host from Model Studio → Workspace Management, plus `/compatible-mode/v1`. The key and endpoint must be from the same region (the team's is Singapore).
 
 ```bash
-export DASHSCOPE_API_KEY=...        # Model Studio API key (US region)
-export QWEN_WORKSPACE_ID=...        # or QWEN_BASE_URL=<full compatible-mode/v1 URL>
+# .env: DASHSCOPE_API_KEY=...  QWEN_BASE_URL=https://<API Host>/compatible-mode/v1
 .venv/bin/pytest -m live
 .venv/bin/pytest -m live --repeat 3 -k ex7b
 ```
@@ -44,7 +43,7 @@ export QWEN_WORKSPACE_ID=...        # or QWEN_BASE_URL=<full compatible-mode/v1 
 Chat with the agent by hand:
 
 ```bash
-DASHSCOPE_API_KEY=... QWEN_WORKSPACE_ID=... .venv/bin/python -m agent.cli tests/scenarios/ex1_dropout.yaml
+.venv/bin/python -m agent.cli tests/scenarios/ex1_dropout.yaml
 ```
 
 Then type `priya: @tripbot I can't make it anymore`, or `mia dm: lower my budget to $500`.
