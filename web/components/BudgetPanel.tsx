@@ -7,7 +7,7 @@ import type { LinkCode, Me, MyBudget } from "@/lib/types";
 
 type State =
   | { step: "loading" }
-  | { step: "error" }
+  | { step: "error"; message: string }
   | { step: "signed-out" }
   | { step: "not-linked"; code: LinkCode | null }
   | { step: "ready"; data: MyBudget };
@@ -41,7 +41,7 @@ export function BudgetPanel({ tripId, live, currency }: { tripId: string; live: 
         const data = (await res.json()) as MyBudget;
         if (!cancelled) setState({ step: "ready", data });
       } catch {
-        if (!cancelled) setState({ step: "error" });
+        if (!cancelled) setState({ step: "error", message: "Couldn\u2019t load your budget. Try refreshing." });
       }
     })();
     return () => {
@@ -57,7 +57,7 @@ export function BudgetPanel({ tripId, live, currency }: { tripId: string; live: 
       if (!res.ok) throw new Error(String(res.status));
       setState({ step: "not-linked", code: (await res.json()) as LinkCode });
     } catch {
-      setState({ step: "error" });
+      setState({ step: "error", message: "Couldn\u2019t get a link code. Refresh and try again." });
     }
   }
 
@@ -66,7 +66,7 @@ export function BudgetPanel({ tripId, live, currency }: { tripId: string; live: 
       <p className="font-medium">🔒 My budget</p>
       <div className="mt-1 text-sm">
         {state.step === "loading" && <p className="text-muted">Loading…</p>}
-        {state.step === "error" && <p className="text-muted">Couldn&rsquo;t load your budget. Try refreshing.</p>}
+        {state.step === "error" && <p className="text-muted">{state.message}</p>}
         {state.step === "signed-out" &&
           (live ? (
             <p className="text-muted">
