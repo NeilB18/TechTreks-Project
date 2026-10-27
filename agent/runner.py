@@ -114,6 +114,33 @@ class TripAgent:
         return (f"Only {expense['paid_by']} (who paid for {expense['description']}) can confirm this. "
                 f"Nothing was changed. Ask them in the group, and do it once they reply yes.")
 
+    def _refund_guard(self, name: str) -> str | None:
+        """Refunds are a big change (specs.md): the payer confirms the amount first, even when they're the
+        one reporting it. So a refund only goes through if the bot's previous turn asked them a question."""
+        if name != "record_refund" or self._asked_last_turn():
+            return None
+        return ("Not recorded yet: refunds need a confirmation first. Ask the payer to confirm the refund and "
+                "what it means per person (\"Confirm?\"), then record it once they reply yes.")
+
+    def _asked_last_turn(self) -> bool:
+        events = [i for i, m in enumerate(self.history)
+                  if m["role"] == "user" and m["content"].startswith("<trip_state>")]
+        if len(events) < 2:
+            return False
+        last_turn = self.history[events[-2]:events[-1]]
+        sent = {m["tool_call_id"] for m in last_turn if m["role"] == "tool" and m["content"] == '{"sent": true}'}
+        for m in last_turn:
+            for tc in m.get("tool_calls") or []:
+                if tc["function"]["name"] != "send_message" or tc["id"] not in sent:
+                    continue
+                try:
+                    args = json.loads(tc["function"]["arguments"] or "{}")
+                except ValueError:
+                    continue
+                if args.get("to") in ("group", self.sender_id) and "?" in (args.get("text") or ""):
+                    return True
+        return False
+
     def _run_tool(self, name: str, raw_args: str, result: TurnResult) -> str:
         try:
             args = json.loads(raw_args or "{}")
@@ -139,7 +166,7 @@ class TripAgent:
             result.outbox.append({"to": to, "text": text})
             call.result = {"sent": True}
             return json.dumps(call.result)
-        blocked = self._payer_guard(name, args)
+        blocked = self._payer_guard(name, args) or self._refund_guard(name)
         if blocked:
             call.error = blocked
             return f"Error: {blocked}"

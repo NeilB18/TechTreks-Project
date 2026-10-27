@@ -161,10 +161,33 @@ def test_refund_tells_the_model_who_already_paid_back():
     backend = engine()
     backend.record_payback(trip_id="miami", from_person="jake", to_person="aarav", amount=4000, currency="USD")
     refund = {"expense_id": "e1", "amount": 6000, "currency": "USD"}
-    client = ScriptedClient([response("tool_calls", None, tool_call("t1", "record_refund", refund)), response("stop", "")])
-    r = TripAgent(backend, "miami", client=client).handle(ChatEvent(sender_id="aarav", text="@tripbot yes"))
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t0", "send_message", {"to": "group", "text": "$60 refund on Dinner? Confirm?"})),
+        response("stop", ""),
+        response("tool_calls", None, tool_call("t1", "record_refund", refund)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back on dinner"))
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yes"))
     out = r.tool_calls[0].result
     assert out["already_paid_back"] == ["jake"] and "Jake already paid Aarav back" in out["next_step"]
+
+
+def test_refund_waits_for_a_confirmation_even_from_the_payer():
+    backend = engine()
+    refund = {"expense_id": "e1", "amount": 6000, "currency": "USD"}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "record_refund", refund)),
+        response("tool_calls", None, tool_call("t2", "send_message", {"to": "group", "text": "$60 back on Dinner. Confirm?"})),
+        response("stop", ""),
+        response("tool_calls", None, tool_call("t3", "record_refund", refund)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back on dinner"))
+    assert "confirmation first" in r.tool_calls[0].error
+    assert not backend.trips["miami"].refunds
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
+    assert r.tool_calls[0].error is None and len(backend.trips["miami"].refunds) == 1
 
 
 def test_call_after_messages_runs_without_thinking():
