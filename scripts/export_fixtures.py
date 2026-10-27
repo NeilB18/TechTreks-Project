@@ -66,7 +66,7 @@ def main() -> None:
         old.unlink()
     written = {"miami-demo": demo()}
     for scn in load_scenarios():
-        if scn.get("skip"):
+        if scn.get("skip") or scn.get("kind") == "edge":
             continue
         b = TripEngine()
         b.load_seed(scn["seed"])

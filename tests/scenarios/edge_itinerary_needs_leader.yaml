@@ -1,0 +1,46 @@
+kind: edge
+title: Saving an itinerary waits for the leader when itinerary saves are routed to them
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes, itinerary_saves], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: jake
+    text: "@tripbot can you make us an itinerary?"
+    expect:
+      calls:
+        - {name: generate_itinerary}
+      forbid_mutations: true
+      messages:
+        - {to: group, contains: [Aarav]}
+    golden:
+      calls:
+        - {name: generate_itinerary, args: {trip_id: miami}}
+      messages:
+        - {to: group, text: "Here's a draft for Mar 14–18 (beach days, a walking tour, a boat tour, a night out). @Aarav, want me to save it to the trip?"}
+  - sender: jake
+    text: "@tripbot looks good, save it"
+    expect:
+      forbid_mutations: true
+      end_state:
+        - activity_count: 0
+    golden:
+      messages:
+        - {to: group, text: "Saving needs Aarav's OK since he's trip lead. @Aarav?"}
+  - sender: aarav
+    text: "@tripbot approved, save it"
+    expect:
+      calls:
+        - {name: generate_itinerary, args: {save_draft_id: d1}}
+      end_state:
+        - activity_count: 10
+    golden:
+      calls:
+        - {name: generate_itinerary, args: {trip_id: miami, save_draft_id: d1}}
+      messages:
+        - {to: group, text: "Saved! 10 activities are on the trip page now. 🗓️"}

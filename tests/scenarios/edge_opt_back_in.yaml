@@ -1,0 +1,28 @@
+kind: edge
+title: Opting back into a category
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  exclusions:
+    - [jake, DRINKS]
+turns:
+  - sender: jake
+    channel: dm
+    text: actually I drink now, put me back in drinks
+    expect:
+      calls:
+        - {name: set_exclusion, args: {person_id: jake, category: DRINKS, remove: true}}
+      no_messages_to: [group]
+      end_state:
+        - no_opt_out: [jake, DRINKS]
+    golden:
+      calls:
+        - {name: set_exclusion, args: {trip_id: miami, person_id: jake, category: DRINKS, remove: true}}
+      messages:
+        - {to: jake, text: "Done, you're back in drinks splits. 🍻"}

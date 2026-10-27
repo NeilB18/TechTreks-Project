@@ -1,0 +1,42 @@
+kind: edge
+title: A brand-new trip gets set up through chat
+seed:
+  now: "2027-02-01T12:00:00"
+  trip: {id: miami, name: Spring Break, base_currency: USD}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: aarav
+    text: "@tripbot hey! we're planning spring break"
+    expect:
+      messages:
+        - {to: group, contains_any: [leader, lead]}
+    golden:
+      messages:
+        - {to: group, text: "Hey! 👋 Let's set up the trip. First: who's the trip leader?"}
+  - sender: mia
+    text: "@tripbot Aarav's the leader"
+    expect:
+      calls:
+        - {name: update_trip, args: {changes: {leader_id: aarav}}}
+      end_state:
+        - trip: {leader_id: aarav}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: miami, changes: {leader_id: aarav}}}
+      messages:
+        - {to: group, text: "Aarav's the leader ✅ Which decisions need his OK? Trip changes, member changes, itinerary saves, refunds/deletes?"}
+  - sender: aarav
+    text: "@tripbot just trip changes and member changes"
+    expect:
+      calls:
+        - {name: update_trip, args: {changes: {leader_approval: [trip_changes, member_changes]}}}
+      end_state:
+        - trip: {leader_approval: [trip_changes, member_changes]}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: miami, changes: {leader_approval: [trip_changes, member_changes]}}}
+      messages:
+        - {to: group, text: "Got it. Last one: should I log expenses I spot in chat automatically, or only when you @mention me?"}
