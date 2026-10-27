@@ -130,7 +130,7 @@ def main() -> None:
                 print(f"[{i}/{len(jobs)}] {name}", flush=True)
     text = write_report(summarize(scenarios, args.repeat))
     print(text.split("| Scenario")[0])
-    print(f"Report: {REPORT.relative_to(ROOT)}")
+    print(f"Report: {REPORT.relative_to(ROOT) if REPORT.is_relative_to(ROOT) else REPORT}")
 
 
 if __name__ == "__main__":
