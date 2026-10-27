@@ -12,8 +12,8 @@ turns:
     text: "@tripbot dinner was $120, I paid, split with everyone except Jake"
     expect:
       calls:
-        - {name: log_expense, args: {paid_by: mia, amount: 12000, currency: USD, category: FOOD,
-                                     split_with: [aarav, mia]}}
+        # Passing everyone + exclude [jake], or just [aarav, mia], are both right; end_state checks the result.
+        - {name: log_expense, args: {paid_by: mia, amount: 12000, currency: USD, category: FOOD}}
       count_min: {get_budget_status: 2}
       messages:
         - {to: group, contains: ["$60", Jake]}
