@@ -200,6 +200,14 @@ class TripAgent:
                 call.error = ("You weren't @mentioned and haven't checked or changed anything, so this is small talk: "
                               "don't reply. End the turn.")
                 return f"Error: {call.error}"
+            used_tools = any(c.name != "send_message" and not c.by_runner for c in result.tool_calls[:-1])
+            if to not in ("group", self.sender_id) and not used_tools:
+                # Live: while asking the payer to confirm a refund, the no-thinking follow-up DM'd everyone in
+                # the split (one DM garbled). Private news for others always follows a check or a change.
+                call.error = ("Not sent: nothing was checked or changed this turn, so there's no private news for "
+                              f"{to}. Ask or answer in the group (or the sender's DM), and DM others only after "
+                              "something is confirmed and done.")
+                return f"Error: {call.error}"
             leaked = to == "group" and _mentions_amount(text or "", self.private_amounts)
             if leaked:
                 # Live run: someone set their budget in the group and the reply repeated it there.

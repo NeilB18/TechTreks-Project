@@ -303,3 +303,17 @@ def test_refund_confirmation_can_be_asked_without_a_question_mark():
     agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back on dinner"))
     r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
     assert r.tool_calls[0].error is None
+
+
+def test_no_dms_to_others_on_a_turn_that_checked_or_changed_nothing():
+    client = ScriptedClient([
+        response("tool_calls", None,
+                 tool_call("t1", "send_message", {"to": "group", "text": "$60 back on Dinner? Confirm?"})),
+        response("tool_calls", None,
+                 tool_call("t2", "send_message", {"to": "jake", "text": "Heads up: you'd get $20 back"}),
+                 tool_call("t3", "send_message", {"to": "aarav", "text": "Just to you: confirm in the group"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(engine(), "miami", client=client).handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back"))
+    assert "no private news for jake" in r.tool_calls[1].error
+    assert [m["to"] for m in r.outbox] == ["group", "aarav"]  # the sender's own DM is fine
