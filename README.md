@@ -57,6 +57,40 @@ GitHub Actions (`.github/workflows/tests.yml`) runs on every PR and push to `mai
 
 The live Qwen scenarios run only when started by hand: Actions → Tests → Run workflow → tick "live". They need the `DASHSCOPE_API_KEY` and `QWEN_BASE_URL` repo secrets.
 
+## Agent evals
+
+There are 33 scenarios: the 12 worked examples plus 21 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
+
+- privacy probes and prompt injection (budget dumps, fake approvals, impersonating the leader)
+- staying quiet
+- confirmations for edits, deletes, itinerary saves and dropouts
+- ambiguous expenses, foreign currency, slang and typos, corrections mid-thread
+- multi-day settle-up
+- polls, reminders and onboarding
+
+```bash
+.venv/bin/python scripts/eval_report.py              # live Qwen, every scenario 3 times
+.venv/bin/python scripts/eval_report.py -k edge_     # just the edge cases
+```
+
+This writes [docs/eval-report.md](docs/eval-report.md): pass rate per scenario, what went wrong, and time and tokens per turn. Use `--out-dir` and `--report` to keep an experiment's transcripts and report apart from the main ones.
+
+### Speed
+
+Thinking is most of the reply time. After a model response that only sends messages, the next call (usually just "done", sometimes the remaining DMs) runs with thinking off. That cut a reply from about 25 s to about 11 s, at 97/99 on 33 scenarios × 3. Switches in `.env`:
+
+- `QWEN_THINKING=0` turns thinking off everywhere (about 5 s per reply, but only 79% pass)
+- `QWEN_THINKING_BUDGET=<tokens>` caps thinking
+- `QWEN_FAST_FOLLOWUP=0` keeps thinking on for the follow-up call
+
+## Demo
+
+```bash
+.venv/bin/python scripts/demo.py   # a scripted 4-person chat on live Qwen, about 2 minutes
+```
+
+It writes [docs/demo-transcript.md](docs/demo-transcript.md). Talking points are in [docs/demo-guide.md](docs/demo-guide.md).
+
 ## Backend (Phase 3)
 
 Django + DRF in `backend/`, SQLite locally (set `DATABASE_URL` for Supabase Postgres later).
@@ -111,5 +145,5 @@ Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtu
 ## Placeholders
 
 - FX: fixed rate table in `rules.py`. The provider is still TBD.
-- Travel tips and itineraries: canned text in the engine. Google Places and SerpAPI come later.
+- Travel tips and itineraries use built-in sample data until keys are added. With `GOOGLE_PLACES_API_KEY` in `.env`, they come from Google Places: real restaurants and attractions, ratings, and price levels matched to the tier. Adding `SERPAPI_KEY` also brings in real hotel prices from Google Hotels, capped at about 40% of the tier's budget for a shared room. If an API call fails, the tool falls back to sample data with a note. Tests and evals always use the sample data. Note: Places fields like rating and price level bill at Google's Enterprise rate.
 - Currency: the MVP is USD-only. The FX code keeps working but multi-currency is post-MVP.

@@ -75,6 +75,7 @@ class TripAgent:
         # Plain JSON-serializable dicts, so the bot can store and reload them between webhooks.
         self.history: list[dict] = list(history or [])
         self.sender_id: str | None = None
+        self.event: ChatEvent | None = None
 
     def _event_text(self, ev: ChatEvent) -> str:
         state = self.backend.summary(self.trip_id)
@@ -88,14 +89,17 @@ class TripAgent:
         return (f"<trip_state>\n{json.dumps(state, sort_keys=True)}\n</trip_state>\n"
                 f"<event>\n" + "\n".join(lines) + "\n</event>")
 
-    def _call(self):
+    def _call(self, thinking: bool | None = None):
+        thinking = self.enable_thinking if thinking is None else thinking
         return self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "system", "content": SYSTEM_PROMPT}, *self.history],
             tools=ALL_TOOLS,
             tool_choice="auto",
             parallel_tool_calls=True,
-            extra_body={"enable_thinking": self.enable_thinking},
+            extra_body={"enable_thinking": thinking,
+                        **({"thinking_budget": config.THINKING_BUDGET}
+                           if thinking and config.THINKING_BUDGET else {})},
         )
 
     def _payer_guard(self, name: str, args: dict) -> str | None:
@@ -110,6 +114,33 @@ class TripAgent:
         return (f"Only {expense['paid_by']} (who paid for {expense['description']}) can confirm this. "
                 f"Nothing was changed. Ask them in the group, and do it once they reply yes.")
 
+    def _refund_guard(self, name: str) -> str | None:
+        """Refunds are a big change (specs.md): the payer confirms the amount first, even when they're the
+        one reporting it. So a refund only goes through if the bot's previous turn asked them a question."""
+        if name != "record_refund" or self._asked_last_turn():
+            return None
+        return ("Not recorded yet: refunds need a confirmation first. Ask the payer to confirm the refund and "
+                "what it means per person (\"Confirm?\"), then record it once they reply yes.")
+
+    def _asked_last_turn(self) -> bool:
+        events = [i for i, m in enumerate(self.history)
+                  if m["role"] == "user" and m["content"].startswith("<trip_state>")]
+        if len(events) < 2:
+            return False
+        last_turn = self.history[events[-2]:events[-1]]
+        sent = {m["tool_call_id"] for m in last_turn if m["role"] == "tool" and m["content"] == '{"sent": true}'}
+        for m in last_turn:
+            for tc in m.get("tool_calls") or []:
+                if tc["function"]["name"] != "send_message" or tc["id"] not in sent:
+                    continue
+                try:
+                    args = json.loads(tc["function"]["arguments"] or "{}")
+                except ValueError:
+                    continue
+                if args.get("to") in ("group", self.sender_id) and "?" in (args.get("text") or ""):
+                    return True
+        return False
+
     def _run_tool(self, name: str, raw_args: str, result: TurnResult) -> str:
         try:
             args = json.loads(raw_args or "{}")
@@ -122,6 +153,12 @@ class TripAgent:
         result.tool_calls.append(call)
         if name == "send_message":
             to, text = args.get("to"), args.get("text")
+            if to == "group" and self.event and self.event.channel == "group" and not self.event.mentioned \
+                    and not any(c.name not in ("send_message",) and not c.by_runner for c in result.tool_calls[:-1]):
+                # Nobody asked: small talk gets no reply. Real alerts come with a tool call (a check or change).
+                call.error = ("You weren't @mentioned and haven't checked or changed anything, so this is small talk: "
+                              "don't reply. End the turn.")
+                return f"Error: {call.error}"
             members = {m["id"] for m in self.backend.summary(self.trip_id)["members"]}
             if not text or (to != "group" and to not in members):
                 call.error = f"`to` must be \"group\" or one of {sorted(members)}"
@@ -129,7 +166,7 @@ class TripAgent:
             result.outbox.append({"to": to, "text": text})
             call.result = {"sent": True}
             return json.dumps(call.result)
-        blocked = self._payer_guard(name, args)
+        blocked = self._payer_guard(name, args) or self._refund_guard(name)
         if blocked:
             call.error = blocked
             return f"Error: {blocked}"
@@ -142,7 +179,21 @@ class TripAgent:
         enrich(call.result, args, summary)
         if name in BUDGET_CHECK_AFTER:
             self._attach_budget_warnings(name, call.result, summary, result)
+        if name == "record_refund":
+            self._attach_paid_back(call.result, summary)
         return json.dumps(call.result, default=str)
+
+    def _attach_paid_back(self, out: dict, summary: dict) -> None:
+        """People who already paid the payer back have money coming back now; the model must DM them."""
+        payer = out.get("payer")
+        senders = sorted({e["paid_by"] for e in self.backend.get_trip(trip_id=self.trip_id)["expenses"]
+                          if e["category"] == "SETTLEMENT" and payer in (e.get("shares") or {})})
+        if senders:
+            names = {m["id"]: m["name"] for m in summary["members"]}
+            out["already_paid_back"] = senders
+            out["next_step"] = (f"{', '.join(names.get(s, s) for s in senders)} already paid {names.get(payer, payer)} back, "
+                                "so their money changes now: after get_balances, DM each of them who will pay them "
+                                "(or who they pay) and how much, from the settle-up lines.")
 
     def _attach_budget_warnings(self, name: str, out: dict, summary: dict, result: TurnResult) -> None:
         """Check everyone affected and add `budget_warnings` ({person_id: [warnings]}, private)."""
@@ -171,10 +222,12 @@ class TripAgent:
     def handle(self, event: ChatEvent) -> TurnResult:
         result = TurnResult()
         self.sender_id = event.sender_id
+        self.event = event
         self.history.append({"role": "user", "content": self._event_text(event)})
         nudged = False
+        fast = False
         for _ in range(config.MAX_TOOL_ROUNDS):
-            resp = self._call()
+            resp = self._call(thinking=False if fast else None)
             if resp.usage:
                 result.usage.append(resp.usage.model_dump())
             choice = resp.choices[0]
@@ -201,6 +254,9 @@ class TripAgent:
             for tc in tool_calls:
                 content = self._run_tool(tc.function.name, tc.function.arguments, result)
                 self.history.append({"role": "tool", "tool_call_id": tc.id, "content": content})
+            # Messages are usually the last step, so the next call only needs to say "done" or send
+            # any remaining DMs: no thinking needed for that.
+            fast = config.FAST_FOLLOWUP and all(tc.function.name == "send_message" for tc in tool_calls)
         else:
             result.stop_reason = "max_tool_rounds"
         return result

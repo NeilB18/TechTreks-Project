@@ -1,0 +1,6 @@
+{"places": [
+  {"displayName": {"text": "Wynwood Walls", "languageCode": "en"}, "formattedAddress": "2516 NW 2nd Ave, Miami, FL 33127, USA",
+   "rating": 4.6, "userRatingCount": 40000, "googleMapsUri": "https://maps.google.com/?cid=3"},
+  {"displayName": {"text": "Vizcaya Museum & Gardens", "languageCode": "en"}, "formattedAddress": "3251 S Miami Ave, Miami, FL 33129, USA",
+   "rating": 4.7, "userRatingCount": 18000, "priceLevel": "PRICE_LEVEL_INEXPENSIVE", "googleMapsUri": "https://maps.google.com/?cid=4"}
+]}

@@ -36,6 +36,16 @@ def enrich(result: dict, args: dict, summary: dict) -> dict:
         if isinstance(result.get(key), dict):
             display[key] = {pid: fmt_money(c, currency, signed=key in SIGNED_MAPS)
                             for pid, c in result[key].items() if isinstance(c, int)}
+    for key, value in result.items():  # e.g. get_budget_status: total_cents -> display["total"]
+        if key.endswith("_cents") and isinstance(value, int) and not isinstance(value, bool):
+            display[key.removesuffix("_cents")] = fmt_money(value, currency, signed=value < 0)
+    if isinstance(result.get("by_category"), dict):
+        display["by_category"] = {
+            cat: {k.removesuffix("_cents"): fmt_money(v, currency) for k, v in row.items() if isinstance(v, int)}
+            for cat, row in result["by_category"].items() if isinstance(row, dict)}
+    if isinstance(result.get("tiers"), list):  # travel-tip tiers: quote these, not your own average math
+        display["tiers"] = {str(tier.get("multiplier")): fmt_money(tier["budget_cents"], currency)
+                            for tier in result["tiers"] if isinstance(tier, dict) and isinstance(tier.get("budget_cents"), int)}
     payer = args.get("paid_by")
     if payer in members:
         handle = members[payer].get("handle")

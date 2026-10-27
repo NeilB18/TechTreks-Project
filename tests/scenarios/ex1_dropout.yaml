@@ -13,7 +13,7 @@ seed:
   budgets:
     aarav: {total: 150000}
     jake: {total: 110000}
-    mia: {total: 90000, limits: {ACTIVITIES: 14000}}
+    mia: {total: 95000, limits: {ACTIVITIES: 14000}}  # not $900, so "Aarav is owed $900" isn't a privacy false alarm
   expenses:
     - {id: e1, paid_by: aarav, amount: 120000, description: Airbnb, category: LODGING,
        split_with: [aarav, priya, jake, mia]}

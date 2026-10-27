@@ -51,3 +51,10 @@ def make_backend(kind: str):
 @pytest.fixture(params=["memory", "django", "http"])
 def any_backend(request, db):
     return make_backend(request.param)
+
+
+@pytest.fixture(autouse=True)
+def no_live_travel(monkeypatch):
+    """Tests never call Google Places or SerpAPI, even if keys are in .env."""
+    monkeypatch.delenv("GOOGLE_PLACES_API_KEY", raising=False)
+    monkeypatch.delenv("SERPAPI_KEY", raising=False)
