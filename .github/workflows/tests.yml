@@ -1,0 +1,66 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Also run the live Qwen scenarios (uses API credits)"
+        type: boolean
+        default: false
+
+jobs:
+  python:
+    name: Python (agent, backend, scenario replays)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: pip install -r requirements.txt
+      # Offline only: pytest.ini excludes the live (paid) tests by default.
+      - run: pytest -q
+
+  web:
+    name: Trip page (lint, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  live:
+    name: Live Qwen scenarios (manual)
+    # Only when started by hand with "live" ticked; needs repo secrets DASHSCOPE_API_KEY and QWEN_BASE_URL.
+    if: github.event_name == 'workflow_dispatch' && inputs.live
+    runs-on: ubuntu-latest
+    env:
+      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+      QWEN_BASE_URL: ${{ secrets.QWEN_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest -m live -q
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-transcripts
+          path: tests/out/
