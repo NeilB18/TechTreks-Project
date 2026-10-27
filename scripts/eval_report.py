@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from agent import config  # noqa: E402
+from agent import scenarios as scenario_module  # noqa: E402
 from agent.scenarios import OUT_DIR, load_scenarios, run_scenario  # noqa: E402
 
 REPORT = ROOT / "docs" / "eval-report.md"
@@ -108,7 +109,14 @@ def main() -> None:
     ap.add_argument("-k", default="", help="only scenarios whose file name contains this (comma-separated for several)")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--from-transcripts", action="store_true", help="don't call the model; just rebuild the report")
+    ap.add_argument("--out-dir", help="where transcripts go (default tests/out); use one per experiment")
+    ap.add_argument("--report", help="report path (default docs/eval-report.md)")
     args = ap.parse_args()
+    global OUT_DIR, REPORT
+    if args.out_dir:
+        OUT_DIR = scenario_module.OUT_DIR = Path(args.out_dir).resolve()
+    if args.report:
+        REPORT = Path(args.report).resolve()
 
     keys = [k for k in args.k.split(",") if k] or [""]
     scenarios = [s for s in load_scenarios() if not s.get("skip") and any(k in s["file"] for k in keys)]
