@@ -1,0 +1,7 @@
+{"properties": [
+  {"type": "hotel", "name": "Freehand Miami", "rate_per_night": {"lowest": "$142", "extracted_lowest": 142},
+   "total_rate": {"lowest": "$568", "extracted_lowest": 568}, "overall_rating": 4.21},
+  {"type": "vacation rental", "name": "South Beach 2BR", "rate_per_night": {"lowest": "$189", "extracted_lowest": 189},
+   "total_rate": {"lowest": "$756", "extracted_lowest": 756}, "overall_rating": 4.6},
+  {"type": "hotel", "name": "No Price Listed"}
+]}

@@ -1,0 +1,6 @@
+{"places": [
+  {"displayName": {"text": "La Mar by Gastón Acurio", "languageCode": "en"}, "formattedAddress": "500 Brickell Key Dr, Miami, FL 33131, USA",
+   "rating": 4.6, "userRatingCount": 3120, "priceLevel": "PRICE_LEVEL_MODERATE", "googleMapsUri": "https://maps.google.com/?cid=1"},
+  {"displayName": {"text": "Versailles Restaurant", "languageCode": "en"}, "formattedAddress": "3555 SW 8th St, Miami, FL 33135, USA",
+   "rating": 4.4, "userRatingCount": 25000, "priceLevel": "PRICE_LEVEL_MODERATE", "googleMapsUri": "https://maps.google.com/?cid=2"}
+]}

@@ -33,6 +33,7 @@ import yaml
 from agent.backend.core.engine import TripEngine, iso
 from agent.backend.protocol import ToolError, dispatch, is_mutation
 from agent.runner import ChatEvent, ToolCall, TurnResult
+from agent.travel.provider import FakeTravel
 from trip_model.category import Category
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -52,7 +53,7 @@ def load_scenarios() -> list[dict]:
 def make_backend(scn: dict, backend=None):
     """Seed `backend` (default: a new TripEngine) with the scenario's state snapshot.
     Any backend with load_seed() works; HttpBackend is seeded through its `state` backend."""
-    b = backend or TripEngine()
+    b = backend or TripEngine(travel=FakeTravel())  # canned travel data: evals stay free and repeatable
     (getattr(b, "state", None) or b).load_seed(scn["seed"])
     return b
 

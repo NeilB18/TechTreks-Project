@@ -19,6 +19,7 @@ from datetime import date, datetime
 
 from agent.backend.core import rules
 from agent.backend.protocol import BACKEND_TOOLS, ToolError
+from agent.travel.provider import get_provider
 from trip_model.activity import Activity
 from trip_model.budget import Budget
 from trip_model.category import Category
@@ -39,28 +40,6 @@ TRIP_FIELDS = ["destination", "start_date", "end_date", "base_currency", "status
                "auto_log_mode"]
 
 # Canned "external API" content until Google Places / SerpAPI are wired up.
-FAKE_TIPS = {
-    "budget": {"lodging": "Hostel or a shared room a bit outside the center",
-               "food": "Street food, food trucks and grocery-store breakfasts",
-               "activities": "Free beach days, walking tours and public parks",
-               "saving_tips": "Use public transit or bikes instead of rideshares"},
-    "mid": {"lodging": "Shared Airbnb in a central neighborhood",
-            "food": "Casual local spots plus one nice group dinner",
-            "activities": "One paid group activity (boat tour, museum) plus free days",
-            "saving_tips": "Book the big activity early and split groceries"},
-    "splurge": {"lodging": "Hotel in the main strip",
-                "food": "Sit-down dinners most nights",
-                "activities": "Several paid activities and a night out",
-                "saving_tips": "Bundle bookings and watch for group discounts"},
-}
-FAKE_ITINERARY_ITEMS = [
-    ("Beach day", "Main beach", 0),
-    ("Walking tour", "Old town", 2000),
-    ("Group dinner", "Local restaurant", 4500),
-    ("Boat tour", "Marina", 10000),
-    ("Museum visit", "City museum", 2500),
-    ("Night out", "Downtown", 6000),
-]
 
 
 def _slug(name: str) -> str:
@@ -111,7 +90,10 @@ def _day(value: date | datetime) -> date:
 
 
 class TripEngine:
-    def __init__(self, now: str = "2027-03-01T12:00:00"):
+    def __init__(self, now: str = "2027-03-01T12:00:00", travel=None):
+        # Romir's hook: where travel tips/itinerary ideas come from. Live Google Places + SerpAPI when
+        # their keys are set, canned otherwise (agent/travel/provider.py).
+        self.travel = travel or get_provider()
         self.trips: dict[str, Trip] = {}
         self.now = now
         self._counters: dict[str, int] = {}
@@ -478,18 +460,20 @@ class TripEngine:
         if not (trip.destination and trip.start_date and trip.end_date):
             raise ToolError("Set destination, start_date and end_date before generating an itinerary")
         days = []
-        for i in range((trip.end_date - trip.start_date).days + 1):
+        n_days = (trip.end_date - trip.start_date).days + 1
+        ideas = self.travel.itinerary_items(trip.destination, 2 * n_days, constraints)
+        for i in range(n_days):
             d = date.fromordinal(trip.start_date.toordinal() + i).isoformat()
             items = []
             for j, hour in enumerate((11, 19)):
-                name, loc, cost = FAKE_ITINERARY_ITEMS[(2 * i + j) % len(FAKE_ITINERARY_ITEMS)]
-                items.append({"name": name, "location": f"{loc}, {trip.destination}",
+                name, loc, cost = ideas[2 * i + j]
+                items.append({"name": name, "location": loc,
                               "start": f"{d}T{hour}:00", "end": f"{d}T{hour + 2}:00",
                               "est_cost_cents": cost, "cost_is_per_person": True})
             days.append({"date": d, "items": items})
         draft_id = self._next_id("d", set(trip.itinerary_drafts))
         trip.itinerary_drafts[draft_id] = days
-        return {"draft_id": draft_id, "days": days, "constraints": constraints, "source": "fake",
+        return {"draft_id": draft_id, "days": days, "constraints": constraints, "source": self.travel.source,
                 "saved": False}
 
     def add_activity(self, trip_id: str, name: str | None = None, activity_id: str | None = None,
@@ -533,8 +517,7 @@ class TripEngine:
         for m in multipliers:
             tier = {"multiplier": m, "budget_cents": rules.tier_price(avg, m)}
             if not prices_only:
-                level = "budget" if m < 0.75 else "mid" if m < 1.25 else "splurge"
-                tier.update(FAKE_TIPS[level], source="fake")
+                tier.update(self.travel.tips(destination, tier, iso(trip.start_date), iso(trip.end_date)))
             tiers.append(tier)
         return {"destination": destination, "average_cents": avg, "budgets_counted": len(totals),
                 "missing_budgets": missing, "tiers": tiers, "interests": interests or []}
