@@ -165,3 +165,16 @@ def test_refund_tells_the_model_who_already_paid_back():
     r = TripAgent(backend, "miami", client=client).handle(ChatEvent(sender_id="aarav", text="@tripbot yes"))
     out = r.tool_calls[0].result
     assert out["already_paid_back"] == ["jake"] and "Jake already paid Aarav back" in out["next_step"]
+
+
+def test_call_after_messages_runs_without_thinking():
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "get_balances", {"trip_id": "miami"})),
+        response("tool_calls", None, tool_call("t2", "send_message", {"to": "group", "text": "All square"})),
+        response("tool_calls", None, tool_call("t3", "send_message", {"to": "mia", "text": "psst"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(engine(), "miami", client=client).handle(ChatEvent(sender_id="jake", text="@tripbot balances?"))
+    assert [m["to"] for m in r.outbox] == ["group", "mia"]  # the follow-up can still send DMs
+    thinking = [req["extra_body"]["enable_thinking"] for req in client.requests]
+    assert thinking == [True, True, False, False]

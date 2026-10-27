@@ -89,14 +89,17 @@ class TripAgent:
         return (f"<trip_state>\n{json.dumps(state, sort_keys=True)}\n</trip_state>\n"
                 f"<event>\n" + "\n".join(lines) + "\n</event>")
 
-    def _call(self):
+    def _call(self, thinking: bool | None = None):
+        thinking = self.enable_thinking if thinking is None else thinking
         return self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "system", "content": SYSTEM_PROMPT}, *self.history],
             tools=ALL_TOOLS,
             tool_choice="auto",
             parallel_tool_calls=True,
-            extra_body={"enable_thinking": self.enable_thinking},
+            extra_body={"enable_thinking": thinking,
+                        **({"thinking_budget": config.THINKING_BUDGET}
+                           if thinking and config.THINKING_BUDGET else {})},
         )
 
     def _payer_guard(self, name: str, args: dict) -> str | None:
@@ -195,8 +198,9 @@ class TripAgent:
         self.event = event
         self.history.append({"role": "user", "content": self._event_text(event)})
         nudged = False
+        fast = False
         for _ in range(config.MAX_TOOL_ROUNDS):
-            resp = self._call()
+            resp = self._call(thinking=False if fast else None)
             if resp.usage:
                 result.usage.append(resp.usage.model_dump())
             choice = resp.choices[0]
@@ -223,6 +227,9 @@ class TripAgent:
             for tc in tool_calls:
                 content = self._run_tool(tc.function.name, tc.function.arguments, result)
                 self.history.append({"role": "tool", "tool_call_id": tc.id, "content": content})
+            # Messages are usually the last step, so the next call only needs to say "done" or send
+            # any remaining DMs: no thinking needed for that.
+            fast = config.FAST_FOLLOWUP and all(tc.function.name == "send_message" for tc in tool_calls)
         else:
             result.stop_reason = "max_tool_rounds"
         return result
