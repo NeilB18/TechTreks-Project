@@ -1,0 +1,29 @@
+kind: edge
+title: Someone sets their budget in the group chat (found in the webhook smoke test)
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  expenses:
+    - {id: e1, paid_by: aarav, amount: 90000, description: Airbnb, category: LODGING, split_with: [aarav, jake, mia]}
+turns:
+  - sender: mia
+    text: "@tripbot set my budget to $600 total, max $80 on food"
+    expect:
+      calls:
+        - {name: set_budget, args: {person_id: mia, total: 60000, limits: {FOOD: 8000}}}
+      messages:
+        - {to: mia, contains: ["$600", "$80"]}
+        - {to: group, not_contains: ["$600", "$80"]}
+      no_messages_to: [jake, aarav]
+    golden:
+      calls:
+        - {name: set_budget, args: {trip_id: miami, person_id: mia, total: 60000, limits: {FOOD: 8000}}}
+      messages:
+        - {to: group, text: "Saved, Mia. Details are in your DM 🔒"}
+        - {to: mia, text: "Saved 🔒 $600 total, $80 on food. You've spent $300 so far (Airbnb), so $300 left."}

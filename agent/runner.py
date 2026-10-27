@@ -6,6 +6,7 @@ through Model Studio's OpenAI-compatible endpoint.
 
 import json
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -21,6 +22,9 @@ PAYER_CONFIRMS = {"edit_expense", "delete_expense", "record_refund"}
 # After these, the runner checks the budget of everyone affected (specs.md: after every expense,
 # check everyone in the split). Done in code because the model sometimes skipped people.
 BUDGET_CHECK_AFTER = {"log_expense", "edit_expense", "record_refund", "remove_member"}
+# Budget tools whose numbers are private (spent amounts are just split shares, so they're not on the list).
+PRIVATE_BUDGET_TOOLS = {"set_budget", "get_budget_status"}
+PRIVATE_KEYS = {"total", "total_cents", "remaining_cents", "remaining_after_planned_cents", "limit_cents"}
 UNDELIVERED_NOTE = (
     "[runner] Your last text was not delivered: nobody sees text outside send_message. "
     "If it was meant for someone, send it now with send_message (to \"group\", or a person id for "
@@ -35,6 +39,7 @@ class ChatEvent:
     channel: str = "group"  # "group" | "dm"
     mentioned: bool = True
     time: str | None = None
+    chat_user_id: str | None = None  # the sender's GroupMe user id, when the chat adapter knows it
 
 
 @dataclass
@@ -76,6 +81,7 @@ class TripAgent:
         self.history: list[dict] = list(history or [])
         self.sender_id: str | None = None
         self.event: ChatEvent | None = None
+        self.private_amounts: set[int] = set()  # budget numbers seen this turn; never in a group message
 
     def _event_text(self, ev: ChatEvent) -> str:
         state = self.backend.summary(self.trip_id)
@@ -122,9 +128,24 @@ class TripAgent:
         return ("Not recorded yet: refunds need a confirmation first. Ask the payer to confirm the refund and "
                 "what it means per person (\"Confirm?\"), then record it once they reply yes.")
 
+    def _events(self) -> list[int]:
+        """Where each incoming chat message starts in the history (the runner's own notes don't count)."""
+        return [i for i, m in enumerate(self.history) if m["role"] == "user" and "<event>" in (m["content"] or "")]
+
+    def _trim_history(self) -> None:
+        """Keep the last HISTORY_TURNS messages (each with its tool calls), and drop the <trip_state> from all
+        but the newest: the current state is all the model needs, and old copies only cost tokens."""
+        events = self._events()
+        if len(events) > config.HISTORY_TURNS:
+            self.history = self.history[events[-config.HISTORY_TURNS]:]
+            events = self._events()
+        for i in events[:-1]:
+            content = self.history[i]["content"]
+            if content.startswith("<trip_state>"):
+                self.history[i] = {**self.history[i], "content": content[content.index("<event>"):]}
+
     def _asked_last_turn(self) -> bool:
-        events = [i for i, m in enumerate(self.history)
-                  if m["role"] == "user" and m["content"].startswith("<trip_state>")]
+        events = self._events()
         if len(events) < 2:
             return False
         last_turn = self.history[events[-2]:events[-1]]
@@ -159,6 +180,12 @@ class TripAgent:
                 call.error = ("You weren't @mentioned and haven't checked or changed anything, so this is small talk: "
                               "don't reply. End the turn.")
                 return f"Error: {call.error}"
+            leaked = to == "group" and _mentions_amount(text or "", self.private_amounts)
+            if leaked:
+                # Live run: someone set their budget in the group and the reply repeated it there.
+                call.error = (f"Not sent: this group message contains a private budget number ({leaked}). Budgets "
+                              "only go to the person's DM. In the group, say at most \"sent you a DM 🔒\".")
+                return f"Error: {call.error}"
             members = {m["id"] for m in self.backend.summary(self.trip_id)["members"]}
             if not text or (to != "group" and to not in members):
                 call.error = f"`to` must be \"group\" or one of {sorted(members)}"
@@ -166,6 +193,15 @@ class TripAgent:
             result.outbox.append({"to": to, "text": text})
             call.result = {"sent": True}
             return json.dumps(call.result)
+        if name == "set_payment_handle":
+            return self._set_payment_handle(args, call)
+        if name == "add_member":
+            # The chat adapter adds people when they first @mention the bot. The model never sees chat ids, so a
+            # call from it invents one (live: "mia here!" made a second Mia).
+            call.error = ("People are added automatically the first time they @mention you, so everyone who has "
+                          "messaged you is already in trip_state members. Nothing was changed. If someone's missing, "
+                          "ask them to say hi with @tripbot.")
+            return f"Error: {call.error}"
         blocked = self._payer_guard(name, args) or self._refund_guard(name)
         if blocked:
             call.error = blocked
@@ -175,6 +211,8 @@ class TripAgent:
         except ToolError as e:
             call.error = str(e)
             return f"Error: {e}"
+        if name in PRIVATE_BUDGET_TOOLS:
+            self.private_amounts |= _private_amounts({"args": args, "result": call.result})
         summary = self.backend.summary(self.trip_id)
         enrich(call.result, args, summary)
         if name in BUDGET_CHECK_AFTER:
@@ -182,6 +220,24 @@ class TripAgent:
         if name == "record_refund":
             self._attach_paid_back(call.result, summary)
         return json.dumps(call.result, default=str)
+
+    def _set_payment_handle(self, args: dict, call: ToolCall) -> str:
+        """Saved through add_member, which updates the member with this chat user id. Keyed on the sender's
+        chat id, so people can only change their own handle."""
+        handle = (args.get("handle") or "").strip()
+        chat_id = self.event.chat_user_id if self.event else None
+        if not handle or not chat_id:
+            call.error = ("Can't save a handle here: it only works for the sender, from the group chat." if handle
+                          else "`handle` is required")
+            return f"Error: {call.error}"
+        try:
+            call.result = dispatch(self.backend, "add_member",
+                                   {"trip_id": self.trip_id, "chat_user_id": chat_id, "name": "", "payment_handle": handle})
+        except ToolError as e:
+            call.error = str(e)
+            return f"Error: {e}"
+        call.result = {"saved": True, "person_id": call.result.get("person_id"), "handle": handle}
+        return json.dumps(call.result)
 
     def _attach_paid_back(self, out: dict, summary: dict) -> None:
         """People who already paid the payer back have money coming back now; the model must DM them."""
@@ -223,7 +279,9 @@ class TripAgent:
         result = TurnResult()
         self.sender_id = event.sender_id
         self.event = event
+        self.private_amounts = set()
         self.history.append({"role": "user", "content": self._event_text(event)})
+        self._trim_history()
         nudged = False
         fast = False
         for _ in range(config.MAX_TOOL_ROUNDS):
@@ -260,3 +318,28 @@ class TripAgent:
         else:
             result.stop_reason = "max_tool_rounds"
         return result
+
+
+def _private_amounts(obj, key: str | None = None) -> set[int]:
+    """Budget totals, limits and what's left, in cents, anywhere in a budget tool's args or result."""
+    if isinstance(obj, dict):
+        out = set()
+        for k, v in obj.items():
+            # set_budget's `limits` maps category -> cents, so its values count as limits.
+            out |= _private_amounts(v, "limit_cents" if k == "limits" else k)
+        return out
+    if isinstance(obj, list):
+        return set().union(*(_private_amounts(v, key) for v in obj)) if obj else set()
+    if isinstance(obj, int) and not isinstance(obj, bool) and obj > 0 and key in PRIVATE_KEYS:
+        return {obj}
+    return set()
+
+
+def _mentions_amount(text: str, amounts: set[int]) -> str | None:
+    """The first of these amounts written in the text as dollars ("$600", "$1,200", "$80.50"), if any."""
+    for cents in sorted(amounts, reverse=True):
+        dollars = f"{cents // 100:,}".replace(",", ",?")
+        frac = rf"\.{cents % 100:02d}" if cents % 100 else r"(?:\.00)?"
+        if re.search(rf"\$\s?{dollars}{frac}(?![\d,]*\d)", text):
+            return f"${cents / 100:,.2f}".removesuffix(".00")
+    return None

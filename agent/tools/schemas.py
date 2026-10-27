@@ -186,4 +186,11 @@ SEND_MESSAGE = _tool(
      "text": {"type": "string"}},
     ["to", "text"])
 
-ALL_TOOLS = BACKEND_TOOL_SCHEMAS + [SEND_MESSAGE]
+SET_PAYMENT_HANDLE = _tool(
+    "set_payment_handle",
+    "Save the sender's own payment handle (Venmo, Zelle, Cash App), shown in settle-up lines. Only for the person "
+    "who sent the message; nobody can set someone else's.",
+    {"handle": {"type": "string", "description": "e.g. @mia-venmo, or \"Zelle: 555-0100\""}},
+    ["handle"])
+
+ALL_TOOLS = BACKEND_TOOL_SCHEMAS + [SET_PAYMENT_HANDLE, SEND_MESSAGE]

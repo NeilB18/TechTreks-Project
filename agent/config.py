@@ -16,6 +16,9 @@ THINKING_BUDGET = int(os.environ["QWEN_THINKING_BUDGET"]) if os.environ.get("QWE
 # runs with thinking off: ~1.5s instead of ~8s. Ending the turn there instead dropped DMs in the eval.
 FAST_FOLLOWUP = os.environ.get("QWEN_FAST_FOLLOWUP", "1") != "0"
 MAX_TOOL_ROUNDS = 15  # model calls per incoming chat message
+# The bot keeps one conversation per trip for the whole trip. Only the last turns are sent, and only the
+# newest message keeps its <trip_state> (older copies are stale), so a reply's cost doesn't grow with the trip.
+HISTORY_TURNS = int(os.environ.get("AGENT_HISTORY_TURNS", "12"))
 REQUEST_TIMEOUT_S = 90  # per model call
 
 # API keys only work on the endpoint of the region they were created in (the team key is
