@@ -14,15 +14,15 @@ export function Balances({
   const name = (id: string) => members.find((m) => m.id === id)?.name ?? id;
   const payments = balances.suggested_payments;
   if (payments.length === 0) {
-    return <p className="text-sm text-muted">Everyone&rsquo;s settled up. 🎉</p>;
+    return <p className="empty-state">Everyone&rsquo;s settled up. Enjoy the trip!</p>;
   }
   return (
-    <ul className="divide-y divide-line rounded-xl border border-line bg-card">
+    <ul className="space-y-3">
       {payments.map((d) => {
         const link = payLink(d.handle, d.amount_cents, tripName);
         return (
-          <li key={`${d.from}-${d.to}`} className="flex flex-wrap items-center justify-between gap-2 p-3">
-            <p>
+          <li key={`${d.from}-${d.to}`} className="rounded-lg border border-line p-3.5">
+            <p className="text-xs leading-6">
               <span className="font-medium">{name(d.from)}</span> pays{" "}
               <span className="font-medium">{name(d.to)}</span>{" "}
               <span className="font-semibold tabular-nums">{formatMoney(d.amount_cents, balances.currency)}</span>
@@ -32,7 +32,7 @@ export function Balances({
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-full bg-accent px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
+                className="mt-2 inline-flex rounded-md bg-[#edf2e5] px-3 py-1.5 text-[10px] font-semibold text-accent hover:bg-[#e0e9d2]"
               >
                 {link.label}
               </a>

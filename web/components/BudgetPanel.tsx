@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { formatMoney, warningText } from "@/lib/format";
 import type { LinkCode, Me, MyBudget } from "@/lib/types";
+import { Icon } from "./Icon";
 
 type State =
   | { step: "loading" }
@@ -62,9 +63,10 @@ export function BudgetPanel({ tripId, live, currency }: { tripId: string; live: 
   }
 
   return (
-    <div className="rounded-xl border border-dashed border-line p-4">
-      <p className="font-medium">🔒 My budget</p>
-      <div className="mt-1 text-sm">
+    <div className="budget-card">
+      <div className="mb-4 flex items-center justify-between"><span className="stat-icon bg-white/70"><Icon name="lock" size={18} /></span><span className="eyebrow text-[8px] text-accent">Just for you</span></div>
+      <h2 className="panel-title">My budget</h2>
+      <div className="mt-2 text-xs leading-6">
         {state.step === "loading" && <p className="text-muted">Loading…</p>}
         {state.step === "error" && <p className="text-muted">{state.message}</p>}
         {state.step === "signed-out" &&
@@ -78,8 +80,7 @@ export function BudgetPanel({ tripId, live, currency }: { tripId: string; live: 
             </p>
           ) : (
             <p className="text-muted">
-              Your budget is private. Only you can see it. Sign-in isn&rsquo;t set up on this page, so DM @tripbot to
-              check what you have left.
+              Your budget is private. Only you can see it. This demo keeps personal budgets private. DM @tripbot to check what you have left on your real trip.
             </p>
           ))}
         {state.step === "not-linked" && (

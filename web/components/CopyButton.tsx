@@ -16,7 +16,7 @@ export function CopyButton({ text, label }: { text: string; label: string }) {
           // Clipboard can be blocked; the handle is still visible in the label.
         }
       }}
-      className="rounded-full border border-line px-3 py-1.5 text-sm hover:bg-line/40"
+      className="mt-2 max-w-full break-all rounded-md border border-line px-3 py-1.5 text-left text-[10px] hover:bg-line/40"
     >
       {copied ? "Copied" : label}
     </button>
