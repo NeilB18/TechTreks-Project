@@ -75,6 +75,7 @@ class TripAgent:
         # Plain JSON-serializable dicts, so the bot can store and reload them between webhooks.
         self.history: list[dict] = list(history or [])
         self.sender_id: str | None = None
+        self.event: ChatEvent | None = None
 
     def _event_text(self, ev: ChatEvent) -> str:
         state = self.backend.summary(self.trip_id)
@@ -122,6 +123,12 @@ class TripAgent:
         result.tool_calls.append(call)
         if name == "send_message":
             to, text = args.get("to"), args.get("text")
+            if to == "group" and self.event and self.event.channel == "group" and not self.event.mentioned \
+                    and not any(c.name not in ("send_message",) and not c.by_runner for c in result.tool_calls[:-1]):
+                # Nobody asked: small talk gets no reply. Real alerts come with a tool call (a check or change).
+                call.error = ("You weren't @mentioned and haven't checked or changed anything, so this is small talk: "
+                              "don't reply. End the turn.")
+                return f"Error: {call.error}"
             members = {m["id"] for m in self.backend.summary(self.trip_id)["members"]}
             if not text or (to != "group" and to not in members):
                 call.error = f"`to` must be \"group\" or one of {sorted(members)}"
@@ -142,7 +149,21 @@ class TripAgent:
         enrich(call.result, args, summary)
         if name in BUDGET_CHECK_AFTER:
             self._attach_budget_warnings(name, call.result, summary, result)
+        if name == "record_refund":
+            self._attach_paid_back(call.result, summary)
         return json.dumps(call.result, default=str)
+
+    def _attach_paid_back(self, out: dict, summary: dict) -> None:
+        """People who already paid the payer back have money coming back now; the model must DM them."""
+        payer = out.get("payer")
+        senders = sorted({e["paid_by"] for e in self.backend.get_trip(trip_id=self.trip_id)["expenses"]
+                          if e["category"] == "SETTLEMENT" and payer in (e.get("shares") or {})})
+        if senders:
+            names = {m["id"]: m["name"] for m in summary["members"]}
+            out["already_paid_back"] = senders
+            out["next_step"] = (f"{', '.join(names.get(s, s) for s in senders)} already paid {names.get(payer, payer)} back, "
+                                "so their money changes now: after get_balances, DM each of them who will pay them "
+                                "(or who they pay) and how much, from the settle-up lines.")
 
     def _attach_budget_warnings(self, name: str, out: dict, summary: dict, result: TurnResult) -> None:
         """Check everyone affected and add `budget_warnings` ({person_id: [warnings]}, private)."""
@@ -171,6 +192,7 @@ class TripAgent:
     def handle(self, event: ChatEvent) -> TurnResult:
         result = TurnResult()
         self.sender_id = event.sender_id
+        self.event = event
         self.history.append({"role": "user", "content": self._event_text(event)})
         nudged = False
         for _ in range(config.MAX_TOOL_ROUNDS):

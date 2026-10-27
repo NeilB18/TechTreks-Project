@@ -145,3 +145,23 @@ def test_results_get_chat_ready_amounts_and_automatic_budget_checks():
     balances = next(c for c in r.tool_calls if c.name == "get_balances").result
     assert all(line.count(" pays ") == 1 for line in balances["lines"])
     assert any(line.startswith("Aarav pays Jake") and line.endswith("@jake-venmo") for line in balances["lines"])
+
+
+def test_unmentioned_small_talk_cant_be_answered():
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "send_message", {"to": "group", "text": "😂 so fun"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(engine(), "miami", client=client).handle(
+        ChatEvent(sender_id="jake", text="lol that boat was fun", mentioned=False))
+    assert r.outbox == [] and "small talk" in r.tool_calls[0].error
+
+
+def test_refund_tells_the_model_who_already_paid_back():
+    backend = engine()
+    backend.record_payback(trip_id="miami", from_person="jake", to_person="aarav", amount=4000, currency="USD")
+    refund = {"expense_id": "e1", "amount": 6000, "currency": "USD"}
+    client = ScriptedClient([response("tool_calls", None, tool_call("t1", "record_refund", refund)), response("stop", "")])
+    r = TripAgent(backend, "miami", client=client).handle(ChatEvent(sender_id="aarav", text="@tripbot yes"))
+    out = r.tool_calls[0].result
+    assert out["already_paid_back"] == ["jake"] and "Jake already paid Aarav back" in out["next_step"]
