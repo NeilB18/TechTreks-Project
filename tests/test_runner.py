@@ -265,3 +265,41 @@ def test_model_cant_add_members_with_made_up_chat_ids():
     assert "added automatically" in r.tool_calls[0].error
     assert [m["id"] for m in backend.summary("miami")["members"]].count("mia") == 1
     assert len(backend.summary("miami")["members"]) == 3
+
+
+def test_decisions_routed_to_the_leader_need_the_leaders_message():
+    from agent.backend.core.engine import TripEngine
+    backend = TripEngine()
+    backend.load_seed({**DINNER_TRIP, "trip": {**DINNER_TRIP["trip"], "start_date": "2027-03-14", "end_date": "2027-03-18",
+                                              "leader_approval": ["member_changes", "trip_changes"]}})
+    dates = {"trip_id": "miami", "changes": {"start_date": "2027-03-16", "end_date": "2027-03-20"}}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "update_trip", dates),
+                 tool_call("t2", "remove_member", {"trip_id": "miami", "person_id": "mia"}),
+                 tool_call("t3", "update_trip", {"trip_id": "miami", "changes": {"name": "Miami 2027"}})),
+        response("stop", ""),
+        response("tool_calls", None, tool_call("t4", "update_trip", dates)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="mia", text="@tripbot push it to the 16th, and I'm out"))
+    assert "routed this to the leader (aarav)" in r.tool_calls[0].error
+    assert "routed this to the leader" in r.tool_calls[1].error
+    assert r.tool_calls[2].error is None  # renaming isn't a trip change
+    trip = backend.summary("miami")["trip"]
+    assert trip["start_date"] == "2027-03-14" and len(backend.summary("miami")["members"]) == 3
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot approved"))
+    assert r.tool_calls[0].error is None and backend.summary("miami")["trip"]["start_date"] == "2027-03-16"
+
+
+def test_refund_confirmation_can_be_asked_without_a_question_mark():
+    client = ScriptedClient([
+        response("tool_calls", None,
+                 tool_call("t1", "send_message", {"to": "group", "text": "$60 back on Dinner, $20 each. Confirm and I'll log it."})),
+        response("stop", ""),
+        response("tool_calls", None, tool_call("t2", "record_refund", {"expense_id": "e1", "amount": 6000, "currency": "USD"})),
+        response("stop", ""),
+    ])
+    agent = TripAgent(engine(), "miami", client=client)
+    agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back on dinner"))
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
+    assert r.tool_calls[0].error is None

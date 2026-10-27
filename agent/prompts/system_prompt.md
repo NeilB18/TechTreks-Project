@@ -26,6 +26,8 @@ The one exception: when someone's private budget is below the tier the group loc
 
 `get_budget_status` results and `budget_warnings` are private to each person. In the group, don't mention whether someone has set a budget, either.
 
+When someone sets or asks about their **own** budget in the group, reply in the group with a short "Sent you a DM 🔒" (no numbers) and put the details in their DM. When someone asks about **another** person's budget, refuse in the group only; don't also DM the asker.
+
 # Money
 
 - All tool amounts are integer cents: $120 is 12000, MX$1,800 is 180000. In chat, write dollars ("$60", "$33.33").

@@ -19,10 +19,13 @@ from agent.tools.schemas import ALL_TOOLS
 
 SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "system_prompt.md").read_text()
 PAYER_CONFIRMS = {"edit_expense", "delete_expense", "record_refund"}
+# update_trip fields that count as trip changes (specs.md); name, leader and settings are the group's own.
+TRIP_CHANGE_FIELDS = {"destination", "start_date", "end_date", "base_currency", "status", "group_budget"}
 # After these, the runner checks the budget of everyone affected (specs.md: after every expense,
 # check everyone in the split). Done in code because the model sometimes skipped people.
 BUDGET_CHECK_AFTER = {"log_expense", "edit_expense", "record_refund", "remove_member"}
 # Budget tools whose numbers are private (spent amounts are just split shares, so they're not on the list).
+CONFIRM_WORDS = re.compile(r"\b(confirm|yes)\b", re.I)
 PRIVATE_BUDGET_TOOLS = {"set_budget", "get_budget_status"}
 PRIVATE_KEYS = {"total", "total_cents", "remaining_cents", "remaining_after_planned_cents", "limit_cents"}
 UNDELIVERED_NOTE = (
@@ -120,9 +123,24 @@ class TripAgent:
         return (f"Only {expense['paid_by']} (who paid for {expense['description']}) can confirm this. "
                 f"Nothing was changed. Ask them in the group, and do it once they reply yes.")
 
+    def _leader_guard(self, name: str, args: dict) -> str | None:
+        """Decisions the group routed to the leader only go through on a message from the leader. Live evals saw a
+        dropout and a date change done on the requester's own say-so."""
+        trip = self.backend.summary(self.trip_id)["trip"]
+        leader, routed = trip.get("leader_id"), set(trip.get("leader_approval") or [])
+        if not leader or self.sender_id == leader:
+            return None
+        needs = {"remove_member": "member_changes" in routed,
+                 "update_trip": "trip_changes" in routed and bool(TRIP_CHANGE_FIELDS & set(args.get("changes") or {})),
+                 "generate_itinerary": "itinerary_saves" in routed and bool(args.get("save_draft_id"))}
+        if not needs.get(name):
+            return None
+        return (f"Not done: the group routed this to the leader ({leader}), so it only goes through on their message. "
+                f"Ask {leader} in the group, and do it once they approve.")
+
     def _refund_guard(self, name: str) -> str | None:
         """Refunds are a big change (specs.md): the payer confirms the amount first, even when they're the
-        one reporting it. So a refund only goes through if the bot's previous turn asked them a question."""
+        one reporting it. So a refund only goes through if the bot's previous turn asked them to confirm."""
         if name != "record_refund" or self._asked_last_turn():
             return None
         return ("Not recorded yet: refunds need a confirmation first. Ask the payer to confirm the refund and "
@@ -158,7 +176,9 @@ class TripAgent:
                     args = json.loads(tc["function"]["arguments"] or "{}")
                 except ValueError:
                     continue
-                if args.get("to") in ("group", self.sender_id) and "?" in (args.get("text") or ""):
+                text = args.get("text") or ""
+                # "Confirm?", or no question mark: "Confirm and I'll log it", "reply yes".
+                if args.get("to") in ("group", self.sender_id) and ("?" in text or CONFIRM_WORDS.search(text)):
                     return True
         return False
 
@@ -202,7 +222,7 @@ class TripAgent:
                           "messaged you is already in trip_state members. Nothing was changed. If someone's missing, "
                           "ask them to say hi with @tripbot.")
             return f"Error: {call.error}"
-        blocked = self._payer_guard(name, args) or self._refund_guard(name)
+        blocked = self._payer_guard(name, args) or self._leader_guard(name, args) or self._refund_guard(name)
         if blocked:
             call.error = blocked
             return f"Error: {blocked}"
