@@ -29,7 +29,7 @@ from django.test import Client  # noqa: E402
 
 from bot import groupme, services, worker  # noqa: E402
 from bot.models import Conversation, PrivateNotice  # noqa: E402
-from trips.models import Person  # noqa: E402
+from trips.models import Person, Reminder  # noqa: E402
 
 USERS = {"aarav": "1001", "priya": "1002", "jake": "1003", "mia": "1004"}
 # (who, text, wait for the reply before the next one?)
@@ -86,7 +86,6 @@ def main() -> None:
         seen_notices = len(notices)
     history = Conversation.objects.get(trip_id="smoke").history
     events = sum(1 for m in history if m["role"] == "user" and "<event>" in m["content"])
-    from trips.models import Reminder
     for r in Reminder.objects.filter(trip_id="smoke"):
         print(f"\nReminder: {r.message!r} due {r.due_at} (local now was {services.local_now()})")
     print(f"\nMembers: {sorted(Person.objects.filter(trip_id='smoke').values_list('person_id', flat=True))}")
