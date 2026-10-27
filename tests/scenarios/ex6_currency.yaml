@@ -15,7 +15,7 @@ turns:
       forbid_mutations: true
       forbid: [log_expense]
       messages:
-        - {to: group, contains_any: [peso, MXN]}
+        - {to: group, contains_any: [peso, MXN, "MX$"]}
     golden:
       messages:
         - {to: group, text: "Got it! Was that $1,800 USD or pesos? And split with everyone?"}

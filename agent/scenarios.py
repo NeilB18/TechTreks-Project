@@ -15,12 +15,15 @@ expect keys (all optional):
   messages:         [{to, contains?, contains_any?, matches?, not_contains?}]
                                       checked against all text sent to `to` this turn
   no_messages_to:   [to]
+  silent:           true              no messages at all (e.g. un-mentioned small talk)
   end_state:        [check]           see _check_state
 Every turn is also checked for privacy: no group message may contain a budget total.
 """
 
 import json
 import re
+import time
+import unicodedata
 from datetime import date
 from enum import Enum
 from pathlib import Path
@@ -30,6 +33,7 @@ import yaml
 from agent.backend.core.engine import TripEngine, iso
 from agent.backend.protocol import ToolError, dispatch, is_mutation
 from agent.runner import ChatEvent, ToolCall, TurnResult
+from agent.travel.provider import FakeTravel
 from trip_model.category import Category
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,7 +53,7 @@ def load_scenarios() -> list[dict]:
 def make_backend(scn: dict, backend=None):
     """Seed `backend` (default: a new TripEngine) with the scenario's state snapshot.
     Any backend with load_seed() works; HttpBackend is seeded through its `state` backend."""
-    b = backend or TripEngine()
+    b = backend or TripEngine(travel=FakeTravel())  # canned travel data: evals stay free and repeatable
     (getattr(b, "state", None) or b).load_seed(scn["seed"])
     return b
 
@@ -73,6 +77,15 @@ def _match(expected, actual) -> bool:
             return False
         return sorted(map(_norm, expected)) == sorted(set(map(_norm, actual)))
     return _norm(expected) == _norm(actual)
+
+
+def _fold(s: str) -> str:
+    return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
+
+
+def _token_totals(usage: list[dict]) -> dict:
+    keys = ("prompt_tokens", "completion_tokens", "total_tokens")
+    return {k: sum((u or {}).get(k) or 0 for u in usage) for k in keys}
 
 
 def _norm(v):
@@ -103,7 +116,7 @@ def check_turn(expect: dict, tr: TurnResult, backend, trip_id: str) -> list[str]
         if k < n:
             fails.append(f"expected >= {n} {name} calls, got {k}")
     for name in expect.get("forbid", []):
-        if any(c.name == name for c in calls):
+        if any(c.name == name and c.error is None for c in calls):  # a rejected call changed nothing
             fails.append(f"forbidden call {name} (needs confirmation first?)")
     if expect.get("forbid_mutations"):
         muts = [c.name for c in calls if is_mutation(c.name, c.input) and c.error is None]
@@ -127,6 +140,8 @@ def check_turn(expect: dict, tr: TurnResult, backend, trip_id: str) -> list[str]
         for s in m.get("not_contains", []):
             if s.lower() in low:
                 fails.append(f"message to {m['to']} must not contain {s!r}: {text!r}")
+    if expect.get("silent") and tr.outbox:
+        fails.append(f"should stay quiet, but sent: {[o['to'] + ': ' + o['text'][:60] for o in tr.outbox]}")
     for to in expect.get("no_messages_to", []):
         if any(o["to"] == to for o in tr.outbox):
             fails.append(f"should not message {to}")
@@ -166,8 +181,9 @@ def _check_state(check: dict, backend, trip_id: str) -> list[str]:
     if kind == "member_active":
         return [f"{pid} active should be {v}" for pid, v in spec.items() if trip.get_member(pid).active != v]
     if kind == "trip":
+        same = lambda a, b: sorted(a) == sorted(b) if isinstance(a, list) and isinstance(b, list) else a == b  # noqa: E731
         return [f"trip.{k} should be {v!r}, is {_trip_field(trip, k)!r}" for k, v in spec.items()
-                if _trip_field(trip, k) != v]
+                if not same(_trip_field(trip, k), v)]
     if kind == "budget_total":
         return [f"{pid} budget should be {v}" for pid, v in spec.items()
                 if trip.get_member(pid).budget is None or trip.get_member(pid).budget.total_cents != v]
@@ -177,6 +193,17 @@ def _check_state(check: dict, backend, trip_id: str) -> list[str]:
         return [] if len(trip.expenses) == spec else [f"expected {spec} expenses, have {len(trip.expenses)}"]
     if kind == "refund_count":
         return [] if len(trip.refunds) == spec else [f"expected {spec} refunds, have {len(trip.refunds)}"]
+    if kind == "activity_count":
+        n = len(trip.activities)
+        return [] if n == spec else [f"expected {spec} activities, have {n}"]
+    if kind == "no_opt_out":
+        return [] if (spec[0], Category[spec[1]]) not in trip.opt_outs else [f"opt-out {spec} should be removed"]
+    if kind == "trip_contains":  # case- and accent-insensitive substring, e.g. destination "cancun"
+        return [f"trip.{k} should contain {v!r}, is {_trip_field(trip, k)!r}" for k, v in spec.items()
+                if _fold(v) not in _fold(str(_trip_field(trip, k) or ""))]
+    if kind == "reminder_due_on":
+        days = [str(r.due_at)[:10] for r in trip.reminders]
+        return [] if spec in days else [f"expected a reminder due {spec}, have {days}"]
     return [f"unknown end_state check {kind!r}"]
 
 
@@ -202,6 +229,7 @@ def run_scenario(scn: dict, agent_factory=None, dump_name: str | None = None, ba
     agent = agent_factory(backend, trip_id) if agent_factory else None
     fails, transcript = [], []
     for i, turn in enumerate(scn["turns"], 1):
+        started = time.monotonic()
         if agent:
             tr = agent.handle(make_event(turn))
         else:
@@ -214,7 +242,8 @@ def run_scenario(scn: dict, agent_factory=None, dump_name: str | None = None, ba
             "tool_calls": [{"name": c.name, "input": c.input, "result": c.result, "error": c.error}
                            for c in tr.tool_calls],
             "outbox": tr.outbox, "stray_text": tr.stray_text, "stop_reason": tr.stop_reason,
-            "failures": turn_fails})
+            "seconds": round(time.monotonic() - started, 2), "model_calls": len(tr.usage),
+            "tokens": _token_totals(tr.usage), "failures": turn_fails})
     if dump_name:
         OUT_DIR.mkdir(parents=True, exist_ok=True)
         (OUT_DIR / f"{dump_name}.json").write_text(json.dumps(transcript, indent=2, default=str))

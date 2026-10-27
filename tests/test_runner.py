@@ -145,3 +145,59 @@ def test_results_get_chat_ready_amounts_and_automatic_budget_checks():
     balances = next(c for c in r.tool_calls if c.name == "get_balances").result
     assert all(line.count(" pays ") == 1 for line in balances["lines"])
     assert any(line.startswith("Aarav pays Jake") and line.endswith("@jake-venmo") for line in balances["lines"])
+
+
+def test_unmentioned_small_talk_cant_be_answered():
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "send_message", {"to": "group", "text": "😂 so fun"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(engine(), "miami", client=client).handle(
+        ChatEvent(sender_id="jake", text="lol that boat was fun", mentioned=False))
+    assert r.outbox == [] and "small talk" in r.tool_calls[0].error
+
+
+def test_refund_tells_the_model_who_already_paid_back():
+    backend = engine()
+    backend.record_payback(trip_id="miami", from_person="jake", to_person="aarav", amount=4000, currency="USD")
+    refund = {"expense_id": "e1", "amount": 6000, "currency": "USD"}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t0", "send_message", {"to": "group", "text": "$60 refund on Dinner? Confirm?"})),
+        response("stop", ""),
+        response("tool_calls", None, tool_call("t1", "record_refund", refund)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back on dinner"))
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yes"))
+    out = r.tool_calls[0].result
+    assert out["already_paid_back"] == ["jake"] and "Jake already paid Aarav back" in out["next_step"]
+
+
+def test_refund_waits_for_a_confirmation_even_from_the_payer():
+    backend = engine()
+    refund = {"expense_id": "e1", "amount": 6000, "currency": "USD"}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "record_refund", refund)),
+        response("tool_calls", None, tool_call("t2", "send_message", {"to": "group", "text": "$60 back on Dinner. Confirm?"})),
+        response("stop", ""),
+        response("tool_calls", None, tool_call("t3", "record_refund", refund)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back on dinner"))
+    assert "confirmation first" in r.tool_calls[0].error
+    assert not backend.trips["miami"].refunds
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
+    assert r.tool_calls[0].error is None and len(backend.trips["miami"].refunds) == 1
+
+
+def test_call_after_messages_runs_without_thinking():
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "get_balances", {"trip_id": "miami"})),
+        response("tool_calls", None, tool_call("t2", "send_message", {"to": "group", "text": "All square"})),
+        response("tool_calls", None, tool_call("t3", "send_message", {"to": "mia", "text": "psst"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(engine(), "miami", client=client).handle(ChatEvent(sender_id="jake", text="@tripbot balances?"))
+    assert [m["to"] for m in r.outbox] == ["group", "mia"]  # the follow-up can still send DMs
+    thinking = [req["extra_body"]["enable_thinking"] for req in client.requests]
+    assert thinking == [True, True, False, False]

@@ -1,0 +1,30 @@
+kind: edge
+title: A clear dropout needs only the person when member changes aren't routed to the leader
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  expenses:
+    - {id: e1, paid_by: aarav, amount: 12000, description: Dinner, category: FOOD, split_with: [aarav, jake, mia]}
+turns:
+  - sender: mia
+    text: "@tripbot I can't come anymore, I'm out for the whole trip. sorry guys"
+    expect:
+      calls:
+        - {name: remove_member, args: {person_id: mia}}
+      messages:
+        - {to: mia, contains: ["$40"]}
+      end_state:
+        - member_active: {mia: false}
+    golden:
+      calls:
+        - {name: remove_member, args: {trip_id: miami, person_id: mia}}
+        - {name: get_balances, args: {trip_id: miami}}
+      messages:
+        - {to: group, text: "Mia's off the trip 💔"}
+        - {to: mia, text: "Sorry you can't come! You still owe Aarav $40 for dinner. Venmo: @aarav-venmo"}

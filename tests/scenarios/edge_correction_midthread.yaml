@@ -1,0 +1,39 @@
+kind: edge
+title: The payer corrects an amount right after logging it
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: mia
+    text: "@tripbot dinner was $120, I paid, split with everyone"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: mia, amount: 12000}}
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: mia, amount: 12000, currency: USD, description: Dinner,
+                                     category: FOOD, split_with: [aarav, jake, mia]}}
+      messages:
+        - {to: group, text: "Logged 🍽️ Dinner, $120, paid by Mia, split 3 ways ($40 each)."}
+  - sender: mia
+    text: "@tripbot wait sorry it was $102 not $120"
+    expect:
+      calls:
+        - {name: edit_expense, args: {changes: {amount: 10200}}}
+      forbid: [log_expense]
+      messages:
+        - {to: group, contains: ["$34"]}
+      end_state:
+        - expense_count: 1
+        - balance: {from: aarav, to: mia, amount: 3400}
+    golden:
+      calls:
+        - {name: edit_expense, args: {expense_id: e1, requested_by: mia, changes: {amount: 10200}}}
+      messages:
+        - {to: group, text: "Fixed: Dinner is $102, so $34 each."}
