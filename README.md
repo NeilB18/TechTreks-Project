@@ -8,11 +8,12 @@ Group-trip agent for a GroupMe chat: plans the trip, logs and splits expenses, g
 agent/
   config.py                 model (qwen3.8-flash), thinking, endpoint
   prompts/system_prompt.md  system prompt v1
-  tools/schemas.py          21 backend tools + send_message
+  tools/schemas.py          21 backend tools + set_payment_handle and send_message (runner-side)
   backend/protocol.py       the agent <-> backend contract
   backend/core/engine.py    TripEngine: every tool, run on trip_model objects (in memory for tests)
   backend/core/rules.py     placeholders: FX table (post-MVP), tier prices
-  runner.py                 Qwen function-calling loop for one chat message
+  runner.py                 Qwen function-calling loop for one chat message, plus guards (payer, refund
+                            confirmation, budget numbers in the group, made-up members) and history trimming
   scenarios.py              runs + checks the examples.md scenarios
   cli.py                    fake multi-person chat
 trip_model/                 the data model and its rules (splits, refunds, balances, settle-up, budgets, polls); see trip_model/README.md
@@ -59,9 +60,9 @@ The live Qwen scenarios run only when started by hand: Actions → Tests → Run
 
 ## Agent evals
 
-There are 33 scenarios: the 12 worked examples plus 21 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
+There are 34 scenarios: the 12 worked examples plus 22 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
 
-- privacy probes and prompt injection (budget dumps, fake approvals, impersonating the leader)
+- privacy probes and prompt injection (budget dumps, fake approvals, impersonating the leader), and setting a budget in the group
 - staying quiet
 - confirmations for edits, deletes, itinerary saves and dropouts
 - ambiguous expenses, foreign currency, slang and typos, corrections mid-thread
@@ -130,7 +131,17 @@ cd backend
 ../.venv/bin/python manage.py link_group <group_id> <bot_id> <trip_id> --name "Miami Spring Break"
 ```
 
-Run `manage.py send_due_reminders` from cron every few minutes.
+Run `manage.py send_due_reminders` from cron every few minutes, or keep it running with `--every 60`. Times in chat are the group's local time, `BOT_TIME_ZONE` (default `America/New_York`): the bot tells the agent the local time with each message, and reminders fire on it.
+
+The webhook answers GroupMe at once and queues the message. A worker thread per group runs the agent, one message at a time, so a chat's messages stay in order and its history isn't overwritten (`backend/bot/worker.py`). The queues live in one process, so run Django as a single process for now. Set `BOT_INLINE=1` to run the agent inside the request instead (the tests do).
+
+Each reply sends only the last `AGENT_HISTORY_TURNS` messages (default 12), and only the newest carries the trip state, so a reply costs the same on day 5 as on day 1.
+
+Testing without GroupMe: `scripts/webhook_smoke.py` posts a scripted 4-person chat to the real webhook on live Qwen, with a throwaway database, and prints what would be posted and stored privately. Read stored private messages with `manage.py show_notices <trip_id> [--person <id>]`.
+
+Testing with GroupMe from a laptop: `brew install cloudflared`, run Django, then `cloudflared tunnel --url http://127.0.0.1:8000`, and register `https://<tunnel host>/groupme/callback/<GROUPME_CALLBACK_SECRET>` as the bot's callback. Add `.trycloudflare.com` to `DJANGO_ALLOWED_HOSTS`. The tunnel URL changes on every restart.
+
+People join the trip the first time they @mention the bot. Anyone can save their own payment handle ("@tripbot my venmo is @mia-v").
 
 DM check: `GROUPME_ACCESS_TOKEN=... .venv/bin/python scripts/groupme_dm_spike.py <recipient_user_id>`. GroupMe bots can't DM, so this tests DMs sent from a user account.
 

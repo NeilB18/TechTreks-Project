@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.test import Client, override_settings
 
 from agent.runner import TurnResult
-from bot import groupme, services
+from bot import groupme, services, worker
 from bot.models import Conversation, GroupChat, PrivateNotice
 from trips.models import Person, Reminder
 from trips.services import DjangoBackend
@@ -104,6 +104,7 @@ def test_unknown_sender_is_added_to_the_trip(bot):
     jake = Person.objects.get(trip_id="miami", chat_user_id="333")
     assert jake.name == "Jake Lee"
     assert ScriptedAgent.calls[0]["event"].sender_id == jake.person_id
+    assert ScriptedAgent.calls[0]["event"].chat_user_id == "333"  # lets people save their own payment handle
 
 
 def test_history_persists_between_callbacks(bot):
@@ -159,3 +160,97 @@ def test_link_group_creates_trip(db):
     call_command("link_group", "g9", "bot-9", "cancun", "--name", "Cancún", stdout=out)
     chat = GroupChat.objects.get(group_id="g9")
     assert (chat.bot_id, chat.trip.name) == ("bot-9", "Cancún")
+
+
+def test_show_notices_prints_stored_private_messages(bot):
+    callback()
+    out = io.StringIO()
+    call_command("show_notices", "miami", "--person", "mia", stdout=out)
+    assert "to mia: Heads up: your food budget is almost used up." in out.getvalue()
+
+
+def test_webhook_queues_and_answers_at_once(bot, settings, monkeypatch):
+    settings.BOT_INLINE = False
+    queued = []
+    monkeypatch.setattr(worker, "enqueue", queued.append)
+    assert callback().json()["outcome"] == "queued"
+    assert queued[0]["id"] == "m1" and not ScriptedAgent.calls
+
+
+def test_worker_keeps_order_within_a_group_and_runs_groups_side_by_side(monkeypatch):
+    import threading
+    import time
+    seen, started = [], {}
+    release = threading.Event()
+
+    def handle(payload):
+        started[payload["id"]] = time.monotonic()
+        if payload["id"] == "a1":
+            release.wait(2)  # group a is busy; group b must not wait for it
+        seen.append(payload["id"])
+        return "handled"
+    monkeypatch.setattr(worker, "handle_callback", handle)
+    monkeypatch.setattr(worker, "_queues", {})
+    for msg in [("a1", "ga"), ("a2", "ga"), ("b1", "gb")]:
+        worker.enqueue({"id": msg[0], "group_id": msg[1]})
+    deadline = time.monotonic() + 2
+    while "b1" not in seen and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert "b1" in seen and "a2" not in seen  # b ran while a1 was still going; a2 waits its turn
+    release.set()
+    for q in worker._queues.values():
+        q.join()
+    assert seen.index("a1") < seen.index("a2")
+
+
+def test_model_outage_gets_one_retry_before_the_apology(bot, monkeypatch, settings):
+    import httpx2 as httpx
+    from openai import APIConnectionError
+    settings.BOT_INLINE = False  # the retry only waits in the background worker
+    monkeypatch.setattr(services, "RETRY_AFTER_S", 0)
+    attempts = []
+
+    class Flaky:
+        def __init__(self, history):
+            self.history = list(history)
+
+        def handle(self, event):
+            attempts.append(len(self.history))
+            if len(attempts) == 1:
+                self.history.append({"role": "user", "content": "half a turn"})
+                raise APIConnectionError(request=httpx.Request("POST", "https://qwen.example"))
+            self.history += [{"role": "user", "content": event.text}]
+            return TurnResult(outbox=[{"to": "group", "text": "Logged"}])
+    monkeypatch.setattr(services, "make_agent", lambda backend, trip_id, history: Flaky(history))
+    payload = {"id": "r1", "group_id": "g1", "user_id": "111", "name": "Aarav",
+               "text": "@tripbot dinner $120", "sender_type": "user"}
+    assert services.handle_callback(payload) == "handled: 1 message(s)"
+    assert attempts == [0, 0]  # the retry starts from the saved history, not the failed half turn
+    assert [p["json"]["text"] for p in bot] == ["Logged"]
+
+
+def test_the_agent_gets_the_groups_local_time(bot, settings):
+    settings.BOT_TIME_ZONE = "America/New_York"
+    callback()
+    event = ScriptedAgent.calls[0]["event"]
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    local = datetime.now(ZoneInfo("America/New_York")).replace(tzinfo=None)
+    assert abs((datetime.fromisoformat(event.time) - local).total_seconds()) < 120
+
+
+def test_reminders_use_local_time_and_one_failure_doesnt_block_the_rest(bot, monkeypatch):
+    from bot.management.commands import send_due_reminders
+    monkeypatch.setattr(send_due_reminders, "local_now", lambda: "2027-03-14T09:00")
+    b = DjangoBackend()
+    b.create_reminder(trip_id="miami", message="Boat at 9", due_at="2027-03-14T09:00", audience="all")
+    b.create_reminder(trip_id="miami", message="Dinner at 9:30", due_at="2027-03-14T09:30", audience="all")
+    b.create_reminder(trip_id="miami", message="Bring ID", due_at="2027-03-14T08:00", audience=["mia"])
+    real_post = groupme.requests.post
+    monkeypatch.setattr(groupme.requests, "post", lambda url, **kw: (_ for _ in ()).throw(RuntimeError("GroupMe down")))
+    out = io.StringIO()
+    call_command("send_due_reminders", stdout=out)
+    assert "Sent 1" in out.getvalue()  # the group post failed; the DM (stored) still went out
+    monkeypatch.setattr(groupme.requests, "post", real_post)
+    call_command("send_due_reminders", stdout=out)
+    assert [p["json"]["text"] for p in bot] == ["⏰ Reminder: Boat at 9"]  # retried; 9:30 isn't due yet

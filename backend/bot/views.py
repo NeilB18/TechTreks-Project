@@ -7,6 +7,7 @@ from django.http import Http404, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from bot import worker
 from bot.services import handle_callback
 
 log = logging.getLogger(__name__)
@@ -26,6 +27,9 @@ def groupme_callback(request, secret: str):
         return JsonResponse({"error": "invalid JSON"}, status=400)
     if not isinstance(payload, dict):
         return JsonResponse({"error": "invalid payload"}, status=400)
+    if not settings.BOT_INLINE:
+        worker.enqueue(payload)  # answer GroupMe now; the reply follows in 10–25 s
+        return JsonResponse({"ok": True, "outcome": "queued"})
     outcome = handle_callback(payload)
     log.info("GroupMe message %s: %s", payload.get("id"), outcome)
     return JsonResponse({"ok": True, "outcome": outcome})

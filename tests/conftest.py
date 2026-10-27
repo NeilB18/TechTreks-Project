@@ -9,6 +9,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 AGENT_TOKEN = "dev-agent-token"  # tripapi.settings default when DJANGO_DEBUG=1
 
 
+@pytest.fixture(autouse=True)
+def _bot_inline(settings):
+    """Webhook tests check the outcome in the response, so the agent runs inside the request."""
+    settings.BOT_INLINE = True
+
+
 def pytest_addoption(parser):
     parser.addoption("--repeat", type=int, default=1,
                      help="Run each live scenario N times to catch flaky behavior")

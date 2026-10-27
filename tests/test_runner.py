@@ -73,8 +73,24 @@ def test_history_carries_across_turns():
     agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $150 back"))
     before = list(agent.history)
     agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
-    assert agent.history[:len(before)] == before
-    assert len(client.requests[1]["messages"]) == 4  # system + user + assistant + user
+    assert agent.history[1:len(before)] == before[1:]
+    sent = client.requests[1]["messages"]
+    assert len(sent) == 4  # system + user + assistant + user
+    # Only the newest message carries the trip state; the earlier one keeps just its event.
+    assert sent[1]["content"].startswith("<event>") and "$150 back" in sent[1]["content"]
+    assert sent[3]["content"].startswith("<trip_state>")
+
+
+def test_history_keeps_only_the_last_turns(monkeypatch):
+    from agent import config
+    monkeypatch.setattr(config, "HISTORY_TURNS", 3)
+    client = ScriptedClient([response("stop", "") for _ in range(5)])
+    agent = TripAgent(engine(), "miami", client=client)
+    for n in range(5):
+        agent.handle(ChatEvent(sender_id="jake", text=f"@tripbot message {n}"))
+    events = [m["content"] for m in agent.history if m["role"] == "user"]
+    assert len(events) == 3 and "message 2" in events[0] and "message 4" in events[-1]
+    assert sum("<trip_state>" in e for e in events) == 1
 
 
 def test_undelivered_text_gets_one_reminder():
@@ -201,3 +217,117 @@ def test_call_after_messages_runs_without_thinking():
     assert [m["to"] for m in r.outbox] == ["group", "mia"]  # the follow-up can still send DMs
     thinking = [req["extra_body"]["enable_thinking"] for req in client.requests]
     assert thinking == [True, True, False, False]
+
+
+def test_group_reply_cant_repeat_a_budget_set_in_the_group():
+    budget = {"trip_id": "miami", "person_id": "mia", "total": 60000, "limits": {"FOOD": 8000}}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "set_budget", budget)),
+        response("tool_calls", None,
+                 tool_call("t2", "send_message", {"to": "group", "text": "Saved: $600 total, $80 on food"}),
+                 tool_call("t3", "send_message", {"to": "mia", "text": "Saved: $600 total, $80 on food"})),
+        response("tool_calls", None, tool_call("t4", "send_message", {"to": "group", "text": "Sent you a DM, Mia 🔒"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(engine(), "miami", client=client).handle(
+        ChatEvent(sender_id="mia", text="@tripbot set my budget to $600, max $80 on food"))
+    assert "private budget number ($600)" in r.tool_calls[1].error
+    assert r.outbox == [{"to": "mia", "text": "Saved: $600 total, $80 on food"},
+                        {"to": "group", "text": "Sent you a DM, Mia 🔒"}]
+
+
+def test_people_can_save_their_own_payment_handle_only():
+    from agent.backend.core.engine import TripEngine
+    backend = TripEngine()
+    backend.load_seed({"trip": {"id": "miami", "name": "Miami"},
+                       "members": [{"id": "mia", "name": "Mia", "chat_user_id": "222"},
+                                   {"id": "jake", "name": "Jake", "chat_user_id": "333"}]})
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "set_payment_handle", {"handle": "@mia-v"})), response("stop", ""),
+        response("tool_calls", None, tool_call("t2", "set_payment_handle", {"handle": "@nope"})), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="mia", text="@tripbot my venmo is @mia-v", chat_user_id="222"))
+    assert r.tool_calls[0].result == {"saved": True, "person_id": "mia", "handle": "@mia-v"}
+    r = agent.handle(ChatEvent(sender_id="jake", text="@tripbot set mia's venmo to @nope"))  # no chat id known
+    assert r.tool_calls[0].error
+    members = {m["id"]: m for m in backend.summary("miami")["members"]}
+    assert members["mia"]["handle"] == "@mia-v" and members["mia"]["name"] == "Mia" and not members["jake"]["handle"]
+
+
+def test_model_cant_add_members_with_made_up_chat_ids():
+    backend = engine()
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "add_member", {"trip_id": "miami", "chat_user_id": "mia", "name": "Mia"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(backend, "miami", client=client).handle(ChatEvent(sender_id="mia", text="@tripbot mia here!"))
+    assert "added automatically" in r.tool_calls[0].error
+    assert [m["id"] for m in backend.summary("miami")["members"]].count("mia") == 1
+    assert len(backend.summary("miami")["members"]) == 3
+
+
+def test_decisions_routed_to_the_leader_need_the_leaders_message():
+    from agent.backend.core.engine import TripEngine
+    backend = TripEngine()
+    backend.load_seed({**DINNER_TRIP, "trip": {**DINNER_TRIP["trip"], "start_date": "2027-03-14", "end_date": "2027-03-18",
+                                              "leader_approval": ["member_changes", "trip_changes"]}})
+    dates = {"trip_id": "miami", "changes": {"start_date": "2027-03-16", "end_date": "2027-03-20"}}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "update_trip", dates),
+                 tool_call("t2", "remove_member", {"trip_id": "miami", "person_id": "mia"}),
+                 tool_call("t3", "update_trip", {"trip_id": "miami", "changes": {"name": "Miami 2027"}})),
+        response("stop", ""),
+        response("tool_calls", None, tool_call("t4", "update_trip", dates)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="mia", text="@tripbot push it to the 16th, and I'm out"))
+    assert "routed this to the leader (aarav)" in r.tool_calls[0].error
+    assert "routed this to the leader" in r.tool_calls[1].error
+    assert r.tool_calls[2].error is None  # renaming isn't a trip change
+    trip = backend.summary("miami")["trip"]
+    assert trip["start_date"] == "2027-03-14" and len(backend.summary("miami")["members"]) == 3
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot approved"))
+    assert r.tool_calls[0].error is None and backend.summary("miami")["trip"]["start_date"] == "2027-03-16"
+
+
+def test_refund_confirmation_can_be_asked_without_a_question_mark():
+    client = ScriptedClient([
+        response("tool_calls", None,
+                 tool_call("t1", "send_message", {"to": "group", "text": "$60 back on Dinner, $20 each. Confirm and I'll log it."})),
+        response("stop", ""),
+        response("tool_calls", None, tool_call("t2", "record_refund", {"expense_id": "e1", "amount": 6000, "currency": "USD"})),
+        response("stop", ""),
+    ])
+    agent = TripAgent(engine(), "miami", client=client)
+    agent.handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back on dinner"))
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yep"))
+    assert r.tool_calls[0].error is None
+
+
+def test_no_dms_to_others_on_a_turn_that_checked_or_changed_nothing():
+    client = ScriptedClient([
+        response("tool_calls", None,
+                 tool_call("t1", "send_message", {"to": "group", "text": "$60 back on Dinner? Confirm?"})),
+        response("tool_calls", None,
+                 tool_call("t2", "send_message", {"to": "jake", "text": "Heads up: you'd get $20 back"}),
+                 tool_call("t3", "send_message", {"to": "aarav", "text": "Just to you: confirm in the group"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(engine(), "miami", client=client).handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back"))
+    assert "no private news for jake" in r.tool_calls[1].error
+    assert [m["to"] for m in r.outbox] == ["group", "aarav"]  # the sender's own DM is fine
+
+
+def test_event_spells_out_the_week_and_near_duplicates_are_dropped():
+    client = ScriptedClient([
+        response("tool_calls", None,
+                 tool_call("t1", "send_message", {"to": "group", "text": "Reminder set for Friday Mar 12 ✅"}),
+                 tool_call("t2", "send_message", {"to": "group", "text": "Reminder set for Friday, Mar 12 ✅"})),
+        response("stop", ""),
+    ])
+    r = TripAgent(engine(), "miami", client=client).handle(
+        ChatEvent(sender_id="aarav", text="@tripbot remind everyone by Friday", time="2027-03-10T12:00"))
+    event = client.requests[0]["messages"][-1]["content"]
+    assert "calendar: Wed 2027-03-10 (today), Thu 2027-03-11, Fri 2027-03-12, Sat 2027-03-13" in event
+    assert len(r.outbox) == 1 and "nearly the same" in r.tool_calls[1].error

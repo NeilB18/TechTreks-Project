@@ -18,7 +18,7 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 
 | Piece | Where | What it does |
 |---|---|---|
-| Agent | `agent/` | System prompt, 22 tools, Qwen tool-calling loop, CLI for a fake group chat |
+| Agent | `agent/` | System prompt, 23 tools (21 backend + 2 runner-side), Qwen tool-calling loop, CLI for a fake group chat |
 | Data model | `trip_model/` | The trip's data and rules: splits, refunds, balances, settle-up, opt-outs, dropouts, polls, reminders, budgets |
 | Engine | `agent/backend/core/` | `TripEngine`: every tool, run on `trip_model` objects; in memory for tests, and inside the Django backend |
 | Backend | `backend/trips/` | Django models and `DjangoBackend`, which runs the same rules over the database; tool API |
@@ -42,6 +42,10 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 27 | Adopted Roger's category-only budget warnings and greedy settle-up (one balance per person) |
 | Oct 27 | The runner checks budgets for everyone affected after each expense, refund or dropout, and adds chat-ready amounts and settle-up lines to tool results (live runs showed the model skipping checks and misreading cents) |
 | Oct 27 | Thinking stays on, but the call after a messages-only response runs without it (about 11 s per reply instead of 25 s, 97/99). Thinking off everywhere (79%) and ending the turn after messages (89%, dropped DMs) were tried and rejected |
+| Oct 27 | Refunds wait for a confirmation in the runner, even from the payer (the bot's previous turn must have asked) |
+| Oct 27 | Webhook queues messages; one worker thread per group runs the agent in order (concurrent messages lost history before) |
+| Oct 27 | Only the last 12 turns are sent, and only the newest has the trip state |
+| Oct 27 | Runner guards found by the webhook smoke test: no budget numbers in group messages on budget turns; the model can't call `add_member` (it invented chat ids); people save their own payment handle with `set_payment_handle` |
 | Oct 22 | Local database is SQLite; Supabase later by setting `DATABASE_URL` |
 | Oct 22 | GroupMe DMs: test first with `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in |
 | Oct 22 | Account linking works without DMs: sign in with Google, then post `@tripbot link <code>` in the group |
@@ -80,6 +84,7 @@ Open, on top of that (stacked, merge in order):
 10. `agent-evals-v2`: 15 edge-case scenarios and a live eval report (81/81 on Oct 27)
 11. `travel-data-v2`: Google Places + SerpAPI behind a switch (a small hook in `TripEngine`)
 12. `agent-perf`: faster replies (no-thinking follow-up call), 6 harder scenarios (injection, typos, corrections, multi-day settle-up), a scripted live demo (97/99 on Oct 27)
+13. `bot-live`: webhook worker, bounded history, privacy and member guards, payment handles, webhook smoke test, `show_notices`
 
 Superseded and should be closed unmerged: the earlier `agent-live-tuning`, `ci`, `budget-warnings`, `agent-evals`, `travel-data`.
 

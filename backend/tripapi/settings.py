@@ -102,6 +102,9 @@ GROUPME_ACCESS_TOKEN = os.environ.get("GROUPME_ACCESS_TOKEN", "")  # only for BO
 BOT_DM_MODE = os.environ.get("BOT_DM_MODE", "store")  # "store" (PrivateNotice) | "groupme" (DM API)
 BOT_MENTION = os.environ.get("BOT_MENTION", "@tripbot")
 BOT_FORWARD_ALL = os.environ.get("BOT_FORWARD_ALL", "0") == "1"  # also send un-mentioned messages to the agent
+BOT_INLINE = os.environ.get("BOT_INLINE", "0") == "1"  # 1 = run the agent inside the webhook request (tests)
+# Chat times ("remind me at 9am") are the group's local time. One zone for now; per trip needs a Trip field.
+BOT_TIME_ZONE = os.environ.get("BOT_TIME_ZONE", "America/New_York")
 
 LOGGING = {
     "version": 1,

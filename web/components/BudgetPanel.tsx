@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { formatMoney } from "@/lib/format";
+import { formatMoney, warningText } from "@/lib/format";
 import type { LinkCode, Me, MyBudget } from "@/lib/types";
 
 type State =
@@ -130,8 +130,8 @@ export function BudgetDetails({ data, currency }: { data: MyBudget; currency: st
       </dl>
       {b.warnings.length > 0 && (
         <ul className="mt-3 space-y-1">
-          {b.warnings.map((w) => (
-            <li key={w} className="font-medium text-warn">⚠️ {w}</li>
+          {b.warnings.map((w, i) => (
+            <li key={i} className="font-medium text-warn">⚠️ {warningText(w)}</li>
           ))}
         </ul>
       )}
