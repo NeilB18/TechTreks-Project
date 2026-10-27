@@ -59,12 +59,13 @@ The live Qwen scenarios run only when started by hand: Actions → Tests → Run
 
 ## Agent evals
 
-There are 27 scenarios: the 12 worked examples plus 15 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
+There are 33 scenarios: the 12 worked examples plus 21 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
 
-- privacy probes
+- privacy probes and prompt injection (budget dumps, fake approvals, impersonating the leader)
 - staying quiet
 - confirmations for edits, deletes, itinerary saves and dropouts
-- ambiguous expenses and foreign currency
+- ambiguous expenses, foreign currency, slang and typos, corrections mid-thread
+- multi-day settle-up
 - polls, reminders and onboarding
 
 ```bash
@@ -72,7 +73,23 @@ There are 27 scenarios: the 12 worked examples plus 15 edge cases (`tests/scenar
 .venv/bin/python scripts/eval_report.py -k edge_     # just the edge cases
 ```
 
-This writes [docs/eval-report.md](docs/eval-report.md): pass rate per scenario, what went wrong, and time and tokens per turn.
+This writes [docs/eval-report.md](docs/eval-report.md): pass rate per scenario, what went wrong, and time and tokens per turn. Use `--out-dir` and `--report` to keep an experiment's transcripts and report apart from the main ones.
+
+### Speed
+
+Thinking is most of the reply time. After a model response that only sends messages, the next call (usually just "done", sometimes the remaining DMs) runs with thinking off. That cut a reply from about 25 s to about 11 s, at 97/99 on 33 scenarios × 3. Switches in `.env`:
+
+- `QWEN_THINKING=0` turns thinking off everywhere (about 5 s per reply, but only 79% pass)
+- `QWEN_THINKING_BUDGET=<tokens>` caps thinking
+- `QWEN_FAST_FOLLOWUP=0` keeps thinking on for the follow-up call
+
+## Demo
+
+```bash
+.venv/bin/python scripts/demo.py   # a scripted 4-person chat on live Qwen, about 2 minutes
+```
+
+It writes [docs/demo-transcript.md](docs/demo-transcript.md). Talking points are in [docs/demo-guide.md](docs/demo-guide.md).
 
 ## Backend (Phase 3)
 

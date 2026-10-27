@@ -41,6 +41,7 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 22 | Model is `qwen3.8-flash` (cheaper than max); the team key and endpoint are in the Singapore region, kept in the gitignored `.env` |
 | Oct 27 | Adopted Roger's category-only budget warnings and greedy settle-up (one balance per person) |
 | Oct 27 | The runner checks budgets for everyone affected after each expense, refund or dropout, and adds chat-ready amounts and settle-up lines to tool results (live runs showed the model skipping checks and misreading cents) |
+| Oct 27 | Thinking stays on, but the call after a messages-only response runs without it (about 11 s per reply instead of 25 s, 97/99). Thinking off everywhere (79%) and ending the turn after messages (89%, dropped DMs) were tried and rejected |
 | Oct 22 | Local database is SQLite; Supabase later by setting `DATABASE_URL` |
 | Oct 22 | GroupMe DMs: test first with `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in |
 | Oct 22 | Account linking works without DMs: sign in with Google, then post `@tripbot link <code>` in the group |
@@ -78,6 +79,7 @@ Open, on top of that (stacked, merge in order):
 9. `ci-v2`: GitHub Actions for the offline tests and the trip page
 10. `agent-evals-v2`: 15 edge-case scenarios and a live eval report (81/81 on Oct 27)
 11. `travel-data-v2`: Google Places + SerpAPI behind a switch (a small hook in `TripEngine`)
+12. `agent-perf`: faster replies (no-thinking follow-up call), 6 harder scenarios (injection, typos, corrections, multi-day settle-up), a scripted live demo (97/99 on Oct 27)
 
 Superseded and should be closed unmerged: the earlier `agent-live-tuning`, `ci`, `budget-warnings`, `agent-evals`, `travel-data`.
 
