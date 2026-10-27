@@ -60,7 +60,8 @@ def handle_callback(payload: dict) -> str:
         return "linked account"
     convo, _ = Conversation.objects.get_or_create(trip=trip)
     agent = make_agent(backend, trip.id, convo.history)
-    event = ChatEvent(sender_id=person.person_id, text=text, channel="group", mentioned=mentioned)
+    event = ChatEvent(sender_id=person.person_id, text=text, channel="group", mentioned=mentioned,
+                      chat_user_id=person.chat_user_id)
     try:
         result = agent.handle(event)
     except Exception:

@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.test import Client, override_settings
 
 from agent.runner import TurnResult
-from bot import groupme, services
+from bot import groupme, services, worker
 from bot.models import Conversation, GroupChat, PrivateNotice
 from trips.models import Person, Reminder
 from trips.services import DjangoBackend
@@ -104,6 +104,7 @@ def test_unknown_sender_is_added_to_the_trip(bot):
     jake = Person.objects.get(trip_id="miami", chat_user_id="333")
     assert jake.name == "Jake Lee"
     assert ScriptedAgent.calls[0]["event"].sender_id == jake.person_id
+    assert ScriptedAgent.calls[0]["event"].chat_user_id == "333"  # lets people save their own payment handle
 
 
 def test_history_persists_between_callbacks(bot):
@@ -159,3 +160,44 @@ def test_link_group_creates_trip(db):
     call_command("link_group", "g9", "bot-9", "cancun", "--name", "Cancún", stdout=out)
     chat = GroupChat.objects.get(group_id="g9")
     assert (chat.bot_id, chat.trip.name) == ("bot-9", "Cancún")
+
+
+def test_show_notices_prints_stored_private_messages(bot):
+    callback()
+    out = io.StringIO()
+    call_command("show_notices", "miami", "--person", "mia", stdout=out)
+    assert "to mia: Heads up: your food budget is almost used up." in out.getvalue()
+
+
+def test_webhook_queues_and_answers_at_once(bot, settings, monkeypatch):
+    settings.BOT_INLINE = False
+    queued = []
+    monkeypatch.setattr(worker, "enqueue", queued.append)
+    assert callback().json()["outcome"] == "queued"
+    assert queued[0]["id"] == "m1" and not ScriptedAgent.calls
+
+
+def test_worker_keeps_order_within_a_group_and_runs_groups_side_by_side(monkeypatch):
+    import threading
+    import time
+    seen, started = [], {}
+    release = threading.Event()
+
+    def handle(payload):
+        started[payload["id"]] = time.monotonic()
+        if payload["id"] == "a1":
+            release.wait(2)  # group a is busy; group b must not wait for it
+        seen.append(payload["id"])
+        return "handled"
+    monkeypatch.setattr(worker, "handle_callback", handle)
+    monkeypatch.setattr(worker, "_queues", {})
+    for msg in [("a1", "ga"), ("a2", "ga"), ("b1", "gb")]:
+        worker.enqueue({"id": msg[0], "group_id": msg[1]})
+    deadline = time.monotonic() + 2
+    while "b1" not in seen and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert "b1" in seen and "a2" not in seen  # b ran while a1 was still going; a2 waits its turn
+    release.set()
+    for q in worker._queues.values():
+        q.join()
+    assert seen.index("a1") < seen.index("a2")
