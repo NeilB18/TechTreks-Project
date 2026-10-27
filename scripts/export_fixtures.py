@@ -33,9 +33,10 @@ def demo() -> dict:
                  "start_date": "2027-03-14", "end_date": "2027-03-18", "base_currency": "USD",
                  "group_budget": 91700, "leader": "aarav",
                  "leader_approval": ["member_changes", "trip_changes"]},
-        # Sam uses Zelle (an email handle) so the page shows both payment styles.
+        # Jake uses Zelle (an email handle) so the page shows both payment styles; with netted
+        # settle-up he's still owed money, so he appears as a receiver.
         "members": [{"id": p, "name": p.title(),
-                     "handle": "sam@example.com" if p == "sam" else f"@{p}-venmo"} for p in PEOPLE],
+                     "handle": "jake@example.com" if p == "jake" else f"@{p}-venmo"} for p in PEOPLE],
         "exclusions": [["jake", "DRINKS"]],
     })
     t = "miami-demo"

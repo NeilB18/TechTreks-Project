@@ -13,9 +13,19 @@ from openai import OpenAI
 
 from agent import config
 from agent.backend.protocol import Backend, ToolError, dispatch
+from agent.enrich import enrich
 from agent.tools.schemas import ALL_TOOLS
 
 SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "system_prompt.md").read_text()
+PAYER_CONFIRMS = {"edit_expense", "delete_expense", "record_refund"}
+# After these, the runner checks the budget of everyone affected (specs.md: after every expense,
+# check everyone in the split). Done in code because the model sometimes skipped people.
+BUDGET_CHECK_AFTER = {"log_expense", "edit_expense", "record_refund", "remove_member"}
+UNDELIVERED_NOTE = (
+    "[runner] Your last text was not delivered: nobody sees text outside send_message. "
+    "If it was meant for someone, send it now with send_message (to \"group\", or a person id for "
+    "anything private like budgets). If it wasn't meant to be sent, reply with nothing."
+)
 
 
 @dataclass
@@ -33,6 +43,7 @@ class ToolCall:
     input: dict
     result: dict | None = None
     error: str | None = None
+    by_runner: bool = False  # made by the runner itself (automatic budget checks), not the model
 
 
 @dataclass
@@ -48,7 +59,8 @@ def make_client() -> OpenAI:
     key = os.environ.get(config.API_KEY_ENV)
     if not key:
         raise RuntimeError(f"Set {config.API_KEY_ENV} to your Model Studio API key")
-    return OpenAI(api_key=key, base_url=config.base_url())
+    # A stuck request otherwise waits 10 minutes; fail fast and let the client retry.
+    return OpenAI(api_key=key, base_url=config.base_url(), timeout=config.REQUEST_TIMEOUT_S, max_retries=4)
 
 
 class TripAgent:
@@ -62,6 +74,7 @@ class TripAgent:
         self.enable_thinking = enable_thinking
         # Plain JSON-serializable dicts, so the bot can store and reload them between webhooks.
         self.history: list[dict] = list(history or [])
+        self.sender_id: str | None = None
 
     def _event_text(self, ev: ChatEvent) -> str:
         state = self.backend.summary(self.trip_id)
@@ -85,6 +98,18 @@ class TripAgent:
             extra_body={"enable_thinking": self.enable_thinking},
         )
 
+    def _payer_guard(self, name: str, args: dict) -> str | None:
+        """Edits, deletes and refunds need the payer's OK (specs.md). Enforce it here instead of trusting
+        the model: they only go through on a message from the payer, e.g. their "yes" to the question."""
+        if name not in PAYER_CONFIRMS:
+            return None
+        expense = next((e for e in self.backend.get_trip(trip_id=self.trip_id)["expenses"]
+                        if e["expense_id"] == args.get("expense_id")), None)
+        if expense is None or expense["paid_by"] == self.sender_id:
+            return None  # unknown ids are left to the backend's own error
+        return (f"Only {expense['paid_by']} (who paid for {expense['description']}) can confirm this. "
+                f"Nothing was changed. Ask them in the group, and do it once they reply yes.")
+
     def _run_tool(self, name: str, raw_args: str, result: TurnResult) -> str:
         try:
             args = json.loads(raw_args or "{}")
@@ -104,16 +129,50 @@ class TripAgent:
             result.outbox.append({"to": to, "text": text})
             call.result = {"sent": True}
             return json.dumps(call.result)
+        blocked = self._payer_guard(name, args)
+        if blocked:
+            call.error = blocked
+            return f"Error: {blocked}"
         try:
             call.result = dispatch(self.backend, name, args)
-            return json.dumps(call.result, default=str)
         except ToolError as e:
             call.error = str(e)
             return f"Error: {e}"
+        summary = self.backend.summary(self.trip_id)
+        enrich(call.result, args, summary)
+        if name in BUDGET_CHECK_AFTER:
+            self._attach_budget_warnings(name, call.result, summary, result)
+        return json.dumps(call.result, default=str)
+
+    def _attach_budget_warnings(self, name: str, out: dict, summary: dict, result: TurnResult) -> None:
+        """Check everyone affected and add `budget_warnings` ({person_id: [warnings]}, private)."""
+        if name == "remove_member":
+            people = [m["id"] for m in summary["members"] if m["active"]]
+        else:
+            people = list(out.get("shares") or out.get("per_person") or (out.get("expense") or {}).get("shares") or {})
+        warnings = {}
+        for pid in people:  # everyone affected, as specs.md asks; people without a budget just return no warnings
+            args = {"trip_id": self.trip_id, "person_id": pid}
+            check = ToolCall(name="get_budget_status", input=args, by_runner=True)
+            result.tool_calls.append(check)
+            try:
+                check.result = dispatch(self.backend, "get_budget_status", args)
+            except ToolError as e:
+                check.error = str(e)
+                continue
+            if check.result.get("warnings"):
+                warnings[pid] = check.result["warnings"]
+        out["budget_warnings"] = warnings
+        out["next_step"] = (
+            f"Budgets were checked automatically. DM each person in budget_warnings ({', '.join(warnings)}) "
+            "about their own warning; never mention it in the group." if warnings
+            else "Budgets were checked automatically: no warnings, so don't mention budgets.")
 
     def handle(self, event: ChatEvent) -> TurnResult:
         result = TurnResult()
+        self.sender_id = event.sender_id
         self.history.append({"role": "user", "content": self._event_text(event)})
+        nudged = False
         for _ in range(config.MAX_TOOL_ROUNDS):
             resp = self._call()
             if resp.usage:
@@ -132,6 +191,12 @@ class TripAgent:
             if msg.content and msg.content.strip():
                 result.stray_text.append(msg.content)
             if not tool_calls:
+                # Text written outside send_message is never delivered. Rather than guessing who it
+                # was for (it might be private), remind the model once to send it properly.
+                if msg.content and msg.content.strip() and not nudged and not result.outbox:
+                    nudged = True
+                    self.history.append({"role": "user", "content": UNDELIVERED_NOTE})
+                    continue
                 break
             for tc in tool_calls:
                 content = self._run_tool(tc.function.name, tc.function.arguments, result)

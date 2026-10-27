@@ -35,7 +35,7 @@
       {
         "id": "jake",
         "name": "Jake",
-        "handle": "@jake-venmo",
+        "handle": "jake@example.com",
         "active": true,
         "budget_set": false
       },
@@ -49,7 +49,7 @@
       {
         "id": "sam",
         "name": "Sam",
-        "handle": "sam@example.com",
+        "handle": "@sam-venmo",
         "active": true,
         "budget_set": false
       },
@@ -584,7 +584,7 @@
         "from": "mia",
         "to": "jake",
         "amount_cents": 2600,
-        "handle": "@jake-venmo"
+        "handle": "jake@example.com"
       }
     ],
     "currency": "USD"

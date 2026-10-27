@@ -13,7 +13,8 @@ from trip_model.trip_status import TripStatus
 
 # Spending categories. SETTLEMENT (paybacks) is only created by record_payback.
 CATEGORY = {"type": "string", "enum": [c.name for c in Category if c != Category.SETTLEMENT]}
-CENTS = {"type": "integer", "minimum": 0}
+CENTS = {"type": "integer", "minimum": 0,
+         "description": "Integer cents (1/100 of the currency): $120 -> 12000, MX$1,800 -> 180000, $33.50 -> 3350"}
 PERSON = {"type": "string", "description": "Person id from the trip summary"}
 PEOPLE = {"type": "array", "items": PERSON}
 CURRENCY = {"type": "string", "description": "ISO 4217 code, e.g. USD, MXN, EUR"}
@@ -44,7 +45,8 @@ BACKEND_TOOL_SCHEMAS = [
           "if who it's for is unclear, or the currency symbol is ambiguous, ask instead. The payer does not have to be in the split. "
           "Stores the original amount and the base-currency amount with the FX rate. Pass exactly one of split_with, exact_amounts or percentages. "
           "Returns expense_id, shares (what each person owes for it, base-currency cents; use these in confirmations), "
-          "splits (net change per person: + is owed, - owes; sums to 0) and auto_excluded. Paybacks go through record_payback instead.",
+          "splits (net change per person: + is owed, - owes; sums to 0) and auto_excluded, plus display (chat-ready amounts) and "
+          "budget_warnings ({person_id: [warnings]}, private: DM each person their own). Paybacks go through record_payback instead.",
           {"trip_id": TRIP_ID, "paid_by": PERSON, "amount": {**CENTS, "description": "Total in `currency`, in cents"},
            "currency": CURRENCY, "description": {"type": "string"}, "category": CATEGORY,
            **SPLIT_FIELDS,
@@ -165,7 +167,8 @@ BACKEND_TOOL_SCHEMAS = [
           "One person's budget: total, spent (their split shares, not what they paid), planned activity costs, remaining, and warnings. "
           "Warnings come from category limits only (under 10% of a limit left, counting planned activities). "
           "PRIVATE: anything from this result may only go to that person's DM, never the group. "
-          "Call it for every person in the split after each expense.",
+          "Use it when someone asks about their own budget. After expenses, refunds and dropouts the runner already "
+          "checks everyone affected and adds budget_warnings to the result.",
           {"trip_id": TRIP_ID, "person_id": PERSON}, ["trip_id", "person_id"]),
     _tool("convert_currency", "Convert an amount between currencies.",
           {"amount": CENTS, "from": CURRENCY, "to": CURRENCY}, ["amount", "from", "to"]),
