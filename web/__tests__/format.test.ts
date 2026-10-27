@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDateRange, formatDay, formatMoney, formatTime, groupByDay, isOutsideTrip, payLink } from "@/lib/format";
+import {
+  formatDateRange, formatDay, formatMoney, formatTime, groupByDay, isOutsideTrip, payLink, warningText,
+} from "@/lib/format";
 import type { Activity } from "@/lib/types";
 
 const activity = (id: string, start: string | null): Activity => ({
@@ -64,5 +66,17 @@ describe("payLink", () => {
   it("shows other handles (Zelle email/phone) to copy, and nothing without a handle", () => {
     expect(payLink("sam@example.com", 100, "x")).toMatchObject({ kind: "other", handle: "sam@example.com" });
     expect(payLink(null, 100, "x")).toBeNull();
+  });
+});
+
+describe("warningText", () => {
+  it("puts the engine's warnings in plain words", () => {
+    expect(warningText("DRINKS under 10% remaining")).toBe("Drinks: under 10% left");
+    expect(warningText("FOOD over limit by $12 including planned activities"))
+      .toBe("Food: over limit by $12 including planned activities");
+  });
+  it("accepts objects in case the format changes", () => {
+    expect(warningText({ category: "DRINKS", message: "under 10% remaining" })).toBe("Drinks: under 10% left");
+    expect(warningText({ text: "Almost out of USD cash" })).toBe("Almost out of USD cash");
   });
 });

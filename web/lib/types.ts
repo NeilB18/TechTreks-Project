@@ -90,8 +90,11 @@ export type BudgetStatus = {
   remaining_cents?: number;
   planned_cents: number;
   remaining_after_planned_cents?: number;
-  warnings: string[];
+  // Roger's engine sends strings ("DRINKS under 10% remaining"); objects are accepted too in case that changes.
+  warnings: BudgetWarning[];
 };
+
+export type BudgetWarning = string | { category?: string; message?: string; text?: string };
 
 export type MyBudget = {
   person_id: string;

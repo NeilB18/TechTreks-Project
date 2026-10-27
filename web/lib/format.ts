@@ -1,4 +1,4 @@
-import type { Activity } from "./types";
+import type { Activity, BudgetWarning } from "./types";
 
 export function formatMoney(cents: number, currency = "USD"): string {
   const whole = cents % 100 === 0;
@@ -90,4 +90,16 @@ export function isOutsideTrip(a: Activity, start: string | null, end: string | n
   if (!a.start || !start || !end) return false;
   const d = a.start.slice(0, 10);
   return d < start || d > end;
+}
+
+const CATEGORY_WORDS = /\b(LODGING|TRANSPORT|FOOD|DRINKS|ACTIVITIES|OTHER)\b/g; // trip_model Category names
+
+/** A budget warning in plain words: "DRINKS under 10% remaining" -> "Drinks: under 10% left". */
+export function warningText(w: BudgetWarning): string {
+  let text = typeof w === "string" ? w : [w.category, w.message ?? w.text].filter(Boolean).join(" ");
+  text = text.replace(CATEGORY_WORDS, (word) => {
+    return word[0] + word.slice(1).toLowerCase();
+  });
+  text = text.replace(/^(\w[\w ]*?) (under|over) /, "$1: $2 ").replace(/ remaining\b/, " left");
+  return text;
 }

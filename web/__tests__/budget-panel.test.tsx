@@ -68,7 +68,7 @@ describe("BudgetPanel", () => {
     render(<BudgetPanel tripId="miami" live currency="USD" />);
     expect(await screen.findByText("$500")).toBeTruthy();
     expect(screen.getByText("-$13")).toBeTruthy();
-    expect(screen.getByText(/ACTIVITIES over limit by \$13/)).toBeTruthy();
+    expect(screen.getByText(/Activities: over limit by \$13/)).toBeTruthy();
     expect(screen.getByText("Heads up: club night puts you over.")).toBeTruthy();
   });
 
