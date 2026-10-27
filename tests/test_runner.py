@@ -331,3 +331,13 @@ def test_event_spells_out_the_week_and_near_duplicates_are_dropped():
     event = client.requests[0]["messages"][-1]["content"]
     assert "calendar: Wed 2027-03-10 (today), Thu 2027-03-11, Fri 2027-03-12, Sat 2027-03-13" in event
     assert len(r.outbox) == 1 and "nearly the same" in r.tool_calls[1].error
+
+
+def test_event_names_the_private_page_when_dms_are_stored():
+    client = ScriptedClient([response("stop", "")])
+    TripAgent(engine(), "miami", client=client).handle(
+        ChatEvent(sender_id="mia", text="@tripbot how much do I have left?", private_page="https://t.example/trips/miami"))
+    assert "private_page: https://t.example/trips/miami" in client.requests[0]["messages"][-1]["content"]
+    client = ScriptedClient([response("stop", "")])
+    TripAgent(engine(), "miami", client=client).handle(ChatEvent(sender_id="mia", text="@tripbot hi"))
+    assert "private_page" not in client.requests[0]["messages"][-1]["content"]

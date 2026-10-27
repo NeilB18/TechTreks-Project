@@ -107,6 +107,16 @@ def test_unknown_sender_is_added_to_the_trip(bot):
     assert ScriptedAgent.calls[0]["event"].chat_user_id == "333"  # lets people save their own payment handle
 
 
+def test_agent_is_told_where_private_messages_go(bot, settings):
+    settings.FRONTEND_URL = "https://trips.example/"
+    settings.BOT_DM_MODE = "store"
+    callback(msg_id="p1")
+    assert ScriptedAgent.calls[0]["event"].private_page == "https://trips.example/trips/miami"
+    settings.BOT_DM_MODE = "groupme"
+    callback(msg_id="p2")
+    assert ScriptedAgent.calls[1]["event"].private_page is None
+
+
 def test_history_persists_between_callbacks(bot):
     callback(msg_id="a")
     callback(msg_id="b", text="@tripbot yep")

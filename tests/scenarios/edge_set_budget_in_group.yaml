@@ -19,11 +19,11 @@ turns:
         - {name: set_budget, args: {person_id: mia, total: 60000, limits: {FOOD: 8000}}}
       messages:
         - {to: mia, contains: ["$600", "$80"]}
-        - {to: group, not_contains: ["$600", "$80"]}
+        - {to: group, contains: ["tripbot.example/trips/miami"], not_contains: ["$600", "$80"]}
       no_messages_to: [jake, aarav]
     golden:
       calls:
         - {name: set_budget, args: {trip_id: miami, person_id: mia, total: 60000, limits: {FOOD: 8000}}}
       messages:
-        - {to: group, text: "Saved, Mia. Details are in your DM 🔒"}
+        - {to: group, text: "Saved, Mia. Details are on your private trip page 🔒 https://tripbot.example/trips/miami"}
         - {to: mia, text: "Saved 🔒 $600 total, $80 on food. You've spent $300 so far (Airbnb), so $300 left."}
