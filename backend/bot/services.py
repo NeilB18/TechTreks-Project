@@ -73,6 +73,7 @@ def handle_callback(payload: dict) -> str:
     convo, _ = Conversation.objects.get_or_create(trip=trip)
     event = ChatEvent(sender_id=person.person_id, text=text, channel="group", mentioned=mentioned,
                       chat_user_id=person.chat_user_id, time=now)
+    started = time.monotonic()
     for attempt in range(2):
         agent = make_agent(backend, trip.id, convo.history)  # fresh each try: a failed one may have half a turn
         try:
@@ -90,6 +91,11 @@ def handle_callback(payload: dict) -> str:
             log.exception("Agent failed on message %s", message_id)
         groupme.post_to_group(chat.bot_id, ERROR_REPLY)
         return "error"
+    # One line per reply, to watch latency and cost in a real chat.
+    log.info("Reply on trip %s: %.1fs, %d model calls, %d prompt + %d completion tokens, %d message(s)",
+             trip.id, time.monotonic() - started, len(result.usage),
+             sum((u or {}).get("prompt_tokens") or 0 for u in result.usage),
+             sum((u or {}).get("completion_tokens") or 0 for u in result.usage), len(result.outbox))
     convo.history = agent.history
     convo.save(update_fields=["history", "updated_at"])
     deliver(chat, result.outbox)
