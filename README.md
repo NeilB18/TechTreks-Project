@@ -128,5 +128,5 @@ Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtu
 ## Placeholders
 
 - FX: fixed rate table in `rules.py`. The provider is still TBD.
-- Travel tips and itineraries: canned text in the engine. Google Places and SerpAPI come later.
+- Travel tips and itineraries use built-in sample data until keys are added. With `GOOGLE_PLACES_API_KEY` in `.env`, they come from Google Places: real restaurants and attractions, ratings, and price levels matched to the tier. Adding `SERPAPI_KEY` also brings in real hotel prices from Google Hotels, capped at about 40% of the tier's budget for a shared room. If an API call fails, the tool falls back to sample data with a note. Tests and evals always use the sample data. Note: Places fields like rating and price level bill at Google's Enterprise rate.
 - Currency: the MVP is USD-only. The FX code keeps working but multi-currency is post-MVP.
