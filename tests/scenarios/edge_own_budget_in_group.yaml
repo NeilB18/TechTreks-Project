@@ -22,10 +22,11 @@ turns:
       forbid_mutations: true
       messages:
         - {to: mia, contains: ["$200"]}
+        - {to: group, contains: ["tripbot.example/trips/miami"], not_contains: ["$200", "$300"]}
       no_messages_to: [jake, aarav]
     golden:
       calls:
         - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
       messages:
-        - {to: group, text: "Sent you a DM, Mia 🔒"}
+        - {to: group, text: "Mia, it's on your private trip page 🔒 https://tripbot.example/trips/miami"}
         - {to: mia, text: "You've spent $300 of your $500 budget, so $200 left."}

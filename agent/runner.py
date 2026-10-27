@@ -45,6 +45,7 @@ class ChatEvent:
     mentioned: bool = True
     time: str | None = None
     chat_user_id: str | None = None  # the sender's GroupMe user id, when the chat adapter knows it
+    private_page: str | None = None  # where private messages appear when they aren't real DMs (the trip page)
 
 
 @dataclass
@@ -103,6 +104,8 @@ class TripAgent:
                 lines.append("calendar: " + ", ".join(
                     f"{(today + timedelta(n)):%a} {(today + timedelta(n)).isoformat()}" + (" (today)" if n == 0 else "")
                     for n in range(8)))
+        if ev.private_page:
+            lines.append(f"private_page: {ev.private_page}")
         lines.append(f"message: {ev.text}")
         return (f"<trip_state>\n{json.dumps(state, sort_keys=True)}\n</trip_state>\n"
                 f"<event>\n" + "\n".join(lines) + "\n</event>")

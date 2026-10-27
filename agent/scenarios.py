@@ -63,9 +63,14 @@ def _state(backend):
     return getattr(backend, "state", None) or backend
 
 
-def make_event(turn: dict) -> ChatEvent:
+# The live bot stores private messages for the trip page (GroupMe has no DM API for us), so evals do too.
+PRIVATE_PAGE = "https://tripbot.example/trips/{trip_id}"
+
+
+def make_event(turn: dict, trip_id: str = "") -> ChatEvent:
     return ChatEvent(sender_id=turn["sender"], text=turn["text"], channel=turn.get("channel", "group"),
-                     mentioned=turn.get("mentioned", True), time=turn.get("time"))
+                     mentioned=turn.get("mentioned", True), time=turn.get("time"),
+                     private_page=turn.get("private_page", PRIVATE_PAGE.format(trip_id=trip_id)))
 
 
 # ----------------------------------------------------------------- matching
@@ -231,7 +236,7 @@ def run_scenario(scn: dict, agent_factory=None, dump_name: str | None = None, ba
     for i, turn in enumerate(scn["turns"], 1):
         started = time.monotonic()
         if agent:
-            tr = agent.handle(make_event(turn))
+            tr = agent.handle(make_event(turn, trip_id))
         else:
             tr = golden_turn(backend, turn.get("golden", {}))
             fails += [f"turn {i}: golden tool error in {c.name}: {c.error}" for c in tr.tool_calls if c.error]
