@@ -54,6 +54,13 @@ describe("BudgetPanel", () => {
     expect((post.init!.headers as Record<string, string>)["X-CSRFToken"]).toBe("tok123");
   });
 
+  it("says the link code failed, not the budget, when getting a code fails", async () => {
+    mockFetch({ "GET /api/me/": { signed_in: true, email: "mia@nyu.edu", people: [] } });
+    render(<BudgetPanel tripId="miami" live currency="USD" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Get my link code" }));
+    expect(await screen.findByText(/Couldn.t get a link code/)).toBeTruthy();
+  });
+
   it("shows your own budget, warnings and private messages once linked", async () => {
     mockFetch({
       "GET /api/me/": ME_LINKED,
