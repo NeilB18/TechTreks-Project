@@ -48,6 +48,15 @@ Chat with the agent by hand:
 
 Then type `priya: @tripbot I can't make it anymore`, or `mia dm: lower my budget to $500`.
 
+## CI
+
+GitHub Actions (`.github/workflows/tests.yml`) runs on every PR and push to `main`:
+
+- the offline Python tests
+- the trip page's lint, tests and build
+
+The live Qwen scenarios run only when started by hand: Actions → Tests → Run workflow → tick "live". They need the `DASHSCOPE_API_KEY` and `QWEN_BASE_URL` repo secrets.
+
 ## Backend (Phase 3)
 
 Django + DRF in `backend/`, SQLite locally (set `DATABASE_URL` for Supabase Postgres later).
