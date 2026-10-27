@@ -25,9 +25,14 @@ describe("Balances", () => {
   });
 
   it("offers copy for Zelle-style handles and says when everyone is settled", () => {
-    const { detail, balances } = fixture("miami-demo");
+    const { detail } = fixture("miami-demo");
+    const balances = {
+      net_balances: { mia: -1000, sam: 1000 },
+      suggested_payments: [{ from: "mia", to: "sam", amount_cents: 1000, handle: "sam@example.com" }],
+      currency: "USD",
+    };
     render(<Balances balances={balances} members={detail.members} tripName="Miami" />);
-    expect(screen.getAllByRole("button", { name: /sam@example.com/ }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /sam@example.com/ })).toBeTruthy();
     cleanup();
     render(<Balances balances={{ net_balances: {}, suggested_payments: [], currency: "USD" }} members={[]} tripName="x" />);
     expect(screen.getByText(/settled up/)).toBeTruthy();
