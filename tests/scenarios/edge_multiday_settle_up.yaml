@@ -1,0 +1,60 @@
+kind: edge
+title: A multi-day thread ending in a private balance check and a payback
+seed:
+  now: "2027-03-15T09:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: ACTIVE, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: aarav
+    text: "@tripbot airbnb was $900, I paid, split with everyone"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: aarav, amount: 90000, split_with: [aarav, jake, mia]}}
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: aarav, amount: 90000, currency: USD, description: Airbnb,
+                                     category: LODGING, split_with: [aarav, jake, mia]}}
+      messages:
+        - {to: group, text: "Logged 🏠 Airbnb, $900, paid by Aarav, split 3 ways ($300 each)."}
+  - sender: jake
+    text: "@tripbot breakfast was $60, I paid, just me and mia"
+    expect:
+      calls:
+        - {name: log_expense, args: {paid_by: jake, amount: 6000, split_with: [jake, mia]}}
+    golden:
+      calls:
+        - {name: log_expense, args: {trip_id: miami, paid_by: jake, amount: 6000, currency: USD, description: Breakfast,
+                                     category: FOOD, split_with: [jake, mia]}}
+      messages:
+        - {to: group, text: "Logged 🥞 Breakfast, $60, paid by Jake, split between Jake and Mia ($30 each)."}
+  - sender: mia
+    channel: dm
+    text: how much do i owe in total rn?
+    expect:
+      forbid_mutations: true
+      messages:
+        - {to: mia, contains: ["$330"]}
+      no_messages_to: [group]
+    golden:
+      calls:
+        - {name: get_balances, args: {trip_id: miami}}
+      messages:
+        - {to: mia, text: "You owe $330 in total. To settle up: pay Aarav $330, @aarav-venmo."}
+  - sender: mia
+    text: "@tripbot just venmo'd aarav $300"
+    expect:
+      calls:
+        - {name: record_payback, args: {from_person: mia, to_person: aarav, amount: 30000}}
+      end_state:
+        - balance: {from: mia, to: aarav, amount: 3000}
+        - balance: {from: jake, to: aarav, amount: 27000}
+    golden:
+      calls:
+        - {name: record_payback, args: {trip_id: miami, from_person: mia, to_person: aarav, amount: 30000, currency: USD}}
+      messages:
+        - {to: group, text: "Got it, Mia paid Aarav $300 💸 Left to settle: Jake pays Aarav $270, Mia pays Aarav $30."}
