@@ -14,7 +14,7 @@ const FIXTURE_DIR = path.join(process.cwd(), "fixtures");
 
 async function fromApi<T>(route: string): Promise<T | null> {
   const res = await fetch(`${API_URL}${route}`, {
-    headers: { Authorization: `Bearer ${API_TOKEN}` },
+    headers: { Authorization: `Bearer ${API_TOKEN}`, "ngrok-skip-browser-warning": "1" },
     cache: "no-store",
   });
   if (res.status === 404) return null;
