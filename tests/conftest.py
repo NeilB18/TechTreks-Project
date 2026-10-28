@@ -3,10 +3,12 @@ import sys
 from pathlib import Path
 
 import pytest
+from django.conf import settings as django_settings
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-AGENT_TOKEN = "dev-agent-token"  # tripapi.settings default when DJANGO_DEBUG=1
+# Whatever the API checks: the dev default, or the real token when .env sets AGENT_API_TOKEN
+AGENT_TOKEN = django_settings.AGENT_API_TOKEN
 
 
 @pytest.fixture(autouse=True)
