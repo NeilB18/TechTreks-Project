@@ -17,7 +17,7 @@ expect keys (all optional):
   no_messages_to:   [to]
   silent:           true              no messages at all (e.g. un-mentioned small talk)
   end_state:        [check]           see _check_state
-Every turn is also checked for privacy: no group message may contain a budget total.
+Every message goes to the group, so `to` is always "group".
 """
 
 import json
@@ -59,18 +59,13 @@ def make_backend(scn: dict, backend=None):
 
 
 def _state(backend):
-    """The backend to inspect for end_state/privacy checks (HttpBackend exposes one as .state)."""
+    """The backend to inspect for end_state checks (HttpBackend exposes one as .state)."""
     return getattr(backend, "state", None) or backend
 
 
-# The live bot stores private messages for the trip page (GroupMe has no DM API for us), so evals do too.
-PRIVATE_PAGE = "https://tripbot.example/trips/{trip_id}"
-
-
-def make_event(turn: dict, trip_id: str = "") -> ChatEvent:
-    return ChatEvent(sender_id=turn["sender"], text=turn["text"], channel=turn.get("channel", "group"),
-                     mentioned=turn.get("mentioned", True), time=turn.get("time"),
-                     private_page=turn.get("private_page", PRIVATE_PAGE.format(trip_id=trip_id)))
+def make_event(turn: dict) -> ChatEvent:
+    return ChatEvent(sender_id=turn["sender"], text=turn["text"], mentioned=turn.get("mentioned", True),
+                     time=turn.get("time"))
 
 
 # ----------------------------------------------------------------- matching
@@ -99,12 +94,6 @@ def _norm(v):
     if isinstance(v, float) and v.is_integer():
         return int(v)
     return v
-
-
-def _dollar_pattern(cents: int) -> re.Pattern:
-    d = cents // 100
-    with_commas = f"{d:,}".replace(",", ",?")
-    return re.compile(rf"\$\s?{with_commas}(?![\d,]*\d)")
 
 
 # ----------------------------------------------------------------- checking
@@ -152,18 +141,6 @@ def check_turn(expect: dict, tr: TurnResult, backend, trip_id: str) -> list[str]
             fails.append(f"should not message {to}")
     for check in expect.get("end_state", []):
         fails += _check_state(check, backend, trip_id)
-    return fails
-
-
-def check_privacy(tr: TurnResult, backend, trip_id: str) -> list[str]:
-    trip = _state(backend).trips[trip_id]
-    fails = []
-    for o in tr.outbox:
-        if o["to"] != "group":
-            continue
-        for p in trip.members:
-            if p.budget and p.budget.total_cents and _dollar_pattern(p.budget.total_cents).search(o["text"]):
-                fails.append(f"PRIVACY: group message reveals {p.id}'s budget: {o['text']!r}")
     return fails
 
 
@@ -236,14 +213,14 @@ def run_scenario(scn: dict, agent_factory=None, dump_name: str | None = None, ba
     for i, turn in enumerate(scn["turns"], 1):
         started = time.monotonic()
         if agent:
-            tr = agent.handle(make_event(turn, trip_id))
+            tr = agent.handle(make_event(turn))
         else:
             tr = golden_turn(backend, turn.get("golden", {}))
             fails += [f"turn {i}: golden tool error in {c.name}: {c.error}" for c in tr.tool_calls if c.error]
-        turn_fails = check_turn(turn.get("expect", {}), tr, backend, trip_id) + check_privacy(tr, backend, trip_id)
+        turn_fails = check_turn(turn.get("expect", {}), tr, backend, trip_id)
         fails += [f"turn {i} ({turn['sender']}: {turn['text'][:40]!r}): {f}" for f in turn_fails]
         transcript.append({
-            "turn": i, "sender": turn["sender"], "channel": turn.get("channel", "group"), "text": turn["text"],
+            "turn": i, "sender": turn["sender"], "text": turn["text"],
             "tool_calls": [{"name": c.name, "input": c.input, "result": c.result, "error": c.error}
                            for c in tr.tool_calls],
             "outbox": tr.outbox, "stray_text": tr.stray_text, "stop_reason": tr.stop_reason,

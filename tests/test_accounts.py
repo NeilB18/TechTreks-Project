@@ -1,4 +1,4 @@
-"""Google sign-in linking and the private budget API (Google itself isn't called)."""
+"""Google sign-in linking and the "my budget" API (Google itself isn't called)."""
 
 from datetime import timedelta
 
@@ -10,7 +10,7 @@ from django.utils import timezone
 from accounts.models import LinkCode
 from accounts.services import find_link_command
 from bot import groupme, services
-from bot.models import GroupChat, PrivateNotice
+from bot.models import GroupChat
 from trips.models import Person
 from trips.services import DjangoBackend
 
@@ -63,12 +63,10 @@ def test_link_flow_then_only_your_own_budget(trip):
     assert "linked" in trip[-1]["text"] and "$" not in trip[-1]["text"]
     assert Person.objects.get(person_id="mia").user == user
 
-    PrivateNotice.objects.create(trip_id="miami", person_id="mia", text="Heads up: food budget almost used")
     r = client.get("/api/me/trips/miami/budget").json()
     assert r["person_id"] == "mia"
     assert r["budget"]["total_cents"] == 50000 and r["budget"]["spent_cents"] == 6000
-    assert r["notices"][0]["text"] == "Heads up: food budget almost used"
-    assert "120000" not in str(r)  # never anyone else's budget
+    assert "notices" not in r  # the bot has no private messages any more
     assert client.get("/api/me/").json()["people"] == [
         {"trip_id": "miami", "trip_name": "Miami", "person_id": "mia", "name": "Mia"}]
 

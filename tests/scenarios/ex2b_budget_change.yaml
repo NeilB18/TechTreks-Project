@@ -19,15 +19,13 @@ seed:
     - {id: club_night, name: Club night, start: "2027-03-16T22:00", est_cost_cents: 8000}
 turns:
   - sender: mia
-    channel: dm
     text: can you lower my budget to $500
     expect:
       calls:
         - {name: set_budget, args: {person_id: mia, total: 50000}}
         - {name: get_budget_status, args: {person_id: mia}}
       messages:
-        - {to: mia, contains: ["$500", "$200"]}
-      no_messages_to: [group]
+        - {to: group, contains: [Mia, "$500", "$200"]}
       end_state:
         - budget_total: {mia: 50000}
     golden:
@@ -35,4 +33,4 @@ turns:
         - {name: set_budget, args: {trip_id: miami, person_id: mia, total: 50000, limits: {}}}
         - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
       messages:
-        - {to: mia, text: "Done, your budget is now $500. You've got $200 left, but the boat tour (~$133) and club night (~$80) together come to ~$213, which is $13 over. Want to skip one or bump the budget a bit?"}
+        - {to: group, text: "@Mia Done, your budget is now $500. You've got $200 left, but the boat tour (~$133) and club night (~$80) together come to ~$213, which is $13 over. Want to skip one or bump the budget a bit?"}

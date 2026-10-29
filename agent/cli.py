@@ -3,8 +3,8 @@
     python -m agent.cli                       # default seed (Example 7b's 8-person Miami trip)
     python -m agent.cli tests/scenarios/ex1_dropout.yaml
 
-Type messages as `<person_id>: <text>` for the group, or `<person_id> dm: <text>` for a DM.
-Group messages need "@tripbot" to count as a mention. Commands: /state, /balances,
+Type messages as `<person_id>: <text>` (every message is in the group chat).
+Messages need "@tripbot" to count as a mention. Commands: /state, /balances,
 /budget <person_id>, /quit.
 """
 
@@ -18,7 +18,7 @@ from agent.backend.core.engine import TripEngine
 from agent.runner import ChatEvent, TripAgent
 from agent.scenarios import SCENARIO_DIR
 
-LINE = re.compile(r"^(\w+)(\s+dm)?\s*:\s*(.+)$", re.I)
+LINE = re.compile(r"^(\w+)\s*:\s*(.+)$")
 
 
 def main(argv: list[str]) -> None:
@@ -30,7 +30,7 @@ def main(argv: list[str]) -> None:
     agent = TripAgent(backend, trip_id)
     members = ", ".join(m["id"] for m in backend.summary(trip_id)["members"])
     print(f"Trip {trip_id!r} loaded from {path}. Members: {members}")
-    print("Type `jake: @tripbot ...` (group) or `mia dm: ...` (DM). /state /balances /budget <id> /quit")
+    print("Type `jake: @tripbot ...`. /state /balances /budget <id> /quit")
     while True:
         try:
             line = input("> ").strip()
@@ -51,19 +51,17 @@ def main(argv: list[str]) -> None:
             continue
         m = LINE.match(line)
         if not m:
-            print("Format: <person_id>: <text>   or   <person_id> dm: <text>")
+            print("Format: <person_id>: <text>")
             continue
-        sender, dm, text = m.group(1).lower(), bool(m.group(2)), m.group(3)
-        ev = ChatEvent(sender_id=sender, text=text, channel="dm" if dm else "group",
-                       mentioned=dm or "@tripbot" in text.lower())
+        sender, text = m.group(1).lower(), m.group(2)
+        ev = ChatEvent(sender_id=sender, text=text, mentioned="@tripbot" in text.lower())
         result = agent.handle(ev)
         for c in result.tool_calls:
             if c.name != "send_message":
                 status = f"ERROR {c.error}" if c.error else json.dumps(c.result, default=str)[:200]
                 print(f"  [tool] {c.name}({json.dumps(c.input)}) -> {status}")
         for o in result.outbox:
-            where = "GROUP" if o["to"] == "group" else f"DM -> {o['to']}"
-            print(f"  tripbot ({where}): {o['text']}")
+            print(f"  tripbot: {o['text']}")
         if not result.outbox:
             print("  (tripbot stayed quiet)")
 

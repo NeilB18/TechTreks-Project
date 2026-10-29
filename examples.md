@@ -1,5 +1,7 @@
 # Trip Agent — examples.md
 
+> **Oct 28, 2026:** budgets are now shared with everyone on the trip, and the bot only posts in the group (GroupMe bots can't DM). Where an example below says DM or private, read it as a group message that tags that person. The replayable versions in `tests/scenarios/` are up to date.
+
 Worked examples showing Claude how to reason through each edge case.
 Format: chat message → state snapshot → reasoning → tool calls → replies (group + DMs).
 Multi-turn where confirmations are needed.

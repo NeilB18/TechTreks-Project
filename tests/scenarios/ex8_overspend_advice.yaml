@@ -22,7 +22,6 @@ seed:
        split_with: [aarav, jake, mia]}
 turns:
   - sender: mia
-    channel: dm
     text: "I'm over on food aren't I? what should I do"
     expect:
       calls:
@@ -30,23 +29,20 @@ turns:
         - {name: get_travel_tips}
       forbid_mutations: true
       messages:
-        - {to: mia, contains: ["$10", "$740"]}
-      no_messages_to: [group]
+        - {to: group, contains: [Mia, "$10", "$740"]}
     golden:
       calls:
         - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
         - {name: get_travel_tips, args: {trip_id: miami, destination: Miami, multipliers: [0.5]}}
       messages:
-        - {to: mia, text: "Yeah, you're $10 over your $150 food limit, but you've still got $740 left overall. Cheaper ideas for the next two days: street food, food trucks and grocery-store breakfasts. Want me to raise your food limit (say to $200) so it matches how you're actually spending?"}
+        - {to: group, text: "@Mia Yeah, you're $10 over your $150 food limit, but you've still got $740 left overall. Cheaper ideas for the next two days: street food, food trucks and grocery-store breakfasts. Want me to raise your food limit (say to $200) so it matches how you're actually spending?"}
   - sender: mia
-    channel: dm
     text: "yeah make it $200"
     expect:
       calls:
         - {name: set_budget, args: {person_id: mia, total: 90000, limits: {FOOD: 20000}}}
       messages:
-        - {to: mia, contains: ["$200", "$40"]}
-      no_messages_to: [group]
+        - {to: group, contains: [Mia, "$200", "$40"]}
       end_state:
         - budget_total: {mia: 90000}
     golden:
@@ -54,4 +50,4 @@ turns:
         - {name: set_budget, args: {trip_id: miami, person_id: mia, total: 90000, limits: {FOOD: 20000}}}
         - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
       messages:
-        - {to: mia, text: "Done, your food limit is now $200 (total still $900). You've got $40 left for food."}
+        - {to: group, text: "@Mia Done, your food limit is now $200 (total still $900). You've got $40 left for food."}

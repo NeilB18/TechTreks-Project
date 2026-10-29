@@ -37,7 +37,7 @@ def test_tool_loop_runs_tools_and_delivers_messages():
                  tool_call("t1", "log_expense", {
                      "trip_id": "miami", "paid_by": "mia", "amount": 12000, "currency": "USD",
                      "description": "Dinner", "category": "FOOD", "split_with": ["aarav", "mia"]}),
-                 tool_call("t2", "send_message", {"to": "nobody", "text": "hi"}),
+                 tool_call("t2", "send_message", {"text": ""}),
                  tool_call("t3", "get_balances", "{not json")),
         response("tool_calls", None,
                  tool_call("t4", "send_message", {"to": "group", "text": "Logged $60 each"})),
@@ -48,7 +48,7 @@ def test_tool_loop_runs_tools_and_delivers_messages():
 
     model_calls = [c for c in r.tool_calls if not c.by_runner]  # the runner also checks budgets after log_expense
     assert [c.name for c in model_calls] == ["log_expense", "send_message", "get_balances", "send_message"]
-    assert model_calls[1].error  # bad recipient goes back to the model as an error
+    assert model_calls[1].error  # an empty message goes back to the model as an error
     assert "Invalid JSON" in model_calls[2].error
     assert r.outbox == [{"to": "group", "text": "Logged $60 each"}]
     assert r.stray_text == ["Logging it."]
@@ -210,30 +210,26 @@ def test_call_after_messages_runs_without_thinking():
     client = ScriptedClient([
         response("tool_calls", None, tool_call("t1", "get_balances", {"trip_id": "miami"})),
         response("tool_calls", None, tool_call("t2", "send_message", {"to": "group", "text": "All square"})),
-        response("tool_calls", None, tool_call("t3", "send_message", {"to": "mia", "text": "psst"})),
+        response("tool_calls", None, tool_call("t3", "send_message", {"text": "@Mia you're all paid up too"})),
         response("stop", ""),
     ])
     r = TripAgent(engine(), "miami", client=client).handle(ChatEvent(sender_id="jake", text="@tripbot balances?"))
-    assert [m["to"] for m in r.outbox] == ["group", "mia"]  # the follow-up can still send DMs
+    assert [m["text"] for m in r.outbox] == ["All square", "@Mia you're all paid up too"]  # the follow-up can still send
     thinking = [req["extra_body"]["enable_thinking"] for req in client.requests]
     assert thinking == [True, True, False, False]
 
 
-def test_group_reply_cant_repeat_a_budget_set_in_the_group():
+def test_budget_numbers_go_in_the_group():
     budget = {"trip_id": "miami", "person_id": "mia", "total": 60000, "limits": {"FOOD": 8000}}
     client = ScriptedClient([
         response("tool_calls", None, tool_call("t1", "set_budget", budget)),
-        response("tool_calls", None,
-                 tool_call("t2", "send_message", {"to": "group", "text": "Saved: $600 total, $80 on food"}),
-                 tool_call("t3", "send_message", {"to": "mia", "text": "Saved: $600 total, $80 on food"})),
-        response("tool_calls", None, tool_call("t4", "send_message", {"to": "group", "text": "Sent you a DM, Mia 🔒"})),
+        response("tool_calls", None, tool_call("t2", "send_message", {"text": "Saved: $600 total, $80 on food"})),
         response("stop", ""),
     ])
     r = TripAgent(engine(), "miami", client=client).handle(
         ChatEvent(sender_id="mia", text="@tripbot set my budget to $600, max $80 on food"))
-    assert "private budget number ($600)" in r.tool_calls[1].error
-    assert r.outbox == [{"to": "mia", "text": "Saved: $600 total, $80 on food"},
-                        {"to": "group", "text": "Sent you a DM, Mia 🔒"}]
+    assert r.tool_calls[1].error is None  # budgets are shared with the trip
+    assert r.outbox == [{"to": "group", "text": "Saved: $600 total, $80 on food"}]
 
 
 def test_people_can_save_their_own_payment_handle_only():
@@ -305,20 +301,6 @@ def test_refund_confirmation_can_be_asked_without_a_question_mark():
     assert r.tool_calls[0].error is None
 
 
-def test_no_dms_to_others_on_a_turn_that_checked_or_changed_nothing():
-    client = ScriptedClient([
-        response("tool_calls", None,
-                 tool_call("t1", "send_message", {"to": "group", "text": "$60 back on Dinner? Confirm?"})),
-        response("tool_calls", None,
-                 tool_call("t2", "send_message", {"to": "jake", "text": "Heads up: you'd get $20 back"}),
-                 tool_call("t3", "send_message", {"to": "aarav", "text": "Just to you: confirm in the group"})),
-        response("stop", ""),
-    ])
-    r = TripAgent(engine(), "miami", client=client).handle(ChatEvent(sender_id="aarav", text="@tripbot got $60 back"))
-    assert "no private news for jake" in r.tool_calls[1].error
-    assert [m["to"] for m in r.outbox] == ["group", "aarav"]  # the sender's own DM is fine
-
-
 def test_event_spells_out_the_week_and_near_duplicates_are_dropped():
     client = ScriptedClient([
         response("tool_calls", None,
@@ -332,12 +314,3 @@ def test_event_spells_out_the_week_and_near_duplicates_are_dropped():
     assert "calendar: Wed 2027-03-10 (today), Thu 2027-03-11, Fri 2027-03-12, Sat 2027-03-13" in event
     assert len(r.outbox) == 1 and "nearly the same" in r.tool_calls[1].error
 
-
-def test_event_names_the_private_page_when_dms_are_stored():
-    client = ScriptedClient([response("stop", "")])
-    TripAgent(engine(), "miami", client=client).handle(
-        ChatEvent(sender_id="mia", text="@tripbot how much do I have left?", private_page="https://t.example/trips/miami"))
-    assert "private_page: https://t.example/trips/miami" in client.requests[0]["messages"][-1]["content"]
-    client = ScriptedClient([response("stop", "")])
-    TripAgent(engine(), "miami", client=client).handle(ChatEvent(sender_id="mia", text="@tripbot hi"))
-    assert "private_page" not in client.requests[0]["messages"][-1]["content"]

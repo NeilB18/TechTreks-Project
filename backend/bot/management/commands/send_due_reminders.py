@@ -37,12 +37,15 @@ class Command(BaseCommand):
             for r in load_trip(row.id).reminders:
                 if not r.is_due(now):
                     continue
+                # Everything goes to the group; a reminder for some people tags them.
+                if r.audience == "all":
+                    text = f"⏰ Reminder: {r.message}"
+                else:
+                    names = Person.objects.filter(trip=row, person_id__in=[p.id for p in r.audience]) \
+                        .order_by("person_id").values_list("name", flat=True)
+                    text = f"⏰ Reminder for {', '.join('@' + n for n in names)}: {r.message}"
                 try:
-                    if r.audience == "all":
-                        groupme.post_to_group(chat.bot_id, f"⏰ Reminder: {r.message}")
-                    else:
-                        for person in Person.objects.filter(trip=row, person_id__in=[p.id for p in r.audience]):
-                            groupme.send_dm(row, person, f"⏰ Reminder: {r.message}")
+                    groupme.post_to_group(chat.bot_id, text)
                 except Exception:
                     # Left unsent, so the next run tries again; one failure doesn't block the others.
                     log.exception("Couldn't send reminder %s on trip %s", r.id, row.id)

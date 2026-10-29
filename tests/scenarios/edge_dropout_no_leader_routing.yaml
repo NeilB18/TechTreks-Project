@@ -18,7 +18,7 @@ turns:
       calls:
         - {name: remove_member, args: {person_id: mia}}
       messages:
-        - {to: mia, contains: ["$40"]}
+        - {to: group, contains: [Mia, "$40"]}
       end_state:
         - member_active: {mia: false}
     golden:
@@ -27,4 +27,4 @@ turns:
         - {name: get_balances, args: {trip_id: miami}}
       messages:
         - {to: group, text: "Mia's off the trip 💔"}
-        - {to: mia, text: "Sorry you can't come! You still owe Aarav $40 for dinner. Venmo: @aarav-venmo"}
+        - {to: group, text: "@Mia Sorry you can't come! You still owe Aarav $40 for dinner. Venmo: @aarav-venmo"}

@@ -13,16 +13,14 @@ seed:
     - [jake, DRINKS]
 turns:
   - sender: jake
-    channel: dm
     text: actually I drink now, put me back in drinks
     expect:
       calls:
         - {name: set_exclusion, args: {person_id: jake, category: DRINKS, remove: true}}
-      no_messages_to: [group]
       end_state:
         - no_opt_out: [jake, DRINKS]
     golden:
       calls:
         - {name: set_exclusion, args: {trip_id: miami, person_id: jake, category: DRINKS, remove: true}}
       messages:
-        - {to: jake, text: "Done, you're back in drinks splits. 🍻"}
+        - {to: group, text: "@Jake Done, you're back in drinks splits. 🍻"}
