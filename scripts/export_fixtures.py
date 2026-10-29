@@ -25,11 +25,11 @@ def page_data(backend: TripEngine, trip_id: str) -> dict:
     return {"detail": backend.get_trip(trip_id), "balances": backend.get_balances(trip_id)}
 
 
-def demo() -> dict:
-    b = TripEngine()
+def demo(backend=None, trip_id: str = "miami-demo") -> dict:
+    b = backend if backend is not None else TripEngine()
     b.load_seed({
         "now": "2027-03-01T12:00:00",
-        "trip": {"id": "miami-demo", "name": "Miami Spring Break", "status": "BOOKED", "destination": "Miami",
+        "trip": {"id": trip_id, "name": "Miami Spring Break", "status": "BOOKED", "destination": "Miami",
                  "start_date": "2027-03-14", "end_date": "2027-03-18", "base_currency": "USD",
                  "group_budget": 91700, "leader": "aarav",
                  "leader_approval": ["member_changes", "trip_changes"]},
@@ -39,7 +39,7 @@ def demo() -> dict:
                      "handle": "jake@example.com" if p == "jake" else f"@{p}-venmo"} for p in PEOPLE],
         "exclusions": [["jake", "DRINKS"]],
     })
-    t = "miami-demo"
+    t = trip_id
     draft = b.generate_itinerary(trip_id=t, constraints="beach, food, one night out")["draft_id"]
     b.generate_itinerary(trip_id=t, save_draft_id=draft)
     b.add_activity(trip_id=t, name="Boat tour", location="Miami Beach Marina", start="2027-03-15T14:00",
