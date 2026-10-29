@@ -1,22 +1,12 @@
 """Sending messages to GroupMe.
 
 Group posts go through the bot API (https://dev.groupme.com/docs/v3#bots_post).
-GroupMe bots can't send DMs, so private messages either go through the
-direct-messages API with a user access token (BOT_DM_MODE=groupme; they come
-from that account, e.g. a dedicated "tripbot" user), or are stored as
-PrivateNotice rows for the trip page (BOT_DM_MODE=store, the default until the
-DM spike confirms the first option works).
+GroupMe bots can't send DMs, and nothing the bot says is private (budgets are
+shared with the trip), so every message goes to the group.
 """
 
-import logging
-import uuid
-
 import requests
-from django.conf import settings
 
-from bot.models import PrivateNotice
-
-log = logging.getLogger(__name__)
 API = "https://api.groupme.com/v3"
 MAX_LEN = 1000  # GroupMe's message length limit
 
@@ -45,18 +35,3 @@ def post_to_group(bot_id: str, text: str) -> None:
         resp = requests.post(f"{API}/bots/post", json={"bot_id": bot_id, "text": part}, timeout=15)
         resp.raise_for_status()
 
-
-def send_dm(trip, person, text: str) -> str:
-    """Deliver a private message. Returns "groupme" or "stored"."""
-    if settings.BOT_DM_MODE == "groupme" and settings.GROUPME_ACCESS_TOKEN:
-        for part in chunks(text):
-            resp = requests.post(
-                f"{API}/direct_messages", params={"token": settings.GROUPME_ACCESS_TOKEN},
-                json={"direct_message": {"source_guid": str(uuid.uuid4()),
-                                         "recipient_id": person.chat_user_id, "text": part}},
-                timeout=15)
-            resp.raise_for_status()
-        return "groupme"
-    PrivateNotice.objects.create(trip=trip, person_id=person.person_id, text=text)
-    log.info("Stored private notice for %s on trip %s", person.person_id, trip.id)
-    return "stored"

@@ -13,7 +13,7 @@ seed:
   budgets:
     aarav: {total: 150000}
     jake: {total: 110000}
-    mia: {total: 95000, limits: {ACTIVITIES: 14000}}  # not $900, so "Aarav is owed $900" isn't a privacy false alarm
+    mia: {total: 95000, limits: {ACTIVITIES: 14000}}
   expenses:
     - {id: e1, paid_by: aarav, amount: 120000, description: Airbnb, category: LODGING,
        split_with: [aarav, priya, jake, mia]}
@@ -44,9 +44,9 @@ turns:
         - {name: remove_member, args: {person_id: priya}}
         - {name: get_budget_status, args: {person_id: mia}}
       messages:
-        - {to: group, contains: ["133"], not_contains: [activities budget]}
-        - {to: priya, contains: ["$300", Aarav]}
-        - {to: mia, contains_any: [activities, budget]}
+        - {to: group, contains: ["133"]}
+        - {to: group, contains: [Priya, "$300", Aarav]}
+        - {to: group, contains: [Mia], contains_any: [activities, budget]}
       end_state:
         - member_active: {priya: false}
         - balance: {from: priya, to: aarav, amount: 30000}
@@ -59,5 +59,5 @@ turns:
         - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
       messages:
         - {to: group, text: "Priya's off the trip 💔 Boat tour is now ~$133/person (was $100)."}
-        - {to: priya, text: "Sorry you can't come! You still owe Aarav $300 for the Airbnb. Venmo: @aarav-venmo"}
-        - {to: mia, text: "Heads up: with the boat tour going up to ~$133, your activities budget is almost used up."}
+        - {to: group, text: "@Priya Sorry you can't come! You still owe Aarav $300 for the Airbnb. Venmo: @aarav-venmo"}
+        - {to: group, text: "@Mia Heads up: with the boat tour going up to ~$133, your activities budget is almost used up."}

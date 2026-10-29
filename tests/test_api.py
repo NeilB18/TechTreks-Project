@@ -1,4 +1,4 @@
-"""The Django HTTP API: auth, errors, and that trip reads never include budgets."""
+"""The Django HTTP API: auth, errors, and that trip reads include everyone's budget."""
 
 import pytest
 from conftest import AGENT_TOKEN
@@ -53,12 +53,13 @@ def test_failed_tool_call_changes_nothing(client):
     assert len(client.get("/api/trips/miami", headers=AUTH).json()["expenses"]) == 1
 
 
-def test_trip_reads_never_include_budgets(client):
+def test_trip_reads_include_budgets(client):
     for path in ("/api/trips/miami", "/api/trips/miami/summary", "/api/trips/miami/balances"):
-        r = client.get(path, headers=AUTH)
-        assert r.status_code == 200, path
-        assert "50000" not in r.content.decode(), path
-        assert "total_cents" not in r.content.decode(), path
+        assert client.get(path, headers=AUTH).status_code == 200, path
+    detail = client.get("/api/trips/miami", headers=AUTH).json()
+    assert detail["budgets"] == {"mia": {"total_cents": 50000, "limits": {}}}
+    members = client.get("/api/trips/miami/summary", headers=AUTH).json()["members"]
+    assert {m["id"]: m["budget_cents"] for m in members} == {"aarav": None, "mia": 50000}
     assert client.get("/api/trips/nowhere", headers=AUTH).status_code == 404
 
 

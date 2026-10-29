@@ -26,26 +26,20 @@ TRIP_CHANGE_FIELDS = {"destination", "start_date", "end_date", "base_currency", 
 # After these, the runner checks the budget of everyone affected (specs.md: after every expense,
 # check everyone in the split). Done in code because the model sometimes skipped people.
 BUDGET_CHECK_AFTER = {"log_expense", "edit_expense", "record_refund", "remove_member"}
-# Budget tools whose numbers are private (spent amounts are just split shares, so they're not on the list).
 CONFIRM_WORDS = re.compile(r"\b(confirm|yes)\b", re.I)
-PRIVATE_BUDGET_TOOLS = {"set_budget", "get_budget_status"}
-PRIVATE_KEYS = {"total", "total_cents", "remaining_cents", "remaining_after_planned_cents", "limit_cents"}
 UNDELIVERED_NOTE = (
     "[runner] Your last text was not delivered: nobody sees text outside send_message. "
-    "If it was meant for someone, send it now with send_message (to \"group\", or a person id for "
-    "anything private like budgets). If it wasn't meant to be sent, reply with nothing."
+    "If it was meant for the group, send it now with send_message. If it wasn't meant to be sent, reply with nothing."
 )
 
 
 @dataclass
 class ChatEvent:
     sender_id: str
-    text: str
-    channel: str = "group"  # "group" | "dm"
+    text: str  # every message comes from the group chat: GroupMe bots can't send or receive DMs
     mentioned: bool = True
     time: str | None = None
     chat_user_id: str | None = None  # the sender's GroupMe user id, when the chat adapter knows it
-    private_page: str | None = None  # where private messages appear when they aren't real DMs (the trip page)
 
 
 @dataclass
@@ -60,7 +54,7 @@ class ToolCall:
 @dataclass
 class TurnResult:
     tool_calls: list[ToolCall] = field(default_factory=list)
-    outbox: list[dict] = field(default_factory=list)  # {"to": "group" | person_id, "text": ...}
+    outbox: list[dict] = field(default_factory=list)  # {"to": "group", "text": ...}
     stray_text: list[str] = field(default_factory=list)  # text outside send_message (not delivered)
     stop_reason: str | None = None
     usage: list[dict] = field(default_factory=list)
@@ -87,13 +81,11 @@ class TripAgent:
         self.history: list[dict] = list(history or [])
         self.sender_id: str | None = None
         self.event: ChatEvent | None = None
-        self.private_amounts: set[int] = set()  # budget numbers seen this turn; never in a group message
 
     def _event_text(self, ev: ChatEvent) -> str:
         state = self.backend.summary(self.trip_id)
         names = {m["id"]: m["name"] for m in state["members"]}
-        lines = [f"channel: {ev.channel}",
-                 f"sender: {names.get(ev.sender_id, ev.sender_id)} ({ev.sender_id})",
+        lines = [f"sender: {names.get(ev.sender_id, ev.sender_id)} ({ev.sender_id})",
                  f"mentioned: {str(ev.mentioned).lower()}"]
         if ev.time:
             lines.append(f"time: {ev.time}")
@@ -104,8 +96,6 @@ class TripAgent:
                 lines.append("calendar: " + ", ".join(
                     f"{(today + timedelta(n)):%a} {(today + timedelta(n)).isoformat()}" + (" (today)" if n == 0 else "")
                     for n in range(8)))
-        if ev.private_page:
-            lines.append(f"private_page: {ev.private_page}")
         lines.append(f"message: {ev.text}")
         return (f"<trip_state>\n{json.dumps(state, sort_keys=True)}\n</trip_state>\n"
                 f"<event>\n" + "\n".join(lines) + "\n</event>")
@@ -190,7 +180,7 @@ class TripAgent:
                     continue
                 text = args.get("text") or ""
                 # "Confirm?", or no question mark: "Confirm and I'll log it", "reply yes".
-                if args.get("to") in ("group", self.sender_id) and ("?" in text or CONFIRM_WORDS.search(text)):
+                if "?" in text or CONFIRM_WORDS.search(text):
                     return True
         return False
 
@@ -205,36 +195,21 @@ class TripAgent:
         call = ToolCall(name=name, input=args)
         result.tool_calls.append(call)
         if name == "send_message":
-            to, text = args.get("to"), args.get("text")
-            if to == "group" and self.event and self.event.channel == "group" and not self.event.mentioned \
+            text = args.get("text")
+            if self.event and not self.event.mentioned \
                     and not any(c.name not in ("send_message",) and not c.by_runner for c in result.tool_calls[:-1]):
                 # Nobody asked: small talk gets no reply. Real alerts come with a tool call (a check or change).
                 call.error = ("You weren't @mentioned and haven't checked or changed anything, so this is small talk: "
                               "don't reply. End the turn.")
                 return f"Error: {call.error}"
-            used_tools = any(c.name != "send_message" and not c.by_runner for c in result.tool_calls[:-1])
-            if to not in ("group", self.sender_id) and not used_tools:
-                # Live: while asking the payer to confirm a refund, the no-thinking follow-up DM'd everyone in
-                # the split (one DM garbled). Private news for others always follows a check or a change.
-                call.error = ("Not sent: nothing was checked or changed this turn, so there's no private news for "
-                              f"{to}. Ask or answer in the group (or the sender's DM), and DM others only after "
-                              "something is confirmed and done.")
-                return f"Error: {call.error}"
-            leaked = to == "group" and _mentions_amount(text or "", self.private_amounts)
-            if leaked:
-                # Live run: someone set their budget in the group and the reply repeated it there.
-                call.error = (f"Not sent: this group message contains a private budget number ({leaked}). Budgets "
-                              "only go to the person's DM. In the group, say at most \"sent you a DM 🔒\".")
-                return f"Error: {call.error}"
-            if any(m["to"] == to and SequenceMatcher(None, m["text"], text or "").ratio() > 0.8 for m in result.outbox):
+            if any(SequenceMatcher(None, m["text"], text or "").ratio() > 0.8 for m in result.outbox):
                 # The no-thinking follow-up sometimes re-sends what it just sent, slightly reworded.
-                call.error = f"Not sent: you already sent {to} nearly the same message this turn. End the turn."
+                call.error = "Not sent: you already sent nearly the same message this turn. End the turn."
                 return f"Error: {call.error}"
-            members = {m["id"] for m in self.backend.summary(self.trip_id)["members"]}
-            if not text or (to != "group" and to not in members):
-                call.error = f"`to` must be \"group\" or one of {sorted(members)}"
+            if not text:
+                call.error = "`text` is required"
                 return f"Error: {call.error}"
-            result.outbox.append({"to": to, "text": text})
+            result.outbox.append({"to": "group", "text": text})
             call.result = {"sent": True}
             return json.dumps(call.result)
         if name == "set_payment_handle":
@@ -255,8 +230,6 @@ class TripAgent:
         except ToolError as e:
             call.error = str(e)
             return f"Error: {e}"
-        if name in PRIVATE_BUDGET_TOOLS:
-            self.private_amounts |= _private_amounts({"args": args, "result": call.result})
         summary = self.backend.summary(self.trip_id)
         enrich(call.result, args, summary)
         if name in BUDGET_CHECK_AFTER:
@@ -284,7 +257,7 @@ class TripAgent:
         return json.dumps(call.result)
 
     def _attach_paid_back(self, out: dict, summary: dict) -> None:
-        """People who already paid the payer back have money coming back now; the model must DM them."""
+        """People who already paid the payer back have money coming back now; the model must tell them."""
         payer = out.get("payer")
         senders = sorted({e["paid_by"] for e in self.backend.get_trip(trip_id=self.trip_id)["expenses"]
                           if e["category"] == "SETTLEMENT" and payer in (e.get("shares") or {})})
@@ -292,11 +265,11 @@ class TripAgent:
             names = {m["id"]: m["name"] for m in summary["members"]}
             out["already_paid_back"] = senders
             out["next_step"] = (f"{', '.join(names.get(s, s) for s in senders)} already paid {names.get(payer, payer)} back, "
-                                "so their money changes now: after get_balances, DM each of them who will pay them "
-                                "(or who they pay) and how much, from the settle-up lines.")
+                                "so their money changes now: after get_balances, tell each of them in the group (@mention "
+                                "them) who will pay them (or who they pay) and how much, from the settle-up lines.")
 
     def _attach_budget_warnings(self, name: str, out: dict, summary: dict, result: TurnResult) -> None:
-        """Check everyone affected and add `budget_warnings` ({person_id: [warnings]}, private)."""
+        """Check everyone affected and add `budget_warnings` ({person_id: [warnings]})."""
         if name == "remove_member":
             people = [m["id"] for m in summary["members"] if m["active"]]
         else:
@@ -315,15 +288,14 @@ class TripAgent:
                 warnings[pid] = check.result["warnings"]
         out["budget_warnings"] = warnings
         out["next_step"] = (
-            f"Budgets were checked automatically. DM each person in budget_warnings ({', '.join(warnings)}) "
-            "about their own warning; never mention it in the group." if warnings
+            f"Budgets were checked automatically. In the group, @mention each person in budget_warnings "
+            f"({', '.join(warnings)}) with their warning." if warnings
             else "Budgets were checked automatically: no warnings, so don't mention budgets.")
 
     def handle(self, event: ChatEvent) -> TurnResult:
         result = TurnResult()
         self.sender_id = event.sender_id
         self.event = event
-        self.private_amounts = set()
         self.history.append({"role": "user", "content": self._event_text(event)})
         self._trim_history()
         nudged = False
@@ -346,8 +318,8 @@ class TripAgent:
             if msg.content and msg.content.strip():
                 result.stray_text.append(msg.content)
             if not tool_calls:
-                # Text written outside send_message is never delivered. Rather than guessing who it
-                # was for (it might be private), remind the model once to send it properly.
+                # Text written outside send_message is never delivered. Rather than guessing whether it
+                # was meant to be sent, remind the model once to send it properly.
                 if msg.content and msg.content.strip() and not nudged and not result.outbox:
                     nudged = True
                     self.history.append({"role": "user", "content": UNDELIVERED_NOTE})
@@ -357,36 +329,11 @@ class TripAgent:
                 content = self._run_tool(tc.function.name, tc.function.arguments, result)
                 self.history.append({"role": "tool", "tool_call_id": tc.id, "content": content})
             # Messages are usually the last step, so the next call only needs to say "done" or send
-            # any remaining DMs: no thinking needed for that.
+            # anything left: no thinking needed for that.
             fast = config.FAST_FOLLOWUP and all(tc.function.name == "send_message" for tc in tool_calls)
         else:
             result.stop_reason = "max_tool_rounds"
         return result
-
-
-def _private_amounts(obj, key: str | None = None) -> set[int]:
-    """Budget totals, limits and what's left, in cents, anywhere in a budget tool's args or result."""
-    if isinstance(obj, dict):
-        out = set()
-        for k, v in obj.items():
-            # set_budget's `limits` maps category -> cents, so its values count as limits.
-            out |= _private_amounts(v, "limit_cents" if k == "limits" else k)
-        return out
-    if isinstance(obj, list):
-        return set().union(*(_private_amounts(v, key) for v in obj)) if obj else set()
-    if isinstance(obj, int) and not isinstance(obj, bool) and obj > 0 and key in PRIVATE_KEYS:
-        return {obj}
-    return set()
-
-
-def _mentions_amount(text: str, amounts: set[int]) -> str | None:
-    """The first of these amounts written in the text as dollars ("$600", "$1,200", "$80.50"), if any."""
-    for cents in sorted(amounts, reverse=True):
-        dollars = f"{cents // 100:,}".replace(",", ",?")
-        frac = rf"\.{cents % 100:02d}" if cents % 100 else r"(?:\.00)?"
-        if re.search(rf"\$\s?{dollars}{frac}(?![\d,]*\d)", text):
-            return f"${cents / 100:,.2f}".removesuffix(".00")
-    return None
 
 
 def _day_of(time_text: str) -> date | None:

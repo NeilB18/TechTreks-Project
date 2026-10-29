@@ -46,7 +46,7 @@ BACKEND_TOOL_SCHEMAS = [
           "Stores the original amount and the base-currency amount with the FX rate. Pass exactly one of split_with, exact_amounts or percentages. "
           "Returns expense_id, shares (what each person owes for it, base-currency cents; use these in confirmations), "
           "splits (net change per person: + is owed, - owes; sums to 0) and auto_excluded, plus display (chat-ready amounts) and "
-          "budget_warnings ({person_id: [warnings]}, private: DM each person their own). Paybacks go through record_payback instead.",
+          "budget_warnings ({person_id: [warnings]}: @mention each person with theirs in the group). Paybacks go through record_payback instead.",
           {"trip_id": TRIP_ID, "paid_by": PERSON, "amount": {**CENTS, "description": "Total in `currency`, in cents"},
            "currency": CURRENCY, "description": {"type": "string"}, "category": CATEGORY,
            **SPLIT_FIELDS,
@@ -89,7 +89,7 @@ BACKEND_TOOL_SCHEMAS = [
     _tool("update_trip",
           "Change trip settings. Changing destination, dates, status, base currency or group budget needs confirmation "
           "(the leader's, if trip_changes is in leader_approval). A date change returns activities now outside the trip; "
-          "a group_budget change returns members_below_group_budget (ids only) so you can DM them and nudge the leader.",
+          "a group_budget change returns members_below_group_budget so you can tell the group who's below it.",
           {"trip_id": TRIP_ID, "changes": {"type": "object", "properties": {
               "name": {"type": "string"}, "destination": {"type": "string"},
               "start_date": ISO_DATE, "end_date": ISO_DATE, "base_currency": CURRENCY,
@@ -102,7 +102,7 @@ BACKEND_TOOL_SCHEMAS = [
               "auto_log_mode": {"type": "string"}}}},
           ["trip_id", "changes"]),
     _tool("set_budget",
-          "Set a person's private budget: total plus optional per-category limits. Budgets are private; only discuss them in that person's DM.",
+          "Set a person's budget for this trip: total plus optional per-category limits. Everyone on the trip can see budgets.",
           {"trip_id": TRIP_ID, "person_id": PERSON, "total": CENTS,
            "limits": {"type": "object", "additionalProperties": CENTS,
                       "description": "Category -> cents, e.g. {\"DRINKS\": 10000}"}},
@@ -130,7 +130,7 @@ BACKEND_TOOL_SCHEMAS = [
            "expense_id": {"type": "string", "description": "Link to the expense once it's paid"}},
           ["trip_id"]),
     _tool("get_travel_tips",
-          "Tier prices and travel tips from the group's average budget (the backend computes the average; individual budgets are never returned). "
+          "Tier prices and travel tips from the group's average budget. Also returns each member's total in `budgets`. "
           "First call with prices_only=true and multipliers [0.5, 0.75, 1, 1.25, 1.5, 2] to list the preset tiers. "
           "When someone picks a preset or a custom multiplier (e.g. 1.1), call with just that multiplier to get lodging, food, activities and money-saving tips. "
           "Returns missing_budgets: members who haven't set a budget yet.",
@@ -166,25 +166,23 @@ BACKEND_TOOL_SCHEMAS = [
     _tool("get_budget_status",
           "One person's budget: total, spent (their split shares, not what they paid), planned activity costs, remaining, and warnings. "
           "Warnings come from category limits only (under 10% of a limit left, counting planned activities). "
-          "PRIVATE: anything from this result may only go to that person's DM, never the group. "
-          "Use it when someone asks about their own budget. After expenses, refunds and dropouts the runner already "
+          "Budgets are shared with the trip, so this can go in the group. "
+          "Use it when someone asks how a budget is doing. After expenses, refunds and dropouts the runner already "
           "checks everyone affected and adds budget_warnings to the result.",
           {"trip_id": TRIP_ID, "person_id": PERSON}, ["trip_id", "person_id"]),
     _tool("convert_currency", "Convert an amount between currencies.",
           {"amount": CENTS, "from": CURRENCY, "to": CURRENCY}, ["amount", "from", "to"]),
     _tool("get_trip",
-          "Full trip state beyond the summary: every expense with shares, splits and refunds, polls with votes, reminders, itinerary drafts. Never budgets.",
+          "Full trip state beyond the summary: every expense with shares, splits and refunds, polls with votes, reminders, itinerary drafts, and everyone's budget (total and category limits).",
           {"trip_id": TRIP_ID}, ["trip_id"]),
 ]
 
 # Handled by the runner / chat adapter, not the backend.
 SEND_MESSAGE = _tool(
     "send_message",
-    "The only way to talk. to=\"group\" posts in the group chat; to=<person_id> sends that person a private DM. "
-    "Budget details (anyone's total, remaining, warnings, overspend advice) may only go to that person's own DM.",
-    {"to": {"type": "string", "description": "\"group\" or a person id"},
-     "text": {"type": "string"}},
-    ["to", "text"])
+    "The only way to talk: posts in the group chat. Tag people with @Name when a message is for them.",
+    {"text": {"type": "string"}},
+    ["text"])
 
 SET_PAYMENT_HANDLE = _tool(
     "set_payment_handle",

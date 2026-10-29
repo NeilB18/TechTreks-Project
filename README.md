@@ -1,6 +1,6 @@
 # TechTreks
 
-Group-trip agent for a GroupMe chat: plans the trip, logs and splits expenses, gives travel tips by budget, and keeps private per-person budgets on track. Design lives in [specs.md](specs.md) and [examples.md](examples.md).
+Group-trip agent for a GroupMe chat: plans the trip, logs and splits expenses, gives travel tips by budget, and keeps everyone's budget on track. Budgets are shared with everyone on the trip, and the bot only posts in the group. Design lives in [specs.md](specs.md) and [examples.md](examples.md).
 
 ## Agent (Phase 1–2)
 
@@ -47,7 +47,7 @@ Chat with the agent by hand:
 .venv/bin/python -m agent.cli tests/scenarios/ex1_dropout.yaml
 ```
 
-Then type `priya: @tripbot I can't make it anymore`, or `mia dm: lower my budget to $500`.
+Then type `priya: @tripbot I can't make it anymore`, or `mia: @tripbot lower my budget to $500`.
 
 ## CI
 
@@ -60,9 +60,9 @@ The live Qwen scenarios run only when started by hand: Actions → Tests → Run
 
 ## Agent evals
 
-There are 34 scenarios: the 12 worked examples plus 22 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
+There are 29 scenarios: the 12 worked examples plus 17 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
 
-- privacy probes and prompt injection (budget dumps, fake approvals, impersonating the leader), and setting a budget in the group
+- prompt injection (fake approvals, impersonating the leader)
 - staying quiet
 - confirmations for edits, deletes, itinerary saves and dropouts
 - ambiguous expenses, foreign currency, slang and typos, corrections mid-thread
@@ -78,7 +78,7 @@ This writes [docs/eval-report.md](docs/eval-report.md): pass rate per scenario, 
 
 ### Speed
 
-Thinking is most of the reply time. After a model response that only sends messages, the next call (usually just "done", sometimes the remaining DMs) runs with thinking off. That cut a reply from about 25 s to about 11 s, at 97/99 on 33 scenarios × 3. Switches in `.env`:
+Thinking is most of the reply time. After a model response that only sends messages, the next call (usually just "done", sometimes a remaining message) runs with thinking off. That cut a reply from about 25 s to about 11 s, at 97/99 on 33 scenarios × 3. Switches in `.env`:
 
 - `QWEN_THINKING=0` turns thinking off everywhere (about 5 s per reply, but only 79% pass)
 - `QWEN_THINKING_BUDGET=<tokens>` caps thinking
@@ -121,7 +121,7 @@ Django app `backend/bot`. GroupMe posts every group message to `/groupme/callbac
 - sends @mentions to the agent;
 - posts group replies through the GroupMe bot API.
 
-Private messages (budgets) never go to the group. Until DMs are confirmed, they're saved as private notices for the trip page (`BOT_DM_MODE=store`).
+Every reply goes to the group. GroupMe bots can't send DMs, and budgets are shared with the trip, so there are no private messages. A reminder for some people tags them in the group.
 
 Setup, once you have a GroupMe bot (dev.groupme.com/bots):
 
@@ -137,17 +137,15 @@ The webhook answers GroupMe at once and queues the message. A worker thread per 
 
 Each reply sends only the last `AGENT_HISTORY_TURNS` messages (default 12), and only the newest carries the trip state, so a reply costs the same on day 5 as on day 1.
 
-Testing without GroupMe: `scripts/webhook_smoke.py` posts a scripted 4-person chat to the real webhook on live Qwen, with a throwaway database, and prints what would be posted and stored privately. Read stored private messages with `manage.py show_notices <trip_id> [--person <id>]`.
+Testing without GroupMe: `scripts/webhook_smoke.py` posts a scripted 4-person chat to the real webhook on live Qwen, with a throwaway database, and prints what would be posted.
 
 Testing with GroupMe from a laptop: `brew install cloudflared`, run Django, then `cloudflared tunnel --url http://127.0.0.1:8000`, and register `https://<tunnel host>/groupme/callback/<GROUPME_CALLBACK_SECRET>` as the bot's callback. Add `.trycloudflare.com` to `DJANGO_ALLOWED_HOSTS`. The tunnel URL changes on every restart.
 
 People join the trip the first time they @mention the bot. Anyone can save their own payment handle ("@tripbot my venmo is @mia-v").
 
-DM check: `GROUPME_ACCESS_TOKEN=... .venv/bin/python scripts/groupme_dm_spike.py <recipient_user_id>`. GroupMe bots can't DM, so this tests DMs sent from a user account.
-
 ## Google sign-in (Phase 5)
 
-Google-only sign-in through django-allauth. A signed-in person links themselves to their trip member by posting `@tripbot link <code>` in the group, so no DMs are needed. After that, `GET /api/me/trips/<id>/budget` returns their own budget and nobody else's. Setup: [docs/google-signin.md](docs/google-signin.md).
+Google-only sign-in through django-allauth. A signed-in person links themselves to their trip member by posting `@tripbot link <code>` in the group, After that, `GET /api/me/trips/<id>/budget` returns their own budget, which the trip page shows first (everyone's budget is also in the trip data). Setup: [docs/google-signin.md](docs/google-signin.md).
 
 ## Trip page (Phase 5)
 

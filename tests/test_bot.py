@@ -4,11 +4,11 @@ import io
 
 import pytest
 from django.core.management import call_command
-from django.test import Client, override_settings
+from django.test import Client
 
 from agent.runner import TurnResult
 from bot import groupme, services, worker
-from bot.models import Conversation, GroupChat, PrivateNotice
+from bot.models import Conversation, GroupChat
 from trips.models import Person, Reminder
 from trips.services import DjangoBackend
 
@@ -34,7 +34,6 @@ class ScriptedAgent:
 @pytest.fixture
 def bot(db, monkeypatch, settings):
     settings.GROUPME_CALLBACK_SECRET = SECRET
-    settings.BOT_DM_MODE = "store"
     DjangoBackend().load_seed({
         "trip": {"id": "miami", "name": "Miami", "leader": "aarav"},
         "members": [{"id": "aarav", "name": "Aarav", "chat_user_id": "111"},
@@ -45,7 +44,7 @@ def bot(db, monkeypatch, settings):
     monkeypatch.setattr(groupme.requests, "post",
                         lambda url, **kw: posts.append({"url": url, **kw}) or _Ok())
     outbox = [{"to": "group", "text": "Logged 🍽️ Dinner, $120"},
-              {"to": "mia", "text": "Heads up: your food budget is almost used up."}]
+              {"to": "group", "text": "@Mia heads up: your food budget is almost used up."}]
     ScriptedAgent.calls = []
     monkeypatch.setattr(services, "make_agent",
                         lambda backend, trip_id, history: ScriptedAgent(backend, trip_id, history, outbox))
@@ -66,16 +65,13 @@ def callback(msg_id="m1", text="@tripbot dinner was $120", user_id="111", name="
                          content_type="application/json")
 
 
-def test_mention_runs_agent_and_keeps_dms_out_of_the_group(bot):
+def test_mention_runs_agent_and_posts_every_reply_in_the_group(bot):
     r = callback()
     assert r.status_code == 200 and r.json()["outcome"] == "handled: 2 message(s)"
     event = ScriptedAgent.calls[0]["event"]
-    assert (event.sender_id, event.channel, event.mentioned) == ("aarav", "group", True)
+    assert (event.sender_id, event.mentioned) == ("aarav", True)
     group_texts = [p["json"]["text"] for p in bot if p["url"].endswith("/bots/post")]
-    assert group_texts == ["Logged 🍽️ Dinner, $120"]
-    assert all("budget" not in t for t in group_texts)
-    notice = PrivateNotice.objects.get()
-    assert (notice.person_id, notice.text) == ("mia", "Heads up: your food budget is almost used up.")
+    assert group_texts == ["Logged 🍽️ Dinner, $120", "@Mia heads up: your food budget is almost used up."]
 
 
 def test_ignores_bots_system_unmentioned_and_duplicates(bot):
@@ -107,31 +103,11 @@ def test_unknown_sender_is_added_to_the_trip(bot):
     assert ScriptedAgent.calls[0]["event"].chat_user_id == "333"  # lets people save their own payment handle
 
 
-def test_agent_is_told_where_private_messages_go(bot, settings):
-    settings.FRONTEND_URL = "https://trips.example/"
-    settings.BOT_DM_MODE = "store"
-    callback(msg_id="p1")
-    assert ScriptedAgent.calls[0]["event"].private_page == "https://trips.example/trips/miami"
-    settings.BOT_DM_MODE = "groupme"
-    callback(msg_id="p2")
-    assert ScriptedAgent.calls[1]["event"].private_page is None
-
-
 def test_history_persists_between_callbacks(bot):
     callback(msg_id="a")
     callback(msg_id="b", text="@tripbot yep")
     assert [c["history_len"] for c in ScriptedAgent.calls] == [0, 2]
     assert len(Conversation.objects.get(trip_id="miami").history) == 4
-
-
-def test_groupme_dm_mode_uses_direct_messages_api(bot, settings):
-    settings.BOT_DM_MODE = "groupme"
-    settings.GROUPME_ACCESS_TOKEN = "user-token"
-    callback()
-    dm = next(p for p in bot if p["url"].endswith("/direct_messages"))
-    assert dm["json"]["direct_message"]["recipient_id"] == "222"
-    assert dm["params"] == {"token": "user-token"}
-    assert not PrivateNotice.objects.exists()
 
 
 def test_agent_error_posts_apology(bot, monkeypatch):
@@ -151,7 +127,6 @@ def test_long_messages_are_split():
     assert groupme.chunks("x" * 2500) == ["x" * 1000, "x" * 1000, "x" * 500]
 
 
-@override_settings(BOT_DM_MODE="store")
 def test_send_due_reminders(bot):
     b = DjangoBackend()
     b.create_reminder(trip_id="miami", message="Pay the Airbnb", due_at="2020-01-01T09:00", audience="all")
@@ -160,8 +135,7 @@ def test_send_due_reminders(bot):
     out = io.StringIO()
     call_command("send_due_reminders", stdout=out)
     assert "Sent 2" in out.getvalue()
-    assert [p["json"]["text"] for p in bot] == ["⏰ Reminder: Pay the Airbnb"]
-    assert PrivateNotice.objects.get().text == "⏰ Reminder: Bring ID"
+    assert [p["json"]["text"] for p in bot] == ["⏰ Reminder: Pay the Airbnb", "⏰ Reminder for @Mia: Bring ID"]
     assert list(Reminder.objects.filter(sent=False).values_list("message", flat=True)) == ["Later"]
 
 
@@ -170,13 +144,6 @@ def test_link_group_creates_trip(db):
     call_command("link_group", "g9", "bot-9", "cancun", "--name", "Cancún", stdout=out)
     chat = GroupChat.objects.get(group_id="g9")
     assert (chat.bot_id, chat.trip.name) == ("bot-9", "Cancún")
-
-
-def test_show_notices_prints_stored_private_messages(bot):
-    callback()
-    out = io.StringIO()
-    call_command("show_notices", "miami", "--person", "mia", stdout=out)
-    assert "to mia: Heads up: your food budget is almost used up." in out.getvalue()
 
 
 def test_webhook_queues_and_answers_at_once(bot, settings, monkeypatch):
@@ -260,7 +227,8 @@ def test_reminders_use_local_time_and_one_failure_doesnt_block_the_rest(bot, mon
     monkeypatch.setattr(groupme.requests, "post", lambda url, **kw: (_ for _ in ()).throw(RuntimeError("GroupMe down")))
     out = io.StringIO()
     call_command("send_due_reminders", stdout=out)
-    assert "Sent 1" in out.getvalue()  # the group post failed; the DM (stored) still went out
+    assert "Sent 0" in out.getvalue()  # GroupMe was down, so both due reminders wait for the next run
     monkeypatch.setattr(groupme.requests, "post", real_post)
     call_command("send_due_reminders", stdout=out)
-    assert [p["json"]["text"] for p in bot] == ["⏰ Reminder: Boat at 9"]  # retried; 9:30 isn't due yet
+    # Retried; 9:30 isn't due yet.
+    assert sorted(p["json"]["text"] for p in bot) == ["⏰ Reminder for @Mia: Bring ID", "⏰ Reminder: Boat at 9"]

@@ -55,10 +55,10 @@ describe("Itinerary", () => {
   });
 });
 
-describe("fixtures never contain budgets", () => {
-  it.each(["miami-demo", "ex5-travel-tips", "ex2b-budget-change"])("%s", (name) => {
-    const text = JSON.stringify(fixture(name));
-    expect(text).not.toContain("total_cents");
-    expect(text).not.toContain("budgets");
+describe("fixtures carry everyone's budget (budgets are shared with the trip)", () => {
+  it("ex5-travel-tips", () => {
+    const { members } = fixture("ex5-travel-tips").detail;
+    expect(Object.fromEntries(members.map((m) => [m.id, m.budget_cents]))).toEqual(
+      { aarav: 120000, jake: 80000, mia: 50000 });
   });
 });

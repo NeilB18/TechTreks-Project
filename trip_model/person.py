@@ -1,6 +1,6 @@
 # class Person:
 #     id; name; chat_user_id; payment_handle
-#     budget: Budget | None       # private to this person
+#     budget: Budget | None       # their budget for this trip; everyone on the trip can see it
 #     active: bool                # False once they drop out; they still owe their past splits
 #     trips: list[Trip]
 

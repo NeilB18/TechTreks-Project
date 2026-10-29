@@ -1,6 +1,6 @@
 // Shapes returned by the backend's get_trip and get_balances tools
 // (agent/backend/core/engine.py, served by GET /api/trips/<id> and /balances).
-// Budgets are never part of these.
+// Budgets are shared with everyone on the trip, so members carry their total.
 
 export type Member = {
   id: string;
@@ -8,6 +8,7 @@ export type Member = {
   handle: string | null;
   active: boolean;
   budget_set: boolean;
+  budget_cents?: number | null;
 };
 
 export type TripInfo = {
@@ -77,7 +78,7 @@ export type Balances = {
 
 export type TripPageData = { detail: TripDetail; balances: Balances };
 
-// Signed-in API (/api/me/*, proxied to Django). Only ever the caller's own data.
+// Signed-in API (/api/me/*, proxied to Django). The caller's own linked trip member.
 export type Me =
   | { signed_in: false; login_url: string }
   | { signed_in: true; email: string; people: { trip_id: string; trip_name: string; person_id: string; name: string }[] };
@@ -100,7 +101,6 @@ export type MyBudget = {
   person_id: string;
   name: string;
   budget: BudgetStatus;
-  notices: { text: string; created_at: string }[];
 };
 
 export type LinkCode = { code: string; expires_at: string; instructions: string };
