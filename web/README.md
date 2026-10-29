@@ -13,6 +13,28 @@ npm run lint && npm run build
 
 ## Data
 
+### Local Supabase preview on Windows
+
+Set `DATABASE_URL` in the repository-root `.env` to the Supabase PostgreSQL URI
+with `sslmode=require`. Set a private `AGENT_API_TOKEN` there, too. Install the
+root `requirements.txt` in your Python environment, then run from the repository root:
+
+```powershell
+.venv/Scripts/python.exe -X utf8 backend/manage.py migrate
+.venv/Scripts/python.exe -X utf8 backend/manage.py seed_demo_trip
+.venv/Scripts/python.exe -X utf8 backend/manage.py runserver 127.0.0.1:8000
+```
+
+The seed command creates `supabase-demo` with sample members, activities, expenses,
+a refund, and a recorded payback. It leaves an existing trip unchanged. All payment
+handles are sample values. It does not create signed-in accounts or link a GroupMe bot.
+
+In `web/.env.local`, set `TRIP_API_URL=http://127.0.0.1:8000` and
+`TRIP_API_TOKEN` to the same private token as Django. Both environment files are
+gitignored. Start the frontend from `web/` with `npm run dev -- --webpack`, then
+open `http://127.0.0.1:3000/trips/supabase-demo`. The live home page does not list
+trips; use this direct link. Google sign-in requires the separate OAuth setup below.
+
 - **Default: fixtures.** `fixtures/*.json` are generated from the real backend logic
   (`npm run fixtures` runs `scripts/export_fixtures.py`). One file per examples.md
   scenario, plus `miami-demo`.

@@ -6,4 +6,5 @@ djangorestframework>=3.16
 django-allauth[socialaccount]>=65.20
 pytest-django>=4.11
 dj-database-url>=3
+psycopg[binary]>=3.1,<4
 requests>=2.32
