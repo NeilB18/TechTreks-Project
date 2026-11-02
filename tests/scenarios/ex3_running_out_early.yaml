@@ -26,9 +26,8 @@ turns:
                                      split_with: [aarav, jake, mia]}}
       count_min: {get_budget_status: 3}
       messages:
-        - {to: group, contains: ["$90", "$30"], not_contains: [budget]}
-        - {to: mia, contains_any: [food, budget]}
-      no_messages_to: [aarav, jake]
+        - {to: group, contains: ["$90", "$30"]}
+        - {to: group, contains: [Mia], contains_any: [food, budget]}
       end_state:
         - expense_count: 3
         - balance: {from: mia, to: jake, amount: 14000}
@@ -42,4 +41,4 @@ turns:
         - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
       messages:
         - {to: group, text: "Logged 🌮 Tacos, $90, paid by Jake, split 3 ways ($30 each)."}
-        - {to: mia, text: "Heads up: you've got $10 left of your $150 food budget, and the trip runs through Mar 18. Want some cheaper food ideas, or should I raise your food limit?"}
+        - {to: group, text: "@Mia Heads up: you've got $10 left of your $150 food budget, and the trip runs through Mar 18. Want some cheaper food ideas, or should I raise your food limit?"}

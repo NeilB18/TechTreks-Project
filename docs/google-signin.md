@@ -1,6 +1,6 @@
 # Setting up Google sign-in
 
-Sign-in only proves who you are; your budget stays private to you. You need a
+Sign-in only proves who you are, so the trip page can show your own budget first. You need a
 Google Cloud OAuth client (free).
 
 1. Go to https://console.cloud.google.com/, create a project (e.g. "tripbot").
@@ -30,5 +30,4 @@ Google tells us who you are, but not which person you are in the GroupMe chat. S
 2. Post `@tripbot link <code>` in the trip's group chat within 15 minutes.
 3. The bot sees which GroupMe account posted it and links that trip member to your sign-in.
 
-After that, `GET /api/me/trips/<trip_id>/budget` returns your budget and any private
-notices, and only yours. This works even if GroupMe DMs don't.
+After that, `GET /api/me/trips/<trip_id>/budget` returns your own budget.

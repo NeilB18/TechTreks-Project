@@ -1,8 +1,8 @@
 """End-to-end smoke test of the GroupMe path on live Qwen, without GroupMe.
 
 Runs Django in this process on a throwaway SQLite database and posts GroupMe-shaped callbacks to the real
-webhook. The background worker handles them as in production, history is saved between callbacks, and
-private messages are stored as notices. Only GroupMe's own API is replaced: group posts are captured.
+webhook. The background worker handles them as in production, and history is saved between callbacks.
+Only GroupMe's own API is replaced: group posts are captured.
 
     .venv/bin/python scripts/webhook_smoke.py            # prints a transcript
 """
@@ -18,7 +18,7 @@ sys.path[:0] = [str(ROOT), str(ROOT / "backend")]
 DB = Path(tempfile.mkdtemp()) / "smoke.sqlite3"
 SECRET = "smoke-secret"
 os.environ.update(DJANGO_SETTINGS_MODULE="tripapi.settings", DATABASE_URL=f"sqlite:///{DB}",
-                  GROUPME_CALLBACK_SECRET=SECRET, BOT_DM_MODE="store", BOT_INLINE="0", BOT_FORWARD_ALL="0")
+                  GROUPME_CALLBACK_SECRET=SECRET, BOT_INLINE="0", BOT_FORWARD_ALL="0")
 
 import django  # noqa: E402
 
@@ -28,7 +28,7 @@ from django.core.management import call_command  # noqa: E402
 from django.test import Client  # noqa: E402
 
 from bot import groupme, services, worker  # noqa: E402
-from bot.models import Conversation, PrivateNotice  # noqa: E402
+from bot.models import Conversation  # noqa: E402
 from trips.models import Person, Reminder  # noqa: E402
 
 USERS = {"aarav": "1001", "priya": "1002", "jake": "1003", "mia": "1004"}
@@ -64,7 +64,6 @@ def main() -> None:
     posts: list[str] = []
     groupme.requests.post = lambda url, **kw: posts.append(kw["json"]["text"]) or Captured()
     client = Client(HTTP_HOST="localhost")
-    seen_notices = 0
     for n, (who, text, wait) in enumerate(SCRIPT, 1):
         start = time.monotonic()
         before = len(posts)
@@ -80,10 +79,6 @@ def main() -> None:
         print(f"    (replies after {time.monotonic() - start:.0f}s)")
         for text_out in posts[before:]:
             print("    tripbot → group: " + text_out.replace("\n", "\n        "))
-        notices = list(PrivateNotice.objects.filter(trip_id="smoke").order_by("created_at"))
-        for notice in notices[seen_notices:]:
-            print(f"    tripbot → private to {notice.person_id}: " + notice.text.replace("\n", "\n        "))
-        seen_notices = len(notices)
     history = Conversation.objects.get(trip_id="smoke").history
     events = sum(1 for m in history if m["role"] == "user" and "<event>" in m["content"])
     for r in Reminder.objects.filter(trip_id="smoke"):

@@ -1,5 +1,5 @@
 kind: edge
-title: A multi-day thread ending in a private balance check and a payback
+title: A multi-day thread ending in a balance check and a payback
 seed:
   now: "2027-03-15T09:00:00"
   trip: {id: miami, name: Miami Spring Break, status: ACTIVE, destination: Miami,
@@ -33,18 +33,16 @@ turns:
       messages:
         - {to: group, text: "Logged 🥞 Breakfast, $60, paid by Jake, split between Jake and Mia ($30 each)."}
   - sender: mia
-    channel: dm
     text: how much do i owe in total rn?
     expect:
       forbid_mutations: true
       messages:
-        - {to: mia, contains: ["$330"]}
-      no_messages_to: [group]
+        - {to: group, contains: [Mia, "$330"]}
     golden:
       calls:
         - {name: get_balances, args: {trip_id: miami}}
       messages:
-        - {to: mia, text: "You owe $330 in total. To settle up: pay Aarav $330, @aarav-venmo."}
+        - {to: group, text: "@Mia You owe $330 in total. To settle up: pay Aarav $330, @aarav-venmo."}
   - sender: mia
     text: "@tripbot just venmo'd aarav $300"
     expect:

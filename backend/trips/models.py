@@ -51,7 +51,7 @@ class Person(models.Model):
 
 
 class Budget(models.Model):
-    """Private. Only ever shown to its owner."""
+    """One person's budget for this trip. Everyone on the trip can see it."""
     person = models.OneToOneField(Person, on_delete=models.CASCADE, related_name="budget")
     total_cents = models.IntegerField()
     limits = models.JSONField(default=dict)  # Category -> cents

@@ -27,10 +27,10 @@ const ME_LINKED = {
 };
 
 describe("BudgetPanel", () => {
-  it("without a backend, explains budgets are private and calls nothing", () => {
+  it("without a backend, points to the group chat and calls nothing", () => {
     const calls = mockFetch({});
     render(<BudgetPanel tripId="miami" live={false} currency="USD" />);
-    expect(screen.getByText(/DM @tripbot/)).toBeTruthy();
+    expect(screen.getByText(/ask @tripbot in the group chat/)).toBeTruthy();
     expect(calls).toEqual([]);
   });
 
@@ -61,7 +61,7 @@ describe("BudgetPanel", () => {
     expect(await screen.findByText(/Couldn.t get a link code/)).toBeTruthy();
   });
 
-  it("shows your own budget, warnings and private messages once linked", async () => {
+  it("shows your own budget and warnings once linked", async () => {
     mockFetch({
       "GET /api/me/": ME_LINKED,
       "GET /api/me/trips/miami/budget": {
@@ -69,14 +69,12 @@ describe("BudgetPanel", () => {
         budget: { person_id: "mia", budget_set: true, total_cents: 50000, spent_cents: 30000,
                   remaining_cents: 20000, planned_cents: 21300, remaining_after_planned_cents: -1300,
                   warnings: ["ACTIVITIES over limit by $13 including planned activities"] },
-        notices: [{ text: "Heads up: club night puts you over.", created_at: "2027-03-01T12:00:00" }],
       },
     });
     render(<BudgetPanel tripId="miami" live currency="USD" />);
     expect(await screen.findByText("$500")).toBeTruthy();
     expect(screen.getByText("-$13")).toBeTruthy();
     expect(screen.getByText(/Activities: over limit by \$13/)).toBeTruthy();
-    expect(screen.getByText("Heads up: club night puts you over.")).toBeTruthy();
   });
 
   it("shows an error instead of crashing when the API fails", async () => {

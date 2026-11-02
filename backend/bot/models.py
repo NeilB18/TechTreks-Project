@@ -25,15 +25,3 @@ class ProcessedMessage(models.Model):
     message_id = models.CharField(max_length=64, unique=True)
     received_at = models.DateTimeField(auto_now_add=True)
 
-
-class PrivateNotice(models.Model):
-    """A private message for one person, kept when it can't be sent as a GroupMe DM
-    (BOT_DM_MODE=store). Shown to them after sign-in; never in the group."""
-    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="private_notices")
-    person_id = models.CharField(max_length=64)
-    text = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    read = models.BooleanField(default=False)
-
-    class Meta:
-        ordering = ["-created_at"]

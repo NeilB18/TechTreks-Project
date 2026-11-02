@@ -8,7 +8,7 @@ An AI agent that lives in a group chat (GroupMe for now) and:
 - plans a group trip (destination/date polls, itinerary),
 - logs and splits group expenses from plain-text messages,
 - gives travel tips by budget tier,
-- tracks **private per-person budgets** and warns people (by DM) before they overspend.
+- tracks **per-person budgets** (shared with everyone on the trip) and warns people in the group before they overspend.
 
 **Users:** college students, groups of 4–12, spring break / fall break / long weekends.
 **Why:** customer discovery from Romir's finance startup (Quor) found students overspend on group trips → budgeting + privacy is the core hook, not just itinerary generation.
@@ -41,7 +41,7 @@ Working style: Romir, Roger, and Shriya make the design decisions — when somet
 
 Category and TripStatus are Python enums in `trip_model/` (int values); tools, the database and the web page keep using the names (`"FOOD"`), converted at the edges (the engine and `backend/trips/services.py`), as are ISO strings ↔ dates/datetimes and person ids ↔ `Person` objects. The tool schemas take their category and status lists from the enums. All money in **cents**.
 
-- **Person**: id, name, chat_user_id, payment_handle, budget (private), active (False after dropping out), trips
+- **Person**: id, name, chat_user_id, payment_handle, budget (for this trip, shared with the trip), active (False after dropping out), trips
 - **Budget**: owner_id, total_cents, limits {Category: cents}; `spent(category, expenses)` (their split share; SETTLEMENT never counts), `remaining(category, expenses)` (None if no limit), `warning(category, expenses, planned_cents)` = under 10% of that category's limit left, counting planned (unpaid) activities. Category limits only; the total doesn't warn
 - **Expense**: id, paid_by, amount_cents, currency, original amount + base amount + FX rate, description, category, created_at, source_message
   - **splits {person_id: cents} are net changes, not shares**: + means owed money, − means owes; they sum to **0**. A person's share = what they paid − their split (`share_of(person_id)`)
@@ -63,7 +63,7 @@ Category and TripStatus are Python enums in `trip_model/` (int values); tools, t
 - **In the engine, not the model:** id generation, the leader/approval rules, travel tips and tier prices, itinerary drafts, FX conversion (post-MVP), `summary()`
 
 ## 5. Tools (21 + `send_message`) — the agent ↔ backend contract
-Added since the first draft: `get_trip` (full trip state, never budgets), `send_message` (the agent's only way to talk: the group, or one person privately) and `record_payback` (Oct 25). Current inputs are in `specs.md` and `agent/tools/schemas.py`.
+Added since the first draft: `get_trip` (full trip state, including budgets), `send_message` (the agent's only way to talk: posts in the group) and `record_payback` (Oct 25). Current inputs are in `specs.md` and `agent/tools/schemas.py`.
 "Confirm" = agent must get that confirmation in chat before calling.
 
 **Expenses**
@@ -81,7 +81,7 @@ Added since the first draft: `get_trip` (full trip state, never budgets), `send_
 | `add_member` | Add someone to trip | No |
 | `remove_member` | Dropout: past splits stay (they still owe), removed from future splits/activities | Person + leader |
 | `update_trip` | Destination, dates, base currency, status, target_break, group_budget | Yes (group) |
-| `set_budget` | Person's private total + category limits (DM only) | No |
+| `set_budget` | Person's total + category limits for this trip | No |
 | `set_exclusion` | Blacklist: exclude from splits / opt out of a category | No |
 
 **Planning**
@@ -98,22 +98,22 @@ Added since the first draft: `get_trip` (full trip state, never budgets), `send_
 | Tool | Does | Confirm |
 |---|---|---|
 | `get_balances` | Net balance per person + suggested payments, netted across the group (group-visible) | No |
-| `get_budget_status` | Person's remaining budget + warning check (DM only) | No |
+| `get_budget_status` | Person's remaining budget + warning check | No |
 | `convert_currency` | Rate lookup / conversion | No |
 | `create_reminder` | Schedule a reminder ("pay Airbnb by Friday") | No |
 
 ## 6. Agent behavior rules (decided)
-- **Privacy:** individual budgets never appear in the group; budget info is DM-only. Group may see the group **average** only.
+- **Shared budgets (Oct 28, 2026):** everyone on the trip can see each person's budget, what's left and warnings. The bot only posts in the group and tags people with @Name. Only the person sets their own budget.
 - **Budget = split share**, not what the person paid.
-- **After every expense:** call `get_budget_status` for each person in the split; DM any warnings.
+- **After every expense:** call `get_budget_status` for each person in the split; post any warnings in the group, tagging the person.
 - **Default split:** if unclear who an expense is for, **ask** — never guess.
 - **Rounding:** leftover cents go to people in the split in id order, so the same expense always splits the same way (changed Oct 25; was random).
 - **Settling up:** balances are netted across the group and the agent suggests the fewest payments (changed Oct 25; was pair by pair). You may be told to pay someone other than the person who paid for your stuff.
 - **Big changes** (dropout, destination/date/budget change, poll result applied) need confirmation; edits/deletes need the payer's confirmation.
-- **Dropout:** needs both the person's and the leader's confirmation. Group gets the new per-person cost; the dropout gets a DM with what they owe.
+- **Dropout:** needs both the person's and the leader's confirmation. Group gets the new per-person cost; the dropout is tagged with what they owe.
 - **Exclusion conflict:** if someone opted out of a category but is explicitly named on an expense, ask before logging.
 - **Currency (post-MVP; the MVP is USD-only):** ambiguous symbol (e.g. "$" abroad) → ask. Confirmations show both ("€90 (≈ $97)"). Settle up in payer's choice of currency; agent converts.
-- **Travel tips:** 3 tiers (budget / mid / splurge) built from the group average; leader picks the tier; tips cover lodging, food, activities, money-saving. If someone's budget is below the chosen tier → DM them + DM the leader naming them.
+- **Travel tips:** 3 tiers (budget / mid / splurge) built from the group average; leader picks the tier; tips cover lodging, food, activities, money-saving. If someone's budget is below the chosen tier → say so in the group, kindly, and tag the leader.
 - **Date change:** flag activities that fall outside the new dates; group decides. (See examples.md for location/budget-change handling.)
 - **Travel info** comes from external APIs, not the model's own knowledge.
 - **Listening:** reply only when @mentioned; may speak unprompted for important things only — budget warnings, conflicts, unpaid debts, deadlines.
@@ -136,7 +136,7 @@ Added since the first draft: `get_trip` (full trip state, never budgets), `send_
 - [x] **Paybacks** → new `record_payback` tool; the backend makes the payment id (the bot already drops repeated GroupMe messages)
 - [x] **Shares in results** → `log_expense`, `get_trip` and the trip summary return each person's share alongside the net-change `splits`
 - [ ] FX rate provider (asking mentor; fixed table in use)
-- [ ] Can GroupMe DM people privately? Run `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in
+- [x] Can GroupMe DM people privately? → bots can't, and budgets are shared now (Oct 28), so the bot only posts in the group
 - [ ] Mentor: demo date + what must work
 - [x] Model + API key → Qwen `qwen3.8-flash` via Alibaba Cloud Model Studio (Singapore region); key in the gitignored `.env`
 - [x] Trip state for the agent → injected summary every turn + `get_trip` tool

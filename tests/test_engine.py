@@ -167,13 +167,13 @@ def test_tier_prices_round_to_dollar():
     assert rules.tier_price(83333, 1.1) == 91700
 
 
-def test_travel_tips_never_return_individual_budgets(b):
+def test_travel_tips_share_each_budget(b):
     for pid, total in [("aarav", 120000), ("jake", 80000), ("mia", 50000)]:
         dispatch(b, "set_budget", {"trip_id": "t", "person_id": pid, "total": total})
     r = dispatch(b, "get_travel_tips", {"trip_id": "t", "destination": "Miami",
                                         "multipliers": [1.1], "prices_only": True})
     assert r["average_cents"] == 83333 and r["tiers"] == [{"multiplier": 1.1, "budget_cents": 91700}]
-    assert "120000" not in str(r) and "50000" not in str(r)
+    assert r["budgets"] == {"aarav": 120000, "jake": 80000, "mia": 50000}
     u = dispatch(b, "update_trip", {"trip_id": "t", "changes": {"group_budget": 91700}})
     assert u["members_below_group_budget"] == ["jake", "mia"]
 

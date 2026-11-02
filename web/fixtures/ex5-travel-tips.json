@@ -23,21 +23,24 @@
         "name": "Aarav",
         "handle": "@aarav-venmo",
         "active": true,
-        "budget_set": true
+        "budget_set": true,
+        "budget_cents": 120000
       },
       {
         "id": "jake",
         "name": "Jake",
         "handle": "@jake-venmo",
         "active": true,
-        "budget_set": true
+        "budget_set": true,
+        "budget_cents": 80000
       },
       {
         "id": "mia",
         "name": "Mia",
         "handle": "@mia-venmo",
         "active": true,
-        "budget_set": true
+        "budget_set": true,
+        "budget_cents": 50000
       }
     ],
     "category_opt_outs": [],
@@ -48,7 +51,21 @@
     "refunds": [],
     "polls": [],
     "reminders": [],
-    "itinerary_drafts": []
+    "itinerary_drafts": [],
+    "budgets": {
+      "aarav": {
+        "total_cents": 120000,
+        "limits": {}
+      },
+      "jake": {
+        "total_cents": 80000,
+        "limits": {}
+      },
+      "mia": {
+        "total_cents": 50000,
+        "limits": {}
+      }
+    }
   },
   "balances": {
     "net_balances": {},

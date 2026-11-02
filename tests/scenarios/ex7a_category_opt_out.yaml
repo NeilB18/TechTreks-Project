@@ -9,21 +9,19 @@ seed:
     - {id: mia, name: Mia, handle: "@mia-venmo"}
 turns:
   - sender: jake
-    channel: dm
     text: I don't drink, leave me out of drinks
     expect:
       calls:
         - {name: set_exclusion, args: {person_id: jake, category: DRINKS}}
       messages:
-        - {to: jake, contains_any: [drink]}
-      no_messages_to: [group]
+        - {to: group, contains: [Jake], contains_any: [drink]}
       end_state:
         - opt_out: [jake, DRINKS]
     golden:
       calls:
         - {name: set_exclusion, args: {trip_id: miami, person_id: jake, category: DRINKS}}
       messages:
-        - {to: jake, text: "Done. You won't be included in any drinks splits."}
+        - {to: group, text: "@Jake Done. You won't be included in any drinks splits."}
   - sender: mia
     text: "@tripbot drinks at the rooftop were $60, I paid, split with everyone"
     expect:

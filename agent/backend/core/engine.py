@@ -413,7 +413,7 @@ class TripEngine:
         if "start_date" in changes or "end_date" in changes:
             out["activities_outside_dates"] = self._activities_outside(trip)
         if "group_budget" in changes and changes["group_budget"] is not None:
-            # Names only, never amounts: the agent uses this to DM people privately.
+            # Budgets are shared with the trip, so the agent can name these people in the group.
             out["members_below_group_budget"] = sorted(
                 p.id for p in trip.members
                 if p.active and p.budget and p.budget.total_cents < changes["group_budget"])
@@ -511,7 +511,7 @@ class TripEngine:
         missing = [p.id for p in active if p.budget is None]
         if not totals:
             return {"average_cents": None, "missing_budgets": missing, "tiers": [],
-                    "note": "Nobody has set a budget yet; DM members to collect them."}
+                    "note": "Nobody has set a budget yet; ask members in the group for theirs."}
         avg = round(sum(totals) / len(totals))
         tiers = []
         for m in multipliers:
@@ -520,6 +520,7 @@ class TripEngine:
                 tier.update(self.travel.tips(destination, tier, iso(trip.start_date), iso(trip.end_date)))
             tiers.append(tier)
         return {"destination": destination, "average_cents": avg, "budgets_counted": len(totals),
+                "budgets": {p.id: p.budget.total_cents for p in active if p.budget},
                 "missing_budgets": missing, "tiers": tiers, "interests": interests or []}
 
     def create_poll(self, trip_id: str, question: str, options: list[str], closes_at: str | None = None) -> dict:
@@ -608,7 +609,7 @@ class TripEngine:
         limits = {c.name: v for c, v in b.limits.items()}
         cats = sorted(set(limits) | set(spent_by_cat) | set(planned_by_cat))
         return {
-            "person_id": person_id, "budget_set": True, "visibility": "DM only",
+            "person_id": person_id, "budget_set": True,
             "total_cents": b.total_cents, "spent_cents": spent,
             "remaining_cents": b.total_cents - spent, "planned_cents": planned,
             "remaining_after_planned_cents": b.total_cents - spent - planned,
@@ -637,6 +638,10 @@ class TripEngine:
         s["polls"] = [self._poll_view(p) for p in trip.polls]
         s["reminders"] = [self._reminder_view(r) for r in trip.reminders]
         s["itinerary_drafts"] = sorted(trip.itinerary_drafts)
+        # Budgets are shared with everyone on the trip (decided Oct 28, 2026).
+        s["budgets"] = {p.id: {"total_cents": p.budget.total_cents,
+                               "limits": {c.name: v for c, v in p.budget.limits.items()}}
+                        for p in trip.members if p.budget}
         return s
 
     # ------------------------------------------------------------- not a tool
@@ -651,7 +656,8 @@ class TripEngine:
                      "leader_id": trip.leader_id, "leader_approval": sorted(trip.leader_approval),
                      "auto_log_mode": trip.auto_log_mode},
             "members": [{"id": p.id, "name": p.name, "handle": p.payment_handle,
-                         "active": p.active, "budget_set": p.budget is not None}
+                         "active": p.active, "budget_set": p.budget is not None,
+                         "budget_cents": p.budget.total_cents if p.budget else None}
                         for p in trip.members],
             "category_opt_outs": sorted([pid, cat.name] for pid, cat in trip.opt_outs),
             "recent_expenses": [

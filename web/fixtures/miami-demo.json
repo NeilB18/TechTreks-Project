@@ -23,42 +23,48 @@
         "name": "Aarav",
         "handle": "@aarav-venmo",
         "active": true,
-        "budget_set": false
+        "budget_set": false,
+        "budget_cents": null
       },
       {
         "id": "priya",
         "name": "Priya",
         "handle": "@priya-venmo",
         "active": true,
-        "budget_set": false
+        "budget_set": false,
+        "budget_cents": null
       },
       {
         "id": "jake",
         "name": "Jake",
         "handle": "jake@example.com",
         "active": true,
-        "budget_set": false
+        "budget_set": false,
+        "budget_cents": null
       },
       {
         "id": "mia",
         "name": "Mia",
         "handle": "@mia-venmo",
         "active": true,
-        "budget_set": false
+        "budget_set": false,
+        "budget_cents": null
       },
       {
         "id": "sam",
         "name": "Sam",
         "handle": "@sam-venmo",
         "active": true,
-        "budget_set": false
+        "budget_set": false,
+        "budget_cents": null
       },
       {
         "id": "leo",
         "name": "Leo",
         "handle": "@leo-venmo",
         "active": true,
-        "budget_set": false
+        "budget_set": false,
+        "budget_cents": null
       }
     ],
     "category_opt_outs": [
@@ -544,7 +550,8 @@
     ],
     "polls": [],
     "reminders": [],
-    "itinerary_drafts": []
+    "itinerary_drafts": [],
+    "budgets": {}
   },
   "balances": {
     "net_balances": {

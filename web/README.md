@@ -1,7 +1,7 @@
 # Trip page (Next.js)
 
 The page the bot links to: itinerary by day, who owes whom (with Venmo pay links),
-and expenses. Budgets are private, so they never appear here; the "My budget" panel
+and expenses. Budgets are shared with everyone on the trip; the "My budget" panel
 gets wired to sign-in later.
 
 ```bash
@@ -54,7 +54,6 @@ to Django (see `next.config.ts`), so the session cookie is on this site's domain
 
 1. offers "Sign in with Google";
 2. once you're signed in, gives you a code to post as `@tripbot link <code>` in the group;
-3. once you're linked, shows your own total, spent, planned, what's left, warnings,
-   and private messages from @tripbot.
+3. once you're linked, shows your own total, spent, planned, what's left and warnings.
 
 Setup: [../docs/google-signin.md](../docs/google-signin.md).

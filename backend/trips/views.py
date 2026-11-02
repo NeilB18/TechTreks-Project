@@ -1,8 +1,7 @@
 """HTTP API for the agent (tool calls) and the trip page (read-only trip data).
 
-All endpoints require "Authorization: Bearer <AGENT_API_TOKEN>". Budgets never
-appear in these responses except through get_budget_status, which the agent
-only relays to that person's DM.
+All endpoints require "Authorization: Bearer <AGENT_API_TOKEN>". Budgets are
+shared with everyone on the trip, so the trip data includes them.
 """
 
 import hmac

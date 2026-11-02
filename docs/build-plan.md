@@ -11,7 +11,7 @@ GroupMe group ──@tripbot──> Django /groupme/callback ──> agent (Qwen
                                     │                         │
                                     │                  DjangoBackend (tools, rules)
                                     │                         │
-                       group reply / private notice      database (SQLite → Supabase)
+                            group reply                 database (SQLite → Supabase)
                                                               │
 Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 ```
@@ -22,7 +22,7 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Data model | `trip_model/` | The trip's data and rules: splits, refunds, balances, settle-up, opt-outs, dropouts, polls, reminders, budgets |
 | Engine | `agent/backend/core/` | `TripEngine`: every tool, run on `trip_model` objects; in memory for tests, and inside the Django backend |
 | Backend | `backend/trips/` | Django models and `DjangoBackend`, which runs the same rules over the database; tool API |
-| Bot | `backend/bot/` | GroupMe webhook, replies, private notices, reminders |
+| Bot | `backend/bot/` | GroupMe webhook, replies, reminders |
 | Sign-in | `backend/accounts/` | Google sign-in, link code, "my budget" API |
 | Trip page | `web/` | Itinerary, who owes whom, expenses, "My budget" |
 | Tests | `tests/`, `web/__tests__/` | Each examples.md example replayed against the fake, the database and the API; bot, sign-in and page tests |
@@ -47,7 +47,6 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 27 | Only the last 12 turns are sent, and only the newest has the trip state |
 | Oct 27 | Runner guards found by the webhook smoke test: no budget numbers in group messages on budget turns; the model can't call `add_member` (it invented chat ids); people save their own payment handle with `set_payment_handle` |
 | Oct 22 | Local database is SQLite; Supabase later by setting `DATABASE_URL` |
-| Oct 22 | GroupMe DMs: test first with `scripts/groupme_dm_spike.py`. Until then, private messages are saved and shown on the trip page after sign-in |
 | Oct 22 | Account linking works without DMs: sign in with Google, then post `@tripbot link <code>` in the group |
 | Oct 22 | Each piece of work gets its own branch and PR, stacked so work doesn't wait on reviews |
 | Oct 25 | `classes/` is the data model and money rules (later renamed `trip_model/`, see below) |
@@ -60,6 +59,8 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 25 | `trip_model/` (was `classes/`) is the only data model; the fake backend's dataclasses are gone, and it's renamed `agent/backend/core/` / `TripEngine` |
 | Oct 25 | Each rule has one version, in `trip_model/` where it's a data rule |
 | Oct 25 | Leader fields carried over unchanged while the team decides whether to keep the leader feature |
+| Oct 28 | The leader feature stays |
+| Oct 28 | Budgets are shared with everyone on the trip, and the bot only posts in the group (GroupMe bots can't DM). Private notices, the DM spike and the runner's budget-leak guard are gone; the trip API returns everyone's budget; the 5 privacy scenarios were removed and the DM ones moved into the group |
 
 ## Pull requests (stacked, merge in order)
 
@@ -91,7 +92,6 @@ Superseded and should be closed unmerged: the earlier `agent-live-tuning`, `ci`,
 ## Blocked / waiting on
 
 - **Qwen access** (Alibaba account in verification): live agent tests (`pytest -m live`), prompt tuning, a real GroupMe demo.
-- **GroupMe DM spike**: needs a GroupMe account and a teammate to receive a test DM.
 - **Google OAuth client**: see [google-signin.md](google-signin.md).
 - **Mentor**: demo date and what must work, exchange-rate provider.
 
@@ -99,6 +99,5 @@ Superseded and should be closed unmerged: the earlier `agent-live-tuning`, `ci`,
 
 1. Run `pytest -m live --repeat 3` and fix the prompt where scenarios fail (transcripts in `tests/out/`).
 2. Create a GroupMe bot, run `manage.py link_group`, and try a real chat end to end.
-3. Run the DM spike and choose the DM mode.
 4. Deploy (backend + trip page on one domain, so sign-in works), and connect Supabase.
 5. Swap placeholder travel tips and exchange rates for Google Places / SerpAPI and a real FX provider.

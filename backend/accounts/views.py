@@ -1,7 +1,8 @@
 """API for the signed-in person (session cookie from Google sign-in).
 
-A person can only ever read their own budget: the trip member linked to their
-account. Everyone else gets 403, and anonymous requests get 401.
+"My budget" is the budget of the trip member linked to the signed-in account (budgets are
+shared with the trip, but the page shows your own first). People who aren't linked to a member
+of the trip get 403, and anonymous requests get 401.
 """
 
 from functools import wraps
@@ -12,7 +13,6 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from accounts.services import new_code
-from bot.models import PrivateNotice
 from trips.models import Person
 from trips.services import DjangoBackend
 
@@ -60,10 +60,4 @@ def my_budget(request, trip_id: str):
     if person is None:
         return JsonResponse({"error": "You're not linked to a member of this trip"}, status=403)
     status = DjangoBackend().get_budget_status(trip_id=trip_id, person_id=person.person_id)
-    notices = PrivateNotice.objects.filter(trip_id=trip_id, person_id=person.person_id)[:20]
-    return JsonResponse({
-        "person_id": person.person_id,
-        "name": person.name,
-        "budget": status,
-        "notices": [{"text": n.text, "created_at": n.created_at.isoformat()} for n in notices],
-    })
+    return JsonResponse({"person_id": person.person_id, "name": person.name, "budget": status})

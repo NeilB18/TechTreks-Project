@@ -12,7 +12,7 @@ type State =
   | { step: "not-linked"; code: LinkCode | null }
   | { step: "ready"; data: MyBudget };
 
-// Private, per-person data: never serve it from the browser cache.
+// Live, per-person data: never serve it from the browser cache.
 const NO_STORE: RequestInit = { cache: "no-store" };
 
 function csrfToken(): string {
@@ -20,8 +20,8 @@ function csrfToken(): string {
 }
 
 /**
- * Private budget for the signed-in person only. Data comes from /api/me/*, which
- * Django answers for the caller's own linked trip member and nobody else.
+ * The signed-in person's own budget. Budgets are shared with the trip, but this panel
+ * shows yours first. Data comes from /api/me/*, answered for the caller's linked trip member.
  * Without a backend (fixtures), it just explains where budgets live.
  */
 export function BudgetPanel({ tripId, live, currency }: { tripId: string; live: boolean; currency: string }) {
@@ -63,23 +63,21 @@ export function BudgetPanel({ tripId, live, currency }: { tripId: string; live: 
 
   return (
     <div className="rounded-xl border border-dashed border-line p-4">
-      <p className="font-medium">🔒 My budget</p>
+      <p className="font-medium">My budget</p>
       <div className="mt-1 text-sm">
         {state.step === "loading" && <p className="text-muted">Loading…</p>}
         {state.step === "error" && <p className="text-muted">{state.message}</p>}
         {state.step === "signed-out" &&
           (live ? (
             <p className="text-muted">
-              Your budget is private. Only you can see it.{" "}
               <a href={`/accounts/google/login/?next=/trips/${encodeURIComponent(tripId)}`} className="text-accent underline">
                 Sign in with Google
               </a>{" "}
-              to see it here.
+              to see your budget here.
             </p>
           ) : (
             <p className="text-muted">
-              Your budget is private. Only you can see it. Sign-in isn&rsquo;t set up on this page, so DM @tripbot to
-              check what you have left.
+              Sign-in isn&rsquo;t set up on this page, so ask @tripbot in the group chat what you have left.
             </p>
           ))}
         {state.step === "not-linked" && (
@@ -110,7 +108,7 @@ export function BudgetPanel({ tripId, live, currency }: { tripId: string; live: 
 export function BudgetDetails({ data, currency }: { data: MyBudget; currency: string }) {
   const b = data.budget;
   if (!b.budget_set) {
-    return <p className="text-muted">No budget set yet. DM @tripbot your total (e.g. &ldquo;my budget is $800&rdquo;).</p>;
+    return <p className="text-muted">No budget set yet. Tell @tripbot in the group chat (e.g. &ldquo;my budget is $800&rdquo;).</p>;
   }
   const rows: [string, number | undefined][] = [
     ["Total", b.total_cents],
@@ -134,16 +132,6 @@ export function BudgetDetails({ data, currency }: { data: MyBudget; currency: st
             <li key={i} className="font-medium text-warn">⚠️ {warningText(w)}</li>
           ))}
         </ul>
-      )}
-      {data.notices.length > 0 && (
-        <div className="mt-3">
-          <p className="text-muted">Private messages from @tripbot</p>
-          <ul className="mt-1 space-y-1">
-            {data.notices.map((n) => (
-              <li key={n.created_at + n.text} className="rounded-lg bg-line/40 p-2">{n.text}</li>
-            ))}
-          </ul>
-        </div>
       )}
     </div>
   );

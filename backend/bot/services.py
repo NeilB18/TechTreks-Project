@@ -71,10 +71,8 @@ def handle_callback(payload: dict) -> str:
         groupme.post_to_group(chat.bot_id, redeem(code, person))
         return "linked account"
     convo, _ = Conversation.objects.get_or_create(trip=trip)
-    # GroupMe won't let us send DMs, so private messages are stored and shown on each person's trip page.
-    page = None if settings.BOT_DM_MODE == "groupme" else f"{settings.FRONTEND_URL.rstrip('/')}/trips/{trip.id}"
-    event = ChatEvent(sender_id=person.person_id, text=text, channel="group", mentioned=mentioned,
-                      chat_user_id=person.chat_user_id, time=now, private_page=page)
+    event = ChatEvent(sender_id=person.person_id, text=text, mentioned=mentioned,
+                      chat_user_id=person.chat_user_id, time=now)
     started = time.monotonic()
     for attempt in range(2):
         agent = make_agent(backend, trip.id, convo.history)  # fresh each try: a failed one may have half a turn
@@ -113,12 +111,6 @@ def _find_or_add_person(backend: DjangoBackend, trip_id: str, user_id: str, name
 
 
 def deliver(chat: GroupChat, outbox: list[dict]) -> None:
-    """Group messages go to the group; anything addressed to a person goes privately, never the group."""
-    people = {p.person_id: p for p in Person.objects.filter(trip=chat.trip)}
+    """Everything goes to the group: the bot has no private messages."""
     for msg in outbox:
-        if msg["to"] == "group":
-            groupme.post_to_group(chat.bot_id, msg["text"])
-        elif msg["to"] in people:
-            groupme.send_dm(chat.trip, people[msg["to"]], msg["text"])
-        else:
-            log.error("Dropping message to unknown recipient %r", msg["to"])
+        groupme.post_to_group(chat.bot_id, msg["text"])
