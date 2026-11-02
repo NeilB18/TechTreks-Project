@@ -15,12 +15,15 @@ from pathlib import Path
 from openai import OpenAI
 
 from agent import config
-from agent.backend.protocol import Backend, ToolError, dispatch
+from agent.backend.protocol import Backend, ToolError, dispatch, is_mutation
 from agent.enrich import enrich
-from agent.tools.schemas import ALL_TOOLS
+from agent.tools.schemas import ALL_TOOLS, BACKEND_TOOL_SCHEMAS
 
 SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "system_prompt.md").read_text()
 PAYER_CONFIRMS = {"edit_expense", "delete_expense", "record_refund"}
+# Tools that take a trip_id. A chat only ever acts on its own trip, whatever id the model passes.
+TRIP_TOOLS = {t["function"]["name"] for t in BACKEND_TOOL_SCHEMAS
+              if "trip_id" in t["function"]["parameters"]["properties"]}
 # update_trip fields that count as trip changes (specs.md); name, leader and settings are the group's own.
 TRIP_CHANGE_FIELDS = {"destination", "start_date", "end_date", "base_currency", "status", "group_budget"}
 # After these, the runner checks the budget of everyone affected (specs.md: after every expense,
@@ -81,6 +84,9 @@ class TripAgent:
         self.history: list[dict] = list(history or [])
         self.sender_id: str | None = None
         self.event: ChatEvent | None = None
+        # Set once a tool call changes trip data this turn. If the turn then fails, the bot must not rerun it,
+        # or the change (an expense, a payback) would be saved twice.
+        self.mutated = False
 
     def _event_text(self, ev: ChatEvent) -> str:
         state = self.backend.summary(self.trip_id)
@@ -112,6 +118,22 @@ class TripAgent:
                         **({"thinking_budget": config.THINKING_BUDGET}
                            if thinking and config.THINKING_BUDGET else {})},
         )
+
+    def _trip_guard(self, name: str, args: dict) -> str | None:
+        """Keep every tool call on this chat's trip. The model's trip_id is filled in or checked, and expense and
+        poll ids must belong to this trip: the backend looks those ids up across every trip."""
+        if name in TRIP_TOOLS:
+            if args.get("trip_id") not in (None, self.trip_id):
+                return f"Not done: this chat can only see and change its own trip ({self.trip_id})."
+            args["trip_id"] = self.trip_id
+        trip = None
+        for key, kind, id_field in (("expense_id", "expenses", "expense_id"), ("poll_id", "polls", "id")):
+            if args.get(key) is None:
+                continue
+            trip = trip or self.backend.get_trip(trip_id=self.trip_id)
+            if args[key] not in {x[id_field] for x in trip[kind]}:
+                return f"No {key.removesuffix('_id')} {args[key]!r} on this trip. Check get_trip for the right id."
+        return None
 
     def _payer_guard(self, name: str, args: dict) -> str | None:
         """Edits, deletes and refunds need the payer's OK (specs.md). Enforce it here instead of trusting
@@ -221,7 +243,8 @@ class TripAgent:
                           "messaged you is already in trip_state members. Nothing was changed. If someone's missing, "
                           "ask them to say hi with @tripbot.")
             return f"Error: {call.error}"
-        blocked = self._payer_guard(name, args) or self._leader_guard(name, args) or self._refund_guard(name)
+        blocked = (self._trip_guard(name, args) or self._payer_guard(name, args) or self._leader_guard(name, args)
+                   or self._refund_guard(name))
         if blocked:
             call.error = blocked
             return f"Error: {blocked}"
@@ -230,6 +253,7 @@ class TripAgent:
         except ToolError as e:
             call.error = str(e)
             return f"Error: {e}"
+        self.mutated = self.mutated or is_mutation(name, args)
         summary = self.backend.summary(self.trip_id)
         enrich(call.result, args, summary)
         if name in BUDGET_CHECK_AFTER:
@@ -296,6 +320,7 @@ class TripAgent:
         result = TurnResult()
         self.sender_id = event.sender_id
         self.event = event
+        self.mutated = False
         self.history.append({"role": "user", "content": self._event_text(event)})
         self._trim_history()
         nudged = False

@@ -61,6 +61,7 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 25 | Leader fields carried over unchanged while the team decides whether to keep the leader feature |
 | Oct 28 | The leader feature stays |
 | Oct 28 | Budgets are shared with everyone on the trip, and the bot only posts in the group (GroupMe bots can't DM). Private notices, the DM spike and the runner's budget-leak guard are gone; the trip API returns everyone's budget; the 5 privacy scenarios were removed and the DM ones moved into the group |
+| Nov 2 | Tool calls stay on the chat's own trip (the runner fills in or rejects `trip_id`, and expense and poll ids must belong to the trip). A turn that already saved something isn't rerun after a model outage; the bot says some of it may be saved instead |
 
 ## Pull requests (stacked, merge in order)
 
