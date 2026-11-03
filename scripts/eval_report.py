@@ -2,6 +2,7 @@
 
     .venv/bin/python scripts/eval_report.py                 # all scenarios, 3 runs each
     .venv/bin/python scripts/eval_report.py --repeat 1 -k edge_
+    .venv/bin/python scripts/eval_report.py --repeat 1 -x edge_plan,edge_nearby   # everything except those
     .venv/bin/python scripts/eval_report.py --from-transcripts   # rebuild the report from tests/out/
 
 Costs API credits (qwen3.8-flash). Transcripts land in tests/out/<scenario>-<run>.json.
@@ -107,6 +108,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--repeat", type=int, default=3)
     ap.add_argument("-k", default="", help="only scenarios whose file name contains this (comma-separated for several)")
+    ap.add_argument("-x", "--exclude", default="", help="skip scenarios whose file name contains this (comma-separated)")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--from-transcripts", action="store_true", help="don't call the model; just rebuild the report")
     ap.add_argument("--out-dir", help="where transcripts go (default tests/out); use one per experiment")
@@ -119,7 +121,9 @@ def main() -> None:
         REPORT = Path(args.report).resolve()
 
     keys = [k for k in args.k.split(",") if k] or [""]
-    scenarios = [s for s in load_scenarios() if not s.get("skip") and any(k in s["file"] for k in keys)]
+    skips = [k for k in args.exclude.split(",") if k]
+    scenarios = [s for s in load_scenarios() if not s.get("skip") and any(k in s["file"] for k in keys)
+                 and not any(k in s["file"] for k in skips)]
     if not args.from_transcripts:
         for s in scenarios:  # start clean so old runs don't mix in
             for old in OUT_DIR.glob(f"{s['file'].removesuffix('.yaml')}-*.json"):

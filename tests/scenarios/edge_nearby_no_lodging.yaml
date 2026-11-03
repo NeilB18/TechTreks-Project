@@ -1,0 +1,36 @@
+kind: edge
+title: Nearby search with no lodging saved asks where the group is staying, saves it, then searches
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: mia
+    text: "@tripbot any coffee near where we're staying?"
+    expect:
+      forbid_mutations: true
+      messages:
+        - {to: group, contains_any: [staying, hotel, airbnb, Airbnb, address]}
+    golden:
+      messages:
+        - {to: group, text: "Where are you staying? Send me the hotel name or address and I'll save it, then find coffee nearby."}
+  - sender: mia
+    text: "@tripbot the Freehand Miami"
+    expect:
+      calls:
+        - {name: find_nearby, args: {what: coffee}}
+      messages:
+        - {to: group, contains: [Coffee Spot 1]}
+      end_state:
+        - trip_contains: {lodging: freehand}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: miami, changes: {lodging: Freehand Miami}}}
+        - {name: find_nearby, args: {trip_id: miami, what: coffee}}
+      messages:
+        - {to: group, text: "Saved the Freehand Miami. Closest coffee: Coffee Spot 1 (0.1 mi, about a 3 min walk) and Coffee Spot 2 (0.2 mi). (map data © OpenStreetMap contributors)"}

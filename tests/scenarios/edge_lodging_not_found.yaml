@@ -1,0 +1,22 @@
+kind: edge
+title: A lodging the map can't find isn't saved, and the bot asks for the street address
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: jake
+    text: "@tripbot we're staying at Zzqx Imaginary Taco Palace"
+    expect:
+      messages:
+        - {to: group, contains_any: [address, street]}
+      end_state:
+        - trip: {lodging: null}
+    golden:
+      messages:
+        - {to: group, text: "I couldn't find that on the map. What's the street address?"}

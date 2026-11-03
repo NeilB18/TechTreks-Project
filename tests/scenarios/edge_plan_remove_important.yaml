@@ -1,0 +1,49 @@
+kind: edge
+title: Removing an activity marked important waits for a yes; a plain one goes right away
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  activities:
+    - {id: boat_tour, name: Boat tour, kind: activity, start: "2027-03-15T14:30", end: "2027-03-15T17:30", important: true}
+    - {id: beach, name: South Pointe Park, kind: activity, start: "2027-03-16T10:00", end: "2027-03-16T12:00"}
+turns:
+  - sender: jake
+    text: "@tripbot drop the boat tour"
+    expect:
+      messages:
+        - {to: group, contains: ["?"]}
+      end_state:
+        - activity_count: 2
+    golden:
+      messages:
+        - {to: group, text: "The boat tour is marked important. Remove it from the trip? Confirm?"}
+  - sender: aarav
+    text: "@tripbot yes drop it"
+    expect:
+      calls:
+        - {name: remove_activity, args: {activity_id: boat_tour}}
+      end_state:
+        - activity_count: 1
+    golden:
+      calls:
+        - {name: remove_activity, args: {trip_id: miami, activity_id: boat_tour}}
+      messages:
+        - {to: group, text: "Done, the boat tour is off the trip."}
+  - sender: mia
+    text: "@tripbot also drop south pointe park"
+    expect:
+      calls:
+        - {name: remove_activity, args: {activity_id: beach}}
+      end_state:
+        - activity_count: 0
+    golden:
+      calls:
+        - {name: remove_activity, args: {trip_id: miami, activity_id: beach}}
+      messages:
+        - {to: group, text: "Removed South Pointe Park."}
