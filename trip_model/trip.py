@@ -17,7 +17,7 @@
 #     set_opt_out(); remove_opt_out()
 #     split_people(person_ids, category, exclude, overrides) -> (people, opted_out)
 #     add_expense(); get_expense(); delete_expense(); refunds; add_refund()
-#     add_activity(); add_poll(); add_reminder()
+#     add_activity(); remove_activity(activity_id) -> Activity; add_poll(); add_reminder()
 #     itinerary_by_day() -> dict[date, list[Activity]]
 #     spent_by_category(person=None) -> dict[Category, int]
 #     balances() -> dict[person_id, int]
@@ -165,6 +165,13 @@ class Trip:
         if any(person.id not in member_ids for person in activity.attendees):
             raise ValueError("Every attendee must be on this trip.")
         self.activities.append(activity)
+
+    def remove_activity(self, activity_id) -> Activity:
+        for activity in self.activities:
+            if activity.id == activity_id:
+                self.activities.remove(activity)
+                return activity
+        raise ValueError(f"No activity {activity_id!r}")
 
     def add_poll(self, poll: Poll):
         self.polls.append(poll)

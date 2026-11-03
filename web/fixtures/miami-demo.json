@@ -177,6 +177,8 @@
         "lat": 25.730588235294118,
         "lon": -80.21686274509804,
         "verified": true,
+        "kind": "activity",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=Little+Havana+Walking+Tour%2C+Miami"
       },
       {
@@ -202,6 +204,8 @@
         "lat": 25.710980392156863,
         "lon": -80.23098039215687,
         "verified": true,
+        "kind": "food",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami"
       },
       {
@@ -227,6 +231,8 @@
         "lat": 25.72313725490196,
         "lon": -80.20901960784313,
         "verified": true,
+        "kind": "night",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=Ball+%26+Chain%2C+Miami"
       },
       {
@@ -252,6 +258,8 @@
         "lat": 25.739607843137254,
         "lon": -80.24705882352941,
         "verified": true,
+        "kind": "activity",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=Bayside+Marketplace%2C+Miami"
       },
       {
@@ -277,6 +285,8 @@
         "lat": 25.71254901960784,
         "lon": -80.26745098039216,
         "verified": true,
+        "kind": "food",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=Versailles+Restaurant%2C+Miami"
       },
       {
@@ -302,6 +312,8 @@
         "lat": 25.789019607843137,
         "lon": -80.26941176470588,
         "verified": true,
+        "kind": "activity",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=South+Pointe+Park%2C+Miami"
       },
       {
@@ -327,6 +339,8 @@
         "lat": 25.705098039215684,
         "lon": -80.25098039215686,
         "verified": true,
+        "kind": "food",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=La+Mar+by+Gast%C3%B3n+Acurio%2C+Miami"
       },
       {
@@ -352,6 +366,8 @@
         "lat": 25.797254901960784,
         "lon": -80.24627450980392,
         "verified": true,
+        "kind": "activity",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami"
       },
       {
@@ -377,6 +393,8 @@
         "lat": 25.7956862745098,
         "lon": -80.20509803921568,
         "verified": true,
+        "kind": "food",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=Mandolin+Aegean+Bistro%2C+Miami"
       },
       {
@@ -402,6 +420,8 @@
         "lat": 25.782745098039214,
         "lon": -80.29882352941176,
         "verified": true,
+        "kind": "activity",
+        "from_idea": false,
         "maps_url": "https://www.google.com/maps/search/?api=1&query=Vizcaya+Museum+and+Gardens%2C+Miami"
       },
       {
@@ -426,7 +446,9 @@
         "expense_id": null,
         "lat": null,
         "lon": null,
-        "verified": null
+        "verified": null,
+        "kind": null,
+        "from_idea": false
       }
     ],
     "ideas": [],

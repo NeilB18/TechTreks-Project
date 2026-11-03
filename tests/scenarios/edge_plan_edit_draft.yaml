@@ -1,0 +1,69 @@
+kind: edge
+title: Draft edits change one stop without rebuilding; a saved stop can be removed
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only,
+         planning_notes: "chill, big on food"}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: jake
+    text: "@tripbot plan sunday for us"
+    expect:
+      calls:
+        - {name: generate_itinerary, args: {days: ["2027-03-14"]}}
+      end_state:
+        - activity_count: 0
+    golden:
+      calls:
+        - {name: generate_itinerary, args: {trip_id: miami, days: ["2027-03-14"], places: [
+            {name: Wynwood Walls, kind: activity, est_cost_cents: 0},
+            {name: Versailles Restaurant, kind: food, est_cost_cents: 2500},
+            {name: Joe's Stone Crab, kind: food, est_cost_cents: 7000}]}}
+      messages:
+        - {to: group, text: "Sunday draft: Wynwood Walls in the morning, lunch at Versailles, dinner at Joe's Stone Crab. Hours and prices are estimates (map data © OpenStreetMap contributors). Save it?"}
+  - sender: mia
+    text: "@tripbot swap dinner for La Mar"
+    expect:
+      calls:
+        - {name: edit_draft, args: {action: swap}}
+      forbid: [generate_itinerary]
+      messages:
+        - {to: group, contains: [La Mar]}
+      end_state:
+        - activity_count: 0
+    golden:
+      calls:
+        - {name: edit_draft, args: {trip_id: miami, draft_id: d1, action: swap, stop: "Joe's Stone Crab",
+                                    place: {name: "La Mar by Gastón Acurio", kind: food, est_cost_cents: 6000}}}
+      messages:
+        - {to: group, text: "Swapped: dinner Sunday is now La Mar by Gastón Acurio. Save it?"}
+  - sender: jake
+    text: "@tripbot looks good, save it"
+    expect:
+      calls:
+        - {name: generate_itinerary, args: {save_draft_id: d1}}
+      end_state:
+        - activity_count: 3
+    golden:
+      calls:
+        - {name: generate_itinerary, args: {trip_id: miami, save_draft_id: d1}}
+      messages:
+        - {to: group, text: "Saved! Sunday's 3 stops are on the trip page."}
+  - sender: mia
+    text: "@tripbot actually drop versailles"
+    expect:
+      calls:
+        - {name: remove_activity}
+      forbid: [generate_itinerary, edit_draft]
+      end_state:
+        - activity_count: 2
+    golden:
+      calls:
+        - {name: remove_activity, args: {trip_id: miami, activity_id: a2}}
+      messages:
+        - {to: group, text: "Dropped lunch at Versailles. Sunday is Wynwood Walls and La Mar now."}

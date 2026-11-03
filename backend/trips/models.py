@@ -138,6 +138,8 @@ class Activity(models.Model):
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)
     verified = models.BooleanField(null=True, blank=True)  # None: never checked on the map
+    kind = models.CharField(max_length=16, null=True, blank=True)  # food, activity or night; None: not a place
+    from_idea = models.BooleanField(default=False)  # came off the ideas list
     position = models.IntegerField(default=0)
 
     class Meta:
