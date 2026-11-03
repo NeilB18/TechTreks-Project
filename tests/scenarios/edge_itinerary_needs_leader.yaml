@@ -20,9 +20,19 @@ turns:
         - {to: group, contains: [Aarav]}
     golden:
       calls:
-        - {name: generate_itinerary, args: {trip_id: miami}}
+        - {name: generate_itinerary, args: {trip_id: miami, places: [
+            {name: Versailles Restaurant, kind: food, est_cost_cents: 2500},
+            {name: Vizcaya Museum and Gardens, kind: activity, est_cost_cents: 2500},
+            {name: Wynwood Walls, kind: activity, est_cost_cents: 0},
+            {name: Joe's Stone Crab, kind: food, est_cost_cents: 7000},
+            {name: South Pointe Park, kind: activity, est_cost_cents: 0},
+            {name: Ball & Chain, kind: night, est_cost_cents: 3000},
+            {name: Little Havana, kind: activity, est_cost_cents: 1000},
+            {name: Mandolin Aegean Bistro, kind: food, est_cost_cents: 4000},
+            {name: Bayside Marketplace, kind: activity, est_cost_cents: 1500},
+            {name: La Mar by Gastón Acurio, kind: food, est_cost_cents: 6000}]}}
       messages:
-        - {to: group, text: "Here's a draft for Mar 14–18 (beach days, a walking tour, a boat tour, a night out). @Aarav, want me to save it to the trip?"}
+        - {to: group, text: "Here's a draft for Mar 14–18: Vizcaya and Versailles, Wynwood and Mandolin, South Beach and Joe's, plus a night at Ball & Chain. Hours and prices are estimates (map data © OpenStreetMap contributors). @Aarav, want me to save it to the trip?"}
   - sender: jake
     text: "@tripbot looks good, save it"
     expect:

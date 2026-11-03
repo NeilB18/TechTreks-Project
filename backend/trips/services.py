@@ -64,7 +64,8 @@ def load_trip(trip_id: str, lock: bool = False) -> Trip:
             a.activity_id, a.name, location=a.location, start=parse_day_or_time(a.start, "start"),
             end=parse_day_or_time(a.end, "end"), est_cost_cents=a.est_cost_cents,
             cost_is_per_person=a.cost_is_per_person, attendees=[trip.get_member(pid) for pid in a.attendees],
-            important=a.important, booking_url=a.booking_url, expense_id=a.expense_id))
+            important=a.important, booking_url=a.booking_url, expense_id=a.expense_id,
+            lat=a.lat, lon=a.lon, verified=a.verified))
     for p in row.polls.prefetch_related("votes"):
         trip.add_poll(Poll(p.id, p.question, list(p.options),
                            closes_at=parse_time(p.closes_at, "closes_at") if p.closes_at else None,
@@ -128,7 +129,8 @@ def save_trip(trip: Trip) -> None:
         trip=row, activity_id=a.id, name=a.name, location=a.location, start=iso(a.start), end=iso(a.end),
         est_cost_cents=a.est_cost_cents, cost_is_per_person=a.cost_is_per_person,
         attendees=[p.id for p in a.attendees], important=a.important, booking_url=a.booking_url,
-        expense_id=a.expense_id, position=i) for i, a in enumerate(trip.activities))
+        expense_id=a.expense_id, lat=a.lat, lon=a.lon, verified=a.verified, position=i)
+        for i, a in enumerate(trip.activities))
     row.polls.all().delete()
     for i, p in enumerate(trip.polls):
         pr = m.Poll.objects.create(id=p.id, trip=row, question=p.question, options=list(p.options),

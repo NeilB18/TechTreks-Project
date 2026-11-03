@@ -39,6 +39,9 @@ export type Activity = {
   important: boolean;
   booking_url: string | null;
   expense_id: string | null;
+  lat?: number | null;
+  lon?: number | null;
+  verified?: boolean | null; // null: never checked on the map (added by hand)
 };
 
 export type Expense = {

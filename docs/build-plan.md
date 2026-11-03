@@ -62,6 +62,7 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 28 | The leader feature stays |
 | Oct 28 | Budgets are shared with everyone on the trip, and the bot only posts in the group (GroupMe bots can't DM). Private notices, the DM spike and the runner's budget-leak guard are gone; the trip API returns everyone's budget; the 5 privacy scenarios were removed and the DM ones moved into the group |
 | Nov 2 | Trip planning uses Qwen's suggestions checked against OpenStreetMap (free Nominatim server), not Google Places or SerpAPI |
+| Nov 2 | Itinerary drafts come from the agent's suggested stops (up to 3 a day, 15 a draft, since each map check takes a second). Not-found stops stay in the draft marked unverified so the agent can offer a swap. Without places the tool asks for them, unless Google Places is set up. Tests and evals use made-up map data, so they stay free and offline |
 
 ## Pull requests (stacked, merge in order)
 

@@ -44,6 +44,17 @@ def maps_url(name: str, city: str) -> str:
     return f"https://www.google.com/maps/search/?api=1&query={quote_plus(f'{name}, {city}')}"
 
 
+def short_address(place: Place) -> str:
+    """The street and neighborhood from the full OpenStreetMap address, e.g. "3555 Southwest 8th Street, Little
+    Havana" (the place's own name comes off the front, and a house number joins its street)."""
+    parts = [p.strip() for p in place.address.split(",")]
+    if parts and parts[0].lower() == place.name.lower():
+        parts = parts[1:]
+    if len(parts) > 1 and parts[0].isdigit():
+        parts = [f"{parts[0]} {parts[1]}"] + parts[2:]
+    return ", ".join(parts[:2]) or place.name
+
+
 def lookup(name: str, city: str, timeout: float = 10) -> Place | None:
     """The best OpenStreetMap match for `name` in `city`, or None if there isn't one. Answers (including "not found")
     are cached, so the same place is looked up once. Raises on HTTP or network problems (callers decide what to do)."""

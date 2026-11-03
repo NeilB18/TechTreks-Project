@@ -1,17 +1,19 @@
-"""Where travel tips and itinerary ideas come from.
+"""Where travel tips, itinerary ideas and place checks come from.
 
-FakeTravel is canned text (tests, demos, no keys). LiveTravel uses Google Places
-(places, ratings, price levels) and SerpAPI Google Hotels (lodging prices). It's
-picked automatically when GOOGLE_PLACES_API_KEY is set; SERPAPI_KEY is optional.
-Any API error falls back to the fake data for that piece, with a note, so the
-agent never stalls on a bad response.
+FakeTravel is canned text (tests, demos, no keys). OsmTravel is the default: canned
+tips, but places are checked on OpenStreetMap (free; agent/travel/osm.py). LiveTravel
+uses Google Places (places, ratings, price levels) and SerpAPI Google Hotels (lodging
+prices). It's picked automatically when GOOGLE_PLACES_API_KEY is set; SERPAPI_KEY is
+optional. Any API error falls back to the fake data for that piece, with a note, so
+the agent never stalls on a bad response.
 """
 
+import hashlib
 import logging
 import os
 from datetime import date
 
-from agent.travel import places, serp
+from agent.travel import osm, places, serp
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +44,8 @@ TIER_PRICE_LEVELS = {"budget": ["PRICE_LEVEL_INEXPENSIVE"], "mid": ["PRICE_LEVEL
                      "splurge": ["PRICE_LEVEL_EXPENSIVE", "PRICE_LEVEL_VERY_EXPENSIVE"]}
 EST_COST_CENTS = {"PRICE_LEVEL_FREE": 0, "PRICE_LEVEL_INEXPENSIVE": 1500, "PRICE_LEVEL_MODERATE": 3000,
                   "PRICE_LEVEL_EXPENSIVE": 6000, "PRICE_LEVEL_VERY_EXPENSIVE": 10000}
+# FakeTravel "finds" every place except these, at made-up coordinates, so evals stay free and repeatable.
+FAKE_NOT_FOUND = {"zzqx imaginary taco palace"}
 LODGING_SHARE = 0.4  # assume lodging is ~40% of a person's trip budget, rooms shared by 2
 
 
@@ -58,6 +62,21 @@ class FakeTravel:
     def itinerary_items(self, destination: str, n: int, constraints: str | None) -> list[tuple[str, str, int]]:
         return [(name, f"{loc}, {destination}", cost)
                 for name, loc, cost in (FAKE_ITINERARY_ITEMS[i % len(FAKE_ITINERARY_ITEMS)] for i in range(n))]
+
+    def find_place(self, name: str, city: str) -> osm.Place | None:
+        if name.strip().lower() in FAKE_NOT_FOUND:
+            return None
+        h = hashlib.sha256(name.strip().lower().encode()).digest()
+        return osm.Place(name=name, lat=25.70 + h[0] / 2550, lon=-80.30 + h[1] / 2550, kind="fake",
+                         address=f"{name}, {city}", maps_url=osm.maps_url(name, city))
+
+
+class OsmTravel(FakeTravel):
+    """Canned tips; real place checks on OpenStreetMap."""
+    source = "osm"
+
+    def find_place(self, name: str, city: str) -> osm.Place | None:
+        return osm.lookup(name, city)
 
 
 class LiveTravel:
@@ -111,6 +130,9 @@ class LiveTravel:
                           EST_COST_CENTS.get(p.get("price_level"), 0 if i % 2 == 0 else 3000)))
         return items
 
+    def find_place(self, name: str, city: str) -> osm.Place | None:
+        return osm.lookup(name, city)
+
 
 def _place_line(p: dict) -> str:
     price = {"PRICE_LEVEL_INEXPENSIVE": "$", "PRICE_LEVEL_MODERATE": "$$", "PRICE_LEVEL_EXPENSIVE": "$$$",
@@ -121,4 +143,4 @@ def _place_line(p: dict) -> str:
 
 def get_provider():
     key = os.environ.get("GOOGLE_PLACES_API_KEY")
-    return LiveTravel(key, os.environ.get("SERPAPI_KEY")) if key else FakeTravel()
+    return LiveTravel(key, os.environ.get("SERPAPI_KEY")) if key else OsmTravel()

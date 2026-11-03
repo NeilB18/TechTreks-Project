@@ -75,7 +75,10 @@
         ],
         "important": false,
         "booking_url": null,
-        "expense_id": null
+        "expense_id": null,
+        "lat": null,
+        "lon": null,
+        "verified": null
       },
       {
         "activity_id": "beach_day",
@@ -93,7 +96,10 @@
         ],
         "important": false,
         "booking_url": null,
-        "expense_id": null
+        "expense_id": null,
+        "lat": null,
+        "lon": null,
+        "verified": null
       }
     ],
     "open_polls": [],
