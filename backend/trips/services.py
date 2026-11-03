@@ -41,7 +41,7 @@ def load_trip(trip_id: str, lock: bool = False) -> Trip:
                 start_date=parse_day(row.start_date, "start_date"), end_date=parse_day(row.end_date, "end_date"),
                 target_break=row.target_break, base_currency=row.base_currency, group_budget=row.group_budget,
                 leader_id=row.leader_id, leader_approval=list(row.leader_approval),
-                auto_log_mode=row.auto_log_mode, planning_notes=row.planning_notes)
+                auto_log_mode=row.auto_log_mode, planning_notes=row.planning_notes, lodging=row.lodging)
     trip.ideas = list(row.ideas)
     for p in row.people.all():
         trip.add_member(Person(p.person_id, p.name, p.chat_user_id, p.payment_handle, active=p.active))
@@ -92,7 +92,7 @@ def save_trip(trip: Trip) -> None:
         start_date=iso(trip.start_date), end_date=iso(trip.end_date), target_break=trip.target_break,
         base_currency=trip.base_currency, group_budget=trip.group_budget, leader_id=trip.leader_id,
         leader_approval=list(trip.leader_approval), auto_log_mode=trip.auto_log_mode,
-        planning_notes=trip.planning_notes, ideas=list(trip.ideas)))
+        planning_notes=trip.planning_notes, ideas=list(trip.ideas), lodging=trip.lodging))
 
     people = {}
     for i, p in enumerate(trip.members):

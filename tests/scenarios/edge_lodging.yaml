@@ -1,0 +1,40 @@
+kind: edge
+title: Where we're staying is saved from chat, confirmed with its address, and corrected by anyone
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: jake
+    text: "@tripbot we're staying at the Freehand Miami"
+    expect:
+      calls:
+        - {name: update_trip, args: {changes: {lodging: Freehand Miami}}}
+      messages:
+        - {to: group, contains: [Freehand]}
+      end_state:
+        - trip_contains: {lodging: freehand}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: miami, changes: {lodging: Freehand Miami}}}
+      messages:
+        - {to: group, text: "Saved: you're staying at the Freehand Miami (Miami). Maps: https://www.google.com/maps/search/?api=1&query=Freehand+Miami%2C+Miami. Wrong place? Just tell me the address."}
+  - sender: mia
+    text: "@tripbot wrong one, our airbnb is 2727 Indian Creek Dr"
+    expect:
+      calls:
+        - {name: update_trip}
+      messages:
+        - {to: group, contains: [Indian Creek]}
+      end_state:
+        - trip_contains: {lodging: indian creek}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: miami, changes: {lodging: 2727 Indian Creek Dr}}}
+      messages:
+        - {to: group, text: "Fixed: you're staying at 2727 Indian Creek Dr. Maps: https://www.google.com/maps/search/?api=1&query=2727+Indian+Creek+Dr%2C+Miami"}

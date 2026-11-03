@@ -11,6 +11,7 @@
 #     itinerary_drafts: dict[draft_id, list[day]]
 #     ideas: list[dict]              # places the group wants to do, not on a day yet (agent/backend/core/engine.py)
 #     planning_notes | None          # interests and pace, e.g. "chill mornings, big on food"
+#     lodging | None                 # where the group is staying: {name, address, lat, lon, maps_url}, found on the map
 #
 #     get_member(person_id, active_only=False); active_member_ids()
 #     add_member(); remove_member(person_id) -> ids of activities they left
@@ -42,7 +43,7 @@ class Trip:
                  destination=None, start_date: date | None = None,
                  end_date: date | None = None, target_break=None, base_currency="USD",
                  group_budget=None, leader_id=None, leader_approval: list[str] | None = None,
-                 auto_log_mode=None, planning_notes=None):
+                 auto_log_mode=None, planning_notes=None, lodging: dict | None = None):
         self.id = id
         self.name = name
         self.status = status
@@ -56,6 +57,7 @@ class Trip:
         self.leader_approval = leader_approval if leader_approval is not None else []
         self.auto_log_mode = auto_log_mode
         self.planning_notes = planning_notes
+        self.lodging = lodging
         self.members: list[Person] = []
         self.activities: list[Activity] = []
         self.expenses: list[Expense] = []
