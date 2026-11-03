@@ -18,7 +18,7 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 
 | Piece | Where | What it does |
 |---|---|---|
-| Agent | `agent/` | System prompt, 23 tools (21 backend + 2 runner-side), Qwen tool-calling loop, CLI for a fake group chat |
+| Agent | `agent/` | System prompt, 24 tools (22 backend + 2 runner-side), Qwen tool-calling loop, CLI for a fake group chat |
 | Data model | `trip_model/` | The trip's data and rules: splits, refunds, balances, settle-up, opt-outs, dropouts, polls, reminders, budgets |
 | Engine | `agent/backend/core/` | `TripEngine`: every tool, run on `trip_model` objects; in memory for tests, and inside the Django backend |
 | Backend | `backend/trips/` | Django models and `DjangoBackend`, which runs the same rules over the database; tool API |
@@ -63,6 +63,7 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Oct 28 | Budgets are shared with everyone on the trip, and the bot only posts in the group (GroupMe bots can't DM). Private notices, the DM spike and the runner's budget-leak guard are gone; the trip API returns everyone's budget; the 5 privacy scenarios were removed and the DM ones moved into the group |
 | Nov 2 | Trip planning uses Qwen's suggestions checked against OpenStreetMap (free Nominatim server), not Google Places or SerpAPI |
 | Nov 2 | Itinerary drafts come from the agent's suggested stops (up to 3 a day, 15 a draft, since each map check takes a second). Not-found stops stay in the draft marked unverified so the agent can offer a swap. Without places the tool asks for them, unless Google Places is set up. Tests and evals use made-up map data, so they stay free and offline |
+| Nov 3 | Planning happens in steps: one place added with a day goes in a free slot that day (nothing saved if the day is full or it's closed then), one without a day goes on a short ideas list (up to 20, anyone can drop one), and drafts cover only the days asked for (`days` is required), use ideas first and keep the slots of plans already on those days. Planning tools only run on @tripbot messages. Interests and pace are saved once as `planning_notes` |
 | Nov 3 | One itinerary draft at a time: a rebuilt draft replaces the old one, and saving skips stops already on the trip. Meals spread across days before staying close, and a stop closed on its day moves to a day it's open |
 
 ## Pull requests (stacked, merge in order)

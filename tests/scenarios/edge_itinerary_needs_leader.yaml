@@ -11,7 +11,7 @@ seed:
     - {id: mia, name: Mia, handle: "@mia-venmo"}
 turns:
   - sender: jake
-    text: "@tripbot can you make us an itinerary?"
+    text: "@tripbot can you make us an itinerary for the whole trip?"
     expect:
       calls:
         - {name: generate_itinerary}
@@ -20,7 +20,8 @@ turns:
         - {to: group, contains: [Aarav]}
     golden:
       calls:
-        - {name: generate_itinerary, args: {trip_id: miami, places: [
+        - {name: generate_itinerary, args: {trip_id: miami,
+            days: ["2027-03-14", "2027-03-15", "2027-03-16", "2027-03-17", "2027-03-18"], places: [
             {name: Versailles Restaurant, kind: food, est_cost_cents: 2500},
             {name: Vizcaya Museum and Gardens, kind: activity, est_cost_cents: 2500},
             {name: Wynwood Walls, kind: activity, est_cost_cents: 0},

@@ -24,6 +24,7 @@ export type TripInfo = {
   leader_id: string | null;
   leader_approval: string[];
   auto_log_mode: string | null;
+  planning_notes?: string | null; // interests and pace, for itinerary drafts
 };
 
 export type Activity = {
@@ -68,6 +69,18 @@ export type TripDetail = {
   category_opt_outs: [string, string][];
   activities: Activity[];
   expenses: Expense[];
+  ideas?: Idea[];
+};
+
+// Places the group wants to do but hasn't put on a day (up to 20), checked on the map when saved.
+export type Idea = {
+  idea_id: string;
+  name: string;
+  kind: "food" | "activity" | "night";
+  location?: string | null;
+  verified?: boolean | null;
+  maps_url?: string;
+  suggested_by?: string | null;
 };
 
 // Suggested payments are netted across the group, so someone may pay a person

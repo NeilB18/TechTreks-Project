@@ -41,7 +41,7 @@ def demo(backend=None, trip_id: str = "miami-demo") -> dict:
         "exclusions": [["jake", "DRINKS"]],
     })
     t = trip_id
-    draft = b.generate_itinerary(trip_id=t, constraints="beach, food, one night out", places=[
+    draft = b.generate_itinerary(trip_id=t, constraints="beach, food, one night out", days=["2027-03-14", "2027-03-15", "2027-03-16", "2027-03-17", "2027-03-18"], places=[
         {"name": "South Pointe Park", "kind": "activity", "est_cost_cents": 0},
         {"name": "Joe's Stone Crab", "kind": "food", "est_cost_cents": 7000},
         {"name": "Wynwood Walls", "kind": "activity", "est_cost_cents": 0},

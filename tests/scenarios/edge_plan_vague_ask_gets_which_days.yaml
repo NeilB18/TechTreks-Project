@@ -1,0 +1,42 @@
+kind: edge
+title: A vague itinerary ask gets "which days?" first, then a draft for only that day that uses the group's ideas
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  ideas:
+    - {name: Wynwood Walls, kind: activity, suggested_by: mia}
+turns:
+  - sender: jake
+    text: "@tripbot make us an itinerary"
+    expect:
+      forbid: [generate_itinerary]
+      forbid_mutations: true
+      messages:
+        - {to: group, contains_any: ["which day", "what day", "which days", "what days"]}
+    golden:
+      messages:
+        - {to: group, text: "Happy to! Which days should I plan, and any must-dos? Also, chill or packed?"}
+  - sender: jake
+    text: "@tripbot just tuesday. we're pretty chill, big on food"
+    expect:
+      calls:
+        - {name: generate_itinerary, args: {days: ["2027-03-16"]}}
+      messages:
+        - {to: group, contains: [Wynwood]}
+      end_state:
+        - activity_count: 0
+        - idea_count: 1
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: miami, changes: {planning_notes: "pretty chill, big on food"}}}
+        - {name: generate_itinerary, args: {trip_id: miami, days: ["2027-03-16"], places: [
+            {name: Versailles Restaurant, kind: food, est_cost_cents: 2500},
+            {name: Joe's Stone Crab, kind: food, est_cost_cents: 7000}]}}
+      messages:
+        - {to: group, text: "Tuesday draft: Wynwood Walls in the morning (Mia's idea), lunch at Versailles, dinner at Joe's Stone Crab. Hours and prices are estimates (map data © OpenStreetMap contributors). Want me to save it?"}
