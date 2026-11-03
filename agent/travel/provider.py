@@ -13,7 +13,7 @@ import logging
 import os
 from datetime import date
 
-from agent.travel import osm, places, serp
+from agent.travel import nearby, osm, places, serp
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +46,7 @@ EST_COST_CENTS = {"PRICE_LEVEL_FREE": 0, "PRICE_LEVEL_INEXPENSIVE": 1500, "PRICE
                   "PRICE_LEVEL_EXPENSIVE": 6000, "PRICE_LEVEL_VERY_EXPENSIVE": 10000}
 # FakeTravel "finds" every place except these, at made-up coordinates, so evals stay free and repeatable.
 FAKE_NOT_FOUND = {"zzqx imaginary taco palace"}
+FAKE_NOTHING_NEARBY = {"zzqx"}  # a nearby search for this finds nothing
 LODGING_SHARE = 0.4  # assume lodging is ~40% of a person's trip budget, rooms shared by 2
 
 
@@ -70,6 +71,16 @@ class FakeTravel:
         return osm.Place(name=name, lat=25.70 + h[0] / 2550, lon=-80.30 + h[1] / 2550, kind="fake",
                          address=f"{name}, {city}", maps_url=osm.maps_url(name, city))
 
+    def find_nearby(self, what: str, lat: float, lon: float, radius_m: int) -> list[dict]:
+        """Seven made-up places due north of the point, about 0.1 mi apart (the last ones past a mile), farthest
+        first so the engine has to sort."""
+        if nearby.normalize(what) in FAKE_NOTHING_NEARBY:
+            return []
+        label = what.strip().title()
+        return [{"name": f"{label} Spot {i}", "lat": lat + 0.0015 * i, "lon": lon,
+                 "opening_hours": "Mo-Su 11:00-23:00" if i == 1 else None, "cuisine": what.strip().lower(),
+                 "street": f"{100 * i} Collins Avenue", "website": None} for i in range(7, 0, -1)]
+
 
 class OsmTravel(FakeTravel):
     """Canned tips; real place checks on OpenStreetMap."""
@@ -77,6 +88,9 @@ class OsmTravel(FakeTravel):
 
     def find_place(self, name: str, city: str) -> osm.Place | None:
         return osm.lookup(name, city)
+
+    def find_nearby(self, what: str, lat: float, lon: float, radius_m: int) -> list[dict]:
+        return nearby.search(what, lat, lon, radius_m)
 
 
 class LiveTravel:
@@ -132,6 +146,9 @@ class LiveTravel:
 
     def find_place(self, name: str, city: str) -> osm.Place | None:
         return osm.lookup(name, city)
+
+    def find_nearby(self, what: str, lat: float, lon: float, radius_m: int) -> list[dict]:
+        return nearby.search(what, lat, lon, radius_m)  # free OpenStreetMap search, even with Google keys set
 
 
 def _place_line(p: dict) -> str:

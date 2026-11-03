@@ -7,6 +7,7 @@ app, a User-Agent that names the app, and results cached. Data © OpenStreetMap 
 wherever results appear.
 """
 
+import math
 import re
 import threading
 import time
@@ -24,6 +25,7 @@ CACHE_SIZE = 2000
 _lock = threading.Lock()
 _last_request = 0.0
 _cache: dict[tuple[str, str], "Place | None"] = {}
+_area_cache: dict[tuple, list[dict]] = {}
 
 
 @dataclass
@@ -71,6 +73,36 @@ def lookup(name: str, city: str, timeout: float = 10) -> Place | None:
         _cache.pop(next(iter(_cache)))  # oldest first
     _cache[key] = place
     return place
+
+
+def search_area(phrase: str, lat: float, lon: float, radius_m: int, timeout: float = 10) -> list[dict]:
+    """Up to 40 places Nominatim finds for a category phrase ("cafe", "restaurant", "pharmacy") inside a box around a
+    point: [{name, lat, lon, opening_hours, cuisine, street, website}]. Nominatim ranks them by prominence, not
+    distance, so a busy area can leave out a close one. Cached and spaced out like `lookup`; raises on HTTP or network
+    problems."""
+    key = (phrase, round(lat, 3), round(lon, 3), radius_m)
+    if key in _area_cache:
+        return _area_cache[key]
+    dlat = radius_m / 111320
+    dlon = radius_m / (111320 * math.cos(math.radians(lat)))
+    _wait_turn()
+    resp = requests.get(URL, timeout=timeout, headers={"User-Agent": USER_AGENT}, params={
+        "q": phrase, "format": "jsonv2", "limit": 40, "bounded": 1, "extratags": 1, "addressdetails": 1,
+        "viewbox": f"{lon - dlon:.6f},{lat + dlat:.6f},{lon + dlon:.6f},{lat - dlat:.6f}"})
+    resp.raise_for_status()
+    places = []
+    for r in resp.json():
+        tags, addr = r.get("extratags") or {}, r.get("address") or {}
+        if not r.get("name"):
+            continue
+        street = " ".join(p for p in (addr.get("house_number"), addr.get("road")) if p) or None
+        places.append({"name": r["name"], "lat": float(r["lat"]), "lon": float(r["lon"]),
+                       "opening_hours": tags.get("opening_hours"), "cuisine": tags.get("cuisine"),
+                       "street": street, "website": tags.get("website")})
+    if len(_area_cache) >= CACHE_SIZE:
+        _area_cache.pop(next(iter(_area_cache)))
+    _area_cache[key] = places
+    return places
 
 
 def _wait_turn() -> None:

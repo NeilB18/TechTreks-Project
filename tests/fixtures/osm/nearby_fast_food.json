@@ -1,0 +1,601 @@
+[
+ {
+  "place_id": 305140120,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "way",
+  "osm_id": 255449567,
+  "lat": "25.8134070",
+  "lon": "-80.1342423",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Burger King",
+  "display_name": "Burger King, 910, 41st Street, Miami Beach, Miami-Dade County, Florida, 33140, United States",
+  "address": {
+   "amenity": "Burger King",
+   "house_number": "910",
+   "road": "41st Street",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33140",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "phone": "+1 305-674-8033",
+   "cuisine": "burger",
+   "website": "https://www.bk.com/store-locator/store/restaurant_24",
+   "building": "yes",
+   "takeaway": "yes",
+   "drive_through": "yes",
+   "opening_hours": "24/7",
+   "brand:wikidata": "Q177054",
+   "internet_access": "wlan"
+  },
+  "boundingbox": [
+   "25.8133086",
+   "25.8134927",
+   "-80.1343947",
+   "-80.1340659"
+  ]
+ },
+ {
+  "place_id": 301906643,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "way",
+  "osm_id": 1209768488,
+  "lat": "25.8137127",
+  "lon": "-80.1346508",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Subway",
+  "display_name": "Subway, 917, 41st Street, Miami Beach, Miami-Dade County, Florida, 33140, United States",
+  "address": {
+   "amenity": "Subway",
+   "house_number": "917",
+   "road": "41st Street",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33140",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "phone": "+1 305-673-6324",
+   "cuisine": "sandwich",
+   "website": "https://restaurants.subway.com/united-states/fl/miami-beach/917-w-41st-st",
+   "takeaway": "yes",
+   "building:part": "yes",
+   "opening_hours": "Mo-Fr 07:00-23:00; Sa 10:00-22:00; Su 09:30-19:00",
+   "brand:wikidata": "Q244457"
+  },
+  "boundingbox": [
+   "25.8136098",
+   "25.8138157",
+   "-80.1347303",
+   "-80.1345714"
+  ]
+ },
+ {
+  "place_id": 305733629,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "way",
+  "osm_id": 1297375229,
+  "lat": "25.8141380",
+  "lon": "-80.1284248",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Latin Cafe",
+  "display_name": "Latin Cafe, 441, 41st Street, Miami Beach, Miami-Dade County, Florida, 33140, United States",
+  "address": {
+   "amenity": "Latin Cafe",
+   "house_number": "441",
+   "road": "41st Street",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33140",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "fast_food": "cafeteria",
+   "building:part": "retail"
+  },
+  "boundingbox": [
+   "25.8139647",
+   "25.8142423",
+   "-80.1284650",
+   "-80.1283863"
+  ]
+ },
+ {
+  "place_id": 304752587,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "way",
+  "osm_id": 1209768492,
+  "lat": "25.8140255",
+  "lon": "-80.1342118",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Domino's",
+  "display_name": "Domino's, 4101, Jefferson Avenue, Miami Beach, Miami-Dade County, Florida, 33140, United States",
+  "address": {
+   "amenity": "Domino's",
+   "house_number": "4101",
+   "road": "Jefferson Avenue",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33140",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "phone": "+1 305-531-0303",
+   "cuisine": "pizza",
+   "website": "https://pizza.dominos.com/florida/miami-beach/4101-n-jefferson-ave",
+   "building": "yes",
+   "takeaway": "yes",
+   "opening_hours": "Mo-Th 10:00-24:00; Fr-Sa 10:00-01:00; Su 10:00-24:00",
+   "brand:wikidata": "Q839466"
+  },
+  "boundingbox": [
+   "25.8139718",
+   "25.8140793",
+   "-80.1342702",
+   "-80.1341534"
+  ]
+ },
+ {
+  "place_id": 305240682,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 4705007171,
+  "lat": "25.8176124",
+  "lon": "-80.1223575",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Noah's Burger",
+  "display_name": "Noah's Burger, 4441, Collins Avenue, Miami Beach, Miami-Dade County, Florida, 33140, United States",
+  "address": {
+   "amenity": "Noah's Burger",
+   "house_number": "4441",
+   "road": "Collins Avenue",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33140",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "fee": "yes",
+   "access": "customers",
+   "cuisine": "burger"
+  },
+  "boundingbox": [
+   "25.8175624",
+   "25.8176624",
+   "-80.1224075",
+   "-80.1223075"
+  ]
+ },
+ {
+  "place_id": 305259003,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 5625763324,
+  "lat": "25.7930784",
+  "lon": "-80.1407740",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Carrot Express",
+  "display_name": "Carrot Express, 1741, Alton Road, Miami Beach, Miami-Dade County, Florida, 33139, United States",
+  "address": {
+   "amenity": "Carrot Express",
+   "house_number": "1741",
+   "road": "Alton Road",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33139",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "cuisine": "sandwich"
+  },
+  "boundingbox": [
+   "25.7930284",
+   "25.7931284",
+   "-80.1408240",
+   "-80.1407240"
+  ]
+ },
+ {
+  "place_id": 305513324,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 5647692422,
+  "lat": "25.7897243",
+  "lon": "-80.1320270",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Subway",
+  "display_name": "Subway, 1614, Washington Avenue, Miami Beach, Miami-Dade County, Florida, 33139, United States",
+  "address": {
+   "amenity": "Subway",
+   "house_number": "1614",
+   "road": "Washington Avenue",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33139",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "level": "0",
+   "phone": "+1 305-531-5855",
+   "cuisine": "sandwich",
+   "website": "https://restaurants.subway.com/united-states/fl/miami-beach/1614-washington-ave",
+   "takeaway": "yes",
+   "opening_hours": "24/7",
+   "brand:wikidata": "Q244457"
+  },
+  "boundingbox": [
+   "25.7896743",
+   "25.7897743",
+   "-80.1320770",
+   "-80.1319770"
+  ]
+ },
+ {
+  "place_id": 305001822,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 7134733374,
+  "lat": "25.7900020",
+  "lon": "-80.1410126",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Poké 305 Miami",
+  "display_name": "Poké 305 Miami, 1120, Lincoln Road, Lincoln Road Mall, Miami Beach, Miami-Dade County, Florida, 33139, United States",
+  "address": {
+   "amenity": "Poké 305 Miami",
+   "house_number": "1120",
+   "road": "Lincoln Road",
+   "mall": "Lincoln Road Mall",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33139",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "cuisine": "fish"
+  },
+  "boundingbox": [
+   "25.7899520",
+   "25.7900520",
+   "-80.1410626",
+   "-80.1409626"
+  ]
+ },
+ {
+  "place_id": 304639690,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 4499033889,
+  "lat": "25.7909719",
+  "lon": "-80.1401129",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Shake Shack",
+  "display_name": "Shake Shack, 1111, Lincoln Road, Lincoln Road Mall, Miami Beach, Miami-Dade County, Florida, 33139, United States",
+  "address": {
+   "amenity": "Shake Shack",
+   "house_number": "1111",
+   "road": "Lincoln Road",
+   "mall": "Lincoln Road Mall",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33139",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "level": "0",
+   "phone": "+13054347787",
+   "cuisine": "burger",
+   "website": "https://shakeshack.com/location/south-beach-miami-fl#/",
+   "takeaway": "yes",
+   "drive_through": "no",
+   "opening_hours": "Su-Th 10:00-24:00; Fr-Sa 10:00-01:00",
+   "brand:wikidata": "Q1058722"
+  },
+  "boundingbox": [
+   "25.7909219",
+   "25.7910219",
+   "-80.1401629",
+   "-80.1400629"
+  ]
+ },
+ {
+  "place_id": 307774164,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 7143754539,
+  "lat": "25.7903460",
+  "lon": "-80.1385430",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Groovy's Pizza & Bar",
+  "display_name": "Groovy's Pizza & Bar, 938, Lincoln Road, Lincoln Road Mall, Miami Beach, Miami-Dade County, Florida, 33139, United States",
+  "address": {
+   "amenity": "Groovy's Pizza & Bar",
+   "house_number": "938",
+   "road": "Lincoln Road",
+   "mall": "Lincoln Road Mall",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33139",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "level": "0",
+   "phone": "+13057638556",
+   "cuisine": "pizza",
+   "website": "https://www.groovysbar.com/",
+   "amenity:bar": "yes",
+   "outdoor_seating": "yes"
+  },
+  "boundingbox": [
+   "25.7902960",
+   "25.7903960",
+   "-80.1385930",
+   "-80.1384930"
+  ]
+ },
+ {
+  "place_id": 305077879,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 4001731082,
+  "lat": "25.7904261",
+  "lon": "-80.1320587",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "McDonald's",
+  "display_name": "McDonald's, 1650, Washington Avenue, Miami Beach, Miami-Dade County, Florida, 33139, United States",
+  "address": {
+   "amenity": "McDonald's",
+   "house_number": "1650",
+   "road": "Washington Avenue",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33139",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "level": "0",
+   "phone": "+1 305-672-8031",
+   "cuisine": "burger",
+   "website": "https://www.mcdonalds.com/us/en-us/location/10664.html",
+   "takeaway": "yes",
+   "drive_through": "no",
+   "opening_hours": "24/7",
+   "brand:wikidata": "Q38076",
+   "internet_access": "wlan"
+  },
+  "boundingbox": [
+   "25.7903761",
+   "25.7904761",
+   "-80.1321087",
+   "-80.1320087"
+  ]
+ },
+ {
+  "place_id": 305244500,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 13070488601,
+  "lat": "25.7905811",
+  "lon": "-80.1416026",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "The Taco Stand",
+  "display_name": "The Taco Stand, 1211, Lincoln Road, Miami Beach, Miami-Dade County, Florida, 33139, United States",
+  "address": {
+   "amenity": "The Taco Stand",
+   "house_number": "1211",
+   "road": "Lincoln Road",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33139",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "cuisine": "mexican"
+  },
+  "boundingbox": [
+   "25.7905311",
+   "25.7906311",
+   "-80.1416526",
+   "-80.1415526"
+  ]
+ },
+ {
+  "place_id": 304629019,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 7257592085,
+  "lat": "25.8045752",
+  "lon": "-80.1251191",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Tropical Beach Cafe",
+  "display_name": "Tropical Beach Cafe, 2891, Collins Avenue, Miami Beach, Miami-Dade County, Florida, 33140, United States",
+  "address": {
+   "amenity": "Tropical Beach Cafe",
+   "house_number": "2891",
+   "road": "Collins Avenue",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33140",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "cuisine": "american;burger;fish;chicken;caribbean;sandwich",
+   "opening_hours": "Mo-Su 08:00-22:00"
+  },
+  "boundingbox": [
+   "25.8045252",
+   "25.8046252",
+   "-80.1251691",
+   "-80.1250691"
+  ]
+ },
+ {
+  "place_id": 303724603,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 5636399522,
+  "lat": "25.7903265",
+  "lon": "-80.1298960",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Pizza Bar",
+  "display_name": "Pizza Bar, Collins Avenue, Miami Beach, Miami-Dade County, Florida, 33139, United States",
+  "address": {
+   "amenity": "Pizza Bar",
+   "road": "Collins Avenue",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33139",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "level": "0",
+   "cuisine": "pizza"
+  },
+  "boundingbox": [
+   "25.7902765",
+   "25.7903765",
+   "-80.1299460",
+   "-80.1298460"
+  ]
+ },
+ {
+  "place_id": 301915820,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 4002678189,
+  "lat": "25.8139895",
+  "lon": "-80.1274358",
+  "category": "amenity",
+  "type": "fast_food",
+  "place_rank": 30,
+  "importance": 7.754558632787088e-05,
+  "addresstype": "amenity",
+  "name": "Dunkin'",
+  "display_name": "Dunkin', 341, 41st Street, Miami Beach, Miami-Dade County, Florida, 33140, United States",
+  "address": {
+   "amenity": "Dunkin'",
+   "house_number": "341",
+   "road": "41st Street",
+   "city": "Miami Beach",
+   "county": "Miami-Dade County",
+   "state": "Florida",
+   "ISO3166-2-lvl4": "US-FL",
+   "postcode": "33140",
+   "country": "United States",
+   "country_code": "us"
+  },
+  "extratags": {
+   "phone": "+1-305-420-5492",
+   "cuisine": "donut;coffee_shop",
+   "website": "https://locations.dunkindonuts.com/en/fl/miami-beach/341-41st-st/330411",
+   "takeaway": "yes",
+   "drive_through": "no",
+   "opening_hours": "Mo-Sa 05:00-20:00; Su 06:00-20:00",
+   "brand:wikidata": "Q847743"
+  },
+  "boundingbox": [
+   "25.8139395",
+   "25.8140395",
+   "-80.1274858",
+   "-80.1273858"
+  ]
+ }
+]

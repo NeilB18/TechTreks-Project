@@ -1,4 +1,4 @@
-"""Qwen function-calling tool definitions (OpenAI format): the 24 backend tools
+"""Qwen function-calling tool definitions (OpenAI format): the 25 backend tools
 from specs.md plus send_message.
 
 Schemas stick to plain JSON Schema (type, properties, required, items, enum,
@@ -174,6 +174,17 @@ BACKEND_TOOL_SCHEMAS = [
                                     "est_cost_cents": {**CENTS, "description": "Your estimate per person"}}},
            "day": {**ISO_DATE, "description": "The day to move it to (move) or put it on (add)"}},
           ["trip_id", "draft_id", "action"]),
+    _tool("find_nearby",
+          "The closest places of a kind to where the group is staying (lodging in trip_state), or to `near`. Returns up to 5, "
+          "closest first, each with distance, walk time, listed hours and a Maps link: use those as given. OpenStreetMap has no "
+          "ratings, so say \"closest\", not \"best\", and only mention places from the results. If there's no lodging it errors: "
+          "ask where they're staying. Empty results: offer to look farther.",
+          {"trip_id": TRIP_ID,
+           "what": {"type": "string", "description": "A short word or two: pizza, coffee, tacos, bar, pharmacy, grocery, atm"},
+           "near": {"type": "string", "description": "A place someone named instead of the lodging, e.g. \"Wynwood Walls\""},
+           "radius_m": {"type": "integer", "minimum": 100, "maximum": 5000,
+                        "description": "How far to look in meters; default 1600 (about a mile). Only when they ask for farther or closer."}},
+          ["trip_id", "what"]),
     _tool("save_idea",
           "The ideas list: places the group wants to do but hasn't put on a day. Save one when someone asks you to add a place "
           "without a day, or remove one (remove=true with idea_id or name; anyone on the trip can). Each idea is checked on the map; "
