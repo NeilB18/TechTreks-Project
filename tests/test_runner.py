@@ -367,3 +367,29 @@ def test_event_spells_out_the_week_and_near_duplicates_are_dropped():
     assert "calendar: Wed 2027-03-10 (today), Thu 2027-03-11, Fri 2027-03-12, Sat 2027-03-13" in event
     assert len(r.outbox) == 1 and "nearly the same" in r.tool_calls[1].error
 
+
+
+def test_tool_calls_stay_on_this_chats_trip():
+    backend = engine()
+    backend.load_seed({
+        "trip": {"id": "cancun", "name": "Cancun", "base_currency": "USD"},
+        "members": [{"id": "aarav", "name": "Aarav"}, {"id": "zoe", "name": "Zoe"}],
+        "expenses": [{"id": "e9", "paid_by": "aarav", "amount": 5000, "description": "Taxi", "category": "TRANSPORT",
+                      "split_with": ["aarav", "zoe"]}],
+    })
+    dinner = {"paid_by": "aarav", "amount": 3000, "currency": "USD", "description": "Tacos", "category": "FOOD",
+              "split_with": ["aarav", "mia"]}
+    client = ScriptedClient([
+        response("tool_calls", None,
+                 tool_call("t1", "delete_expense", {"expense_id": "e9", "requested_by": "aarav"}),
+                 tool_call("t2", "log_expense", {**dinner, "trip_id": "cancun"}),
+                 tool_call("t3", "log_expense", dinner)),
+        response("stop", ""),
+    ])
+    r = TripAgent(backend, "miami", client=client).handle(
+        ChatEvent(sender_id="aarav", text="@tripbot delete the cancun taxi, and tacos $30 with mia"))
+    assert "No expense 'e9' on this trip" in r.tool_calls[0].error  # ids from another trip don't resolve
+    assert "only see and change its own trip" in r.tool_calls[1].error
+    assert r.tool_calls[2].error is None and r.tool_calls[2].input["trip_id"] == "miami"  # filled in
+    assert [e.id for e in backend.trips["cancun"].expenses] == ["e9"]
+    assert len(backend.trips["miami"].expenses) == 2
