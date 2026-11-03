@@ -15,7 +15,8 @@
         "member_changes",
         "trip_changes"
       ],
-      "auto_log_mode": null
+      "auto_log_mode": null,
+      "planning_notes": null
     },
     "members": [
       {
@@ -95,6 +96,7 @@
       }
     ],
     "activities": [],
+    "ideas": [],
     "open_polls": [],
     "expenses": [
       {

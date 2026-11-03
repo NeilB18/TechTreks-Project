@@ -86,7 +86,7 @@ def test_itinerary_alternates_activities_and_dinners(api):
     b = TripEngine(travel=LiveTravel("KEY"))
     b.load_seed({"trip": {"id": "t", "destination": "Miami", "start_date": "2027-03-14", "end_date": "2027-03-15"},
                  "members": [{"id": "a", "name": "A"}]})
-    d = b.generate_itinerary(trip_id="t")
+    d = b.generate_itinerary(trip_id="t", days=["2027-03-14", "2027-03-15"])
     assert d["source"] == "live"
     names = [i["name"] for day in d["days"] for i in day["items"]]
     assert names == ["Wynwood Walls", "La Mar by Gastón Acurio", "Vizcaya Museum & Gardens", "Versailles Restaurant"]

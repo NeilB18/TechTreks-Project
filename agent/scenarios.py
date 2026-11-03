@@ -178,6 +178,9 @@ def _check_state(check: dict, backend, trip_id: str) -> list[str]:
     if kind == "activity_count":
         n = len(trip.activities)
         return [] if n == spec else [f"expected {spec} activities, have {n}"]
+    if kind == "idea_count":
+        n = len(trip.ideas)
+        return [] if n == spec else [f"expected {spec} ideas, have {n}"]
     if kind == "no_opt_out":
         return [] if (spec[0], Category[spec[1]]) not in trip.opt_outs else [f"opt-out {spec} should be removed"]
     if kind == "trip_contains":  # case- and accent-insensitive substring, e.g. destination "cancun"

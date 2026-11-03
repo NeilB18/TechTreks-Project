@@ -173,6 +173,22 @@ def test_unmentioned_small_talk_cant_be_answered():
     assert r.outbox == [] and "small talk" in r.tool_calls[0].error
 
 
+def test_planning_needs_a_mention_and_ideas_record_who_asked():
+    from agent.backend.core.engine import TripEngine
+    backend = TripEngine()
+    backend.load_seed({**DINNER_TRIP, "trip": {**DINNER_TRIP["trip"], "destination": "Miami"}})
+    idea = {"trip_id": "miami", "name": "Wynwood Walls", "kind": "activity"}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "save_idea", idea)), response("stop", ""),
+        response("tool_calls", None, tool_call("t2", "save_idea", idea)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="jake", text="we should do wynwood walls", mentioned=False))
+    assert "weren't @mentioned" in r.tool_calls[0].error and backend.summary("miami")["ideas"] == []
+    r = agent.handle(ChatEvent(sender_id="jake", text="@tripbot add wynwood walls"))
+    assert r.tool_calls[0].result["idea"]["suggested_by"] == "jake"
+
+
 def test_refund_tells_the_model_who_already_paid_back():
     backend = engine()
     backend.record_payback(trip_id="miami", from_person="jake", to_person="aarav", amount=4000, currency="USD")

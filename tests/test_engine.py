@@ -219,7 +219,7 @@ def test_itinerary_saved_only_with_draft_id(b):
     places = [{"name": "Versailles Restaurant", "kind": "food", "est_cost_cents": 2500},
               {"name": "Vizcaya Museum and Gardens", "kind": "activity", "est_cost_cents": 2500},
               {"name": "Zzqx Imaginary Taco Palace", "kind": "food"}]
-    d = dispatch(b, "generate_itinerary", {"trip_id": "t", "places": places})
+    d = dispatch(b, "generate_itinerary", {"trip_id": "t", "places": places, "days": ["2027-03-14", "2027-03-15", "2027-03-16", "2027-03-17", "2027-03-18"]})
     assert len(d["days"]) == 5 and d["not_found"] == ["Zzqx Imaginary Taco Palace"]
     assert b.get_trip("t")["activities"] == []
     s = dispatch(b, "generate_itinerary", {"trip_id": "t", "save_draft_id": d["draft_id"]})
@@ -230,10 +230,16 @@ def test_itinerary_saved_only_with_draft_id(b):
 
 
 def test_itinerary_needs_places(b):
+    with pytest.raises(ToolError, match="Pass days"):
+        dispatch(b, "generate_itinerary", {"trip_id": "t", "places": [{"name": "Wynwood Walls", "kind": "activity"}]})
     with pytest.raises(ToolError, match="Pass places"):
-        dispatch(b, "generate_itinerary", {"trip_id": "t"})
+        dispatch(b, "generate_itinerary", {"trip_id": "t", "days": ["2027-03-14"]})
     with pytest.raises(ToolError, match="kind"):
-        dispatch(b, "generate_itinerary", {"trip_id": "t", "places": [{"name": "Somewhere", "kind": "shopping"}]})
+        dispatch(b, "generate_itinerary", {"trip_id": "t", "days": ["2027-03-14"],
+                                           "places": [{"name": "Somewhere", "kind": "shopping"}]})
+    with pytest.raises(ToolError, match="outside the trip"):
+        dispatch(b, "generate_itinerary", {"trip_id": "t", "days": ["2027-04-01"],
+                                           "places": [{"name": "Wynwood Walls", "kind": "activity"}]})
 
 
 def test_unknown_args_are_tool_errors(b):

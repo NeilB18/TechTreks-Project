@@ -9,6 +9,8 @@
 #     members: list[Person]; activities; expenses; polls; reminders
 #     opt_outs: set[(person_id, Category)]   # e.g. ("jake", DRINKS)
 #     itinerary_drafts: dict[draft_id, list[day]]
+#     ideas: list[dict]              # places the group wants to do, not on a day yet (agent/backend/core/engine.py)
+#     planning_notes | None          # interests and pace, e.g. "chill mornings, big on food"
 #
 #     get_member(person_id, active_only=False); active_member_ids()
 #     add_member(); remove_member(person_id) -> ids of activities they left
@@ -40,7 +42,7 @@ class Trip:
                  destination=None, start_date: date | None = None,
                  end_date: date | None = None, target_break=None, base_currency="USD",
                  group_budget=None, leader_id=None, leader_approval: list[str] | None = None,
-                 auto_log_mode=None):
+                 auto_log_mode=None, planning_notes=None):
         self.id = id
         self.name = name
         self.status = status
@@ -53,6 +55,7 @@ class Trip:
         self.leader_id = leader_id
         self.leader_approval = leader_approval if leader_approval is not None else []
         self.auto_log_mode = auto_log_mode
+        self.planning_notes = planning_notes
         self.members: list[Person] = []
         self.activities: list[Activity] = []
         self.expenses: list[Expense] = []
@@ -60,6 +63,7 @@ class Trip:
         self.reminders: list[Reminder] = []
         self.opt_outs: set[tuple] = set()
         self.itinerary_drafts: dict[str, list[dict]] = {}
+        self.ideas: list[dict] = []
 
     def member_ids(self):
         return {member.id for member in self.members}

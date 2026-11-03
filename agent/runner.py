@@ -29,6 +29,9 @@ TRIP_CHANGE_FIELDS = {"destination", "start_date", "end_date", "base_currency", 
 # After these, the runner checks the budget of everyone affected (specs.md: after every expense,
 # check everyone in the split). Done in code because the model sometimes skipped people.
 BUDGET_CHECK_AFTER = {"log_expense", "edit_expense", "record_refund", "remove_member"}
+# Planning only happens when someone asks: these don't run on a message that didn't @mention the bot (which it only
+# sees with BOT_FORWARD_ALL on, for automatic expense logging).
+PLAN_TOOLS = {"save_idea", "add_activity", "generate_itinerary"}
 CONFIRM_WORDS = re.compile(r"\b(confirm|yes)\b", re.I)
 UNDELIVERED_NOTE = (
     "[runner] Your last text was not delivered: nobody sees text outside send_message. "
@@ -243,6 +246,12 @@ class TripAgent:
                           "messaged you is already in trip_state members. Nothing was changed. If someone's missing, "
                           "ask them to say hi with @tripbot.")
             return f"Error: {call.error}"
+        if name in PLAN_TOOLS and self.event and not self.event.mentioned:
+            call.error = ("You weren't @mentioned, so don't change the plan, drafts or ideas. Nothing was changed. "
+                          "End the turn.")
+            return f"Error: {call.error}"
+        if name == "save_idea" and not args.get("remove") and self.sender_id:
+            args.setdefault("suggested_by", self.sender_id)  # the model never has to say who suggested it
         blocked = (self._trip_guard(name, args) or self._payer_guard(name, args) or self._leader_guard(name, args)
                    or self._refund_guard(name))
         if blocked:

@@ -5,11 +5,12 @@ night slot. Activities are split across the days first, in map order (each one n
 day stays in one area; one that's closed on its day moves to the closest day it's open. Food and night stops then go
 to the day with the fewest stops of their kind (so meals spread out), and among those the day whose stops are
 closest. Opening hours are respected when they're known: a stop that would be closed is moved to another free slot,
-and if none works it's flagged so the agent can mention it.
+and if none works it's flagged so the agent can mention it. Plans already on a day keep their slots (`busy`), so
+nothing is double-booked.
 """
 
 import math
-from datetime import date, timedelta
+from datetime import date
 
 # name, the kind of stop it's for, start and end in minutes after midnight
 SLOTS = [("morning", "activity", 600, 720), ("lunch", "food", 750, 840), ("afternoon", "activity", 870, 1050),
@@ -27,10 +28,12 @@ def is_open(hours: dict | None, weekday: int, start: int, end: int) -> bool | No
     return any(o <= start and end <= c for o, c in today + yesterday)
 
 
-def plan_days(stops: list[dict], first_day: date, n_days: int) -> list[dict]:
-    """stops: {"kind", "lat", "lon", "hours", ...} (lat/lon/hours may be None). Returns
-    [{"date", "items": [stop + "slot", "start", "end", "hours_conflict"]}] with items in time order."""
-    days = [{"date": first_day + timedelta(days=i), "items": []} for i in range(n_days)]
+def plan_days(stops: list[dict], dates: list[date], busy: dict[date, list[dict]] | None = None) -> list[dict]:
+    """stops: {"kind", "lat", "lon", "hours", ...} (lat/lon/hours may be None). busy: the slots plans already on
+    each date take (see `taken`). Returns [{"date", "items": [stop + "slot", "start", "end", "hours_conflict"]}]
+    with only the new stops, in time order."""
+    days = [{"date": d, "items": [{**b, "fixed": True} for b in (busy or {}).get(d, [])]} for d in dates]
+    n_days = len(days)
     activities = _map_order([s for s in stops if s["kind"] == "activity"])
     per_day = math.ceil(len(activities) / n_days) if activities else 0
     for i, s in enumerate(activities):
@@ -40,8 +43,28 @@ def plan_days(stops: list[dict], first_day: date, n_days: int) -> list[dict]:
     for s in (s for s in stops if s["kind"] != "activity"):
         _place(_best_day(days, s), s)
     for day in days:
-        day["items"].sort(key=lambda it: it["start_min"])
+        day["items"] = sorted((it for it in day["items"] if not it.get("fixed")), key=lambda it: it["start_min"])
     return days
+
+
+def taken(start: int | None, end: int | None, lat: float | None = None, lon: float | None = None) -> list[dict]:
+    """The slots a plan already on a day takes: the ones its time overlaps (minutes after midnight). A plan with no
+    time takes the daytime activity slots. Pass the results to plan_days or pick_slot as that day's busy slots."""
+    if start is None:
+        hit = [sl for sl in SLOTS if sl[1] == "activity"]
+    else:
+        hit = [sl for sl in SLOTS if start < sl[3] and sl[2] < end]
+    return [{"slot": name, "kind": kind, "lat": lat, "lon": lon} for name, kind, _, _ in hit]
+
+
+def pick_slot(day: date, busy: list[dict], stop: dict) -> tuple[tuple | None, str | None]:
+    """A slot for one stop on one day: (the first free slot of its kind it's open for, None), or (None, "full") when
+    every slot of its kind is taken, or (None, "closed") when it's closed for the free ones."""
+    d = {"date": day, "items": busy}
+    if not _free(d, stop["kind"]):
+        return None, "full"
+    fits = _open_slots(d, stop)
+    return (fits[0], None) if fits else (None, "closed")
 
 
 def _map_order(stops: list[dict]) -> list[dict]:

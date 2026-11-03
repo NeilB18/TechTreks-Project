@@ -15,7 +15,8 @@
         "member_changes",
         "trip_changes"
       ],
-      "auto_log_mode": null
+      "auto_log_mode": null,
+      "planning_notes": null
     },
     "members": [
       {
@@ -175,7 +176,8 @@
         "expense_id": null,
         "lat": 25.730588235294118,
         "lon": -80.21686274509804,
-        "verified": true
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=Little+Havana+Walking+Tour%2C+Miami"
       },
       {
         "activity_id": "a2",
@@ -199,7 +201,8 @@
         "expense_id": null,
         "lat": 25.710980392156863,
         "lon": -80.23098039215687,
-        "verified": true
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami"
       },
       {
         "activity_id": "a3",
@@ -223,7 +226,8 @@
         "expense_id": null,
         "lat": 25.72313725490196,
         "lon": -80.20901960784313,
-        "verified": true
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=Ball+%26+Chain%2C+Miami"
       },
       {
         "activity_id": "a4",
@@ -247,7 +251,8 @@
         "expense_id": null,
         "lat": 25.739607843137254,
         "lon": -80.24705882352941,
-        "verified": true
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=Bayside+Marketplace%2C+Miami"
       },
       {
         "activity_id": "a5",
@@ -271,34 +276,11 @@
         "expense_id": null,
         "lat": 25.71254901960784,
         "lon": -80.26745098039216,
-        "verified": true
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=Versailles+Restaurant%2C+Miami"
       },
       {
         "activity_id": "a6",
-        "name": "La Mar by Gast\u00f3n Acurio",
-        "location": "Miami",
-        "start": "2027-03-15T19:00",
-        "end": "2027-03-15T21:00",
-        "est_cost_cents": 6000,
-        "cost_is_per_person": true,
-        "est_per_person_cents": 6000,
-        "attendees": [
-          "aarav",
-          "priya",
-          "jake",
-          "mia",
-          "sam",
-          "leo"
-        ],
-        "important": false,
-        "booking_url": null,
-        "expense_id": null,
-        "lat": 25.705098039215684,
-        "lon": -80.25098039215686,
-        "verified": true
-      },
-      {
-        "activity_id": "a7",
         "name": "South Pointe Park",
         "location": "Miami",
         "start": "2027-03-16T10:00",
@@ -319,7 +301,33 @@
         "expense_id": null,
         "lat": 25.789019607843137,
         "lon": -80.26941176470588,
-        "verified": true
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=South+Pointe+Park%2C+Miami"
+      },
+      {
+        "activity_id": "a7",
+        "name": "La Mar by Gast\u00f3n Acurio",
+        "location": "Miami",
+        "start": "2027-03-16T12:30",
+        "end": "2027-03-16T14:00",
+        "est_cost_cents": 6000,
+        "cost_is_per_person": true,
+        "est_per_person_cents": 6000,
+        "attendees": [
+          "aarav",
+          "priya",
+          "jake",
+          "mia",
+          "sam",
+          "leo"
+        ],
+        "important": false,
+        "booking_url": null,
+        "expense_id": null,
+        "lat": 25.705098039215684,
+        "lon": -80.25098039215686,
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=La+Mar+by+Gast%C3%B3n+Acurio%2C+Miami"
       },
       {
         "activity_id": "a8",
@@ -343,7 +351,8 @@
         "expense_id": null,
         "lat": 25.797254901960784,
         "lon": -80.24627450980392,
-        "verified": true
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami"
       },
       {
         "activity_id": "a9",
@@ -367,7 +376,8 @@
         "expense_id": null,
         "lat": 25.7956862745098,
         "lon": -80.20509803921568,
-        "verified": true
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=Mandolin+Aegean+Bistro%2C+Miami"
       },
       {
         "activity_id": "a10",
@@ -391,7 +401,8 @@
         "expense_id": null,
         "lat": 25.782745098039214,
         "lon": -80.29882352941176,
-        "verified": true
+        "verified": true,
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=Vizcaya+Museum+and+Gardens%2C+Miami"
       },
       {
         "activity_id": "a11",
@@ -418,6 +429,7 @@
         "verified": null
       }
     ],
+    "ideas": [],
     "open_polls": [],
     "expenses": [
       {
