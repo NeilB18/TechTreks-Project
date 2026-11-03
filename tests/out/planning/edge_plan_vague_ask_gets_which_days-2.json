@@ -1,0 +1,201 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot make us an itinerary",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Happy to build it! Which days should I plan \u2014 all of Mar 14\u201318, or just some? And what's the vibe: chill mornings or packed days? Anything you all really want to do? (Wynwood Walls is already on our ideas list, so I'll work that in.)"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Happy to build it! Which days should I plan \u2014 all of Mar 14\u201318, or just some? And what's the vibe: chill mornings or packed days? Anything you all really want to do? (Wynwood Walls is already on our ideas list, so I'll work that in.)"
+      }
+    ],
+    "stray_text": [
+      "Sure! Which days should I plan (all of Mar 14\u201318, or specific days?), and what vibe \u2014 chill or packed? I already have Wynwood Walls on the ideas list, so I\u2019ll work that in.",
+      "*(no further response)*"
+    ],
+    "stop_reason": "stop",
+    "seconds": 11.39,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 34786,
+      "completion_tokens": 378,
+      "total_tokens": 35164
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "jake",
+    "text": "@tripbot just tuesday. we're pretty chill, big on food",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "trip_id": "miami",
+          "changes": {
+            "planning_notes": "Chill pace \u2014 slow mornings, big on food. Wynwood Walls on the ideas list."
+          }
+        },
+        "result": {
+          "updated": true,
+          "trip": {
+            "id": "miami",
+            "name": "Miami Spring Break",
+            "status": "PLANNING",
+            "destination": "Miami",
+            "start_date": "2027-03-14",
+            "end_date": "2027-03-18",
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": null,
+            "leader_id": "aarav",
+            "leader_approval": [
+              "member_changes",
+              "trip_changes"
+            ],
+            "auto_log_mode": "mention_only",
+            "planning_notes": "Chill pace \u2014 slow mornings, big on food. Wynwood Walls on the ideas list.",
+            "lodging": null
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "generate_itinerary",
+        "input": {
+          "trip_id": "miami",
+          "days": [
+            "2027-03-16"
+          ],
+          "constraints": "Chill pace, slow morning, big on food \u2014 good lunch and a nice dinner. One daytime sight (Wynwood Walls from ideas).",
+          "places": [
+            {
+              "name": "Versailles Restaurant",
+              "kind": "food",
+              "est_cost_cents": 3000
+            },
+            {
+              "name": "Caf\u00e9 La Trova",
+              "kind": "food",
+              "est_cost_cents": 4500
+            }
+          ]
+        },
+        "result": {
+          "draft_id": "d1",
+          "days": [
+            {
+              "date": "2027-03-16",
+              "items": [
+                {
+                  "name": "Wynwood Walls",
+                  "kind": "activity",
+                  "slot": "morning",
+                  "location": "Miami",
+                  "start": "2027-03-16T10:00",
+                  "end": "2027-03-16T12:00",
+                  "est_cost_cents": null,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.797254901960784,
+                  "lon": -80.24627450980392,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami",
+                  "idea_id": "i1"
+                },
+                {
+                  "name": "Versailles Restaurant",
+                  "kind": "food",
+                  "slot": "lunch",
+                  "location": "Miami",
+                  "start": "2027-03-16T12:30",
+                  "end": "2027-03-16T14:00",
+                  "est_cost_cents": 3000,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.71254901960784,
+                  "lon": -80.26745098039216,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Versailles+Restaurant%2C+Miami"
+                },
+                {
+                  "name": "Caf\u00e9 La Trova",
+                  "kind": "food",
+                  "slot": "dinner",
+                  "location": "Miami",
+                  "start": "2027-03-16T19:00",
+                  "end": "2027-03-16T21:00",
+                  "est_cost_cents": 4500,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.785882352941176,
+                  "lon": -80.25960784313725,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Caf%C3%A9+La+Trova%2C+Miami"
+                }
+              ]
+            }
+          ],
+          "constraints": "Chill pace, slow morning, big on food \u2014 good lunch and a nice dinner. One daytime sight (Wynwood Walls from ideas).",
+          "source": "fake",
+          "saved": false,
+          "replaced_drafts": [],
+          "not_found": [],
+          "map_check_failed": [],
+          "already_on_trip": [],
+          "ideas_used": [
+            "Wynwood Walls"
+          ],
+          "ideas_left": [],
+          "skipped": [],
+          "note": "Hours and prices are estimates; check before you go.",
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Tuesday, Mar 16 \u2014 chill and food-focused \ud83c\udf64\n\n\u2022 10:00am Wynwood Walls (from our ideas list) \u2014 https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami\n\u2022 12:30pm lunch at Versailles Restaurant, Little Havana (~$30/person) \u2014 https://www.google.com/maps/search/?api=1&query=Versailles+Restaurant%2C+Miami\n\u2022 7:00pm dinner at Caf\u00e9 La Trova (~$45/person) \u2014 https://www.google.com/maps/search/?api=1&query=Caf%C3%A9+La+Trova%2C+Miami\n\nHours and prices are estimates, so double-check before you go. \u00a9 OpenStreetMap contributors\n\nWant any swaps (or a night out added)? Say the word and I'll tweak it \u2014 then @Aarav or you guys can give the OK to save it to the trip."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Tuesday, Mar 16 \u2014 chill and food-focused \ud83c\udf64\n\n\u2022 10:00am Wynwood Walls (from our ideas list) \u2014 https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami\n\u2022 12:30pm lunch at Versailles Restaurant, Little Havana (~$30/person) \u2014 https://www.google.com/maps/search/?api=1&query=Versailles+Restaurant%2C+Miami\n\u2022 7:00pm dinner at Caf\u00e9 La Trova (~$45/person) \u2014 https://www.google.com/maps/search/?api=1&query=Caf%C3%A9+La+Trova%2C+Miami\n\nHours and prices are estimates, so double-check before you go. \u00a9 OpenStreetMap contributors\n\nWant any swaps (or a night out added)? Say the word and I'll tweak it \u2014 then @Aarav or you guys can give the OK to save it to the trip."
+      }
+    ],
+    "stray_text": [
+      "*(no further action)*"
+    ],
+    "stop_reason": "stop",
+    "seconds": 19.04,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 37774,
+      "completion_tokens": 1043,
+      "total_tokens": 38817
+    },
+    "failures": []
+  }
+]

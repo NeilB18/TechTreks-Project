@@ -1,0 +1,200 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot make us an itinerary",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Happy to build it \ud83c\udf34 Two quick things, @Jake: which days do you want planned \u2014 all of Mar 14\u201318, or just certain days? And what's the vibe: chill or packed, anything you're all into (beach, food, nightlife, budget)? You've already got Wynwood Walls on the ideas list, so that'll go in first."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Happy to build it \ud83c\udf34 Two quick things, @Jake: which days do you want planned \u2014 all of Mar 14\u201318, or just certain days? And what's the vibe: chill or packed, anything you're all into (beach, food, nightlife, budget)? You've already got Wynwood Walls on the ideas list, so that'll go in first."
+      }
+    ],
+    "stray_text": [
+      "Waiting on which days and the group's vibe before I draft it \u2014 Wynwood Walls is already queued from your ideas list."
+    ],
+    "stop_reason": "stop",
+    "seconds": 6.19,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23089,
+      "completion_tokens": 195,
+      "total_tokens": 23284
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "jake",
+    "text": "@tripbot just tuesday. we're pretty chill, big on food",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "trip_id": "miami",
+          "changes": {
+            "planning_notes": "Chill pace, big on food. Nightlife/arts optional."
+          }
+        },
+        "result": {
+          "updated": true,
+          "trip": {
+            "id": "miami",
+            "name": "Miami Spring Break",
+            "status": "PLANNING",
+            "destination": "Miami",
+            "start_date": "2027-03-14",
+            "end_date": "2027-03-18",
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": null,
+            "leader_id": "aarav",
+            "leader_approval": [
+              "member_changes",
+              "trip_changes"
+            ],
+            "auto_log_mode": "mention_only",
+            "planning_notes": "Chill pace, big on food. Nightlife/arts optional.",
+            "lodging": null
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "generate_itinerary",
+        "input": {
+          "trip_id": "miami",
+          "days": [
+            "2027-03-16"
+          ],
+          "places": [
+            {
+              "name": "Versailles Restaurant",
+              "kind": "food",
+              "est_cost_cents": 2500
+            },
+            {
+              "name": "Ball & Chain",
+              "kind": "food",
+              "est_cost_cents": 3000
+            }
+          ],
+          "constraints": "Chill pace, group is big on food; one daytime stop is plenty"
+        },
+        "result": {
+          "draft_id": "d1",
+          "days": [
+            {
+              "date": "2027-03-16",
+              "items": [
+                {
+                  "name": "Wynwood Walls",
+                  "kind": "activity",
+                  "slot": "morning",
+                  "location": "Miami",
+                  "start": "2027-03-16T10:00",
+                  "end": "2027-03-16T12:00",
+                  "est_cost_cents": null,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.797254901960784,
+                  "lon": -80.24627450980392,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami",
+                  "idea_id": "i1"
+                },
+                {
+                  "name": "Versailles Restaurant",
+                  "kind": "food",
+                  "slot": "lunch",
+                  "location": "Miami",
+                  "start": "2027-03-16T12:30",
+                  "end": "2027-03-16T14:00",
+                  "est_cost_cents": 2500,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.71254901960784,
+                  "lon": -80.26745098039216,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Versailles+Restaurant%2C+Miami"
+                },
+                {
+                  "name": "Ball & Chain",
+                  "kind": "food",
+                  "slot": "dinner",
+                  "location": "Miami",
+                  "start": "2027-03-16T19:00",
+                  "end": "2027-03-16T21:00",
+                  "est_cost_cents": 3000,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.72313725490196,
+                  "lon": -80.20901960784313,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Ball+%26+Chain%2C+Miami"
+                }
+              ]
+            }
+          ],
+          "constraints": "Chill pace, group is big on food; one daytime stop is plenty",
+          "source": "fake",
+          "saved": false,
+          "replaced_drafts": [],
+          "not_found": [],
+          "map_check_failed": [],
+          "already_on_trip": [],
+          "ideas_used": [
+            "Wynwood Walls"
+          ],
+          "ideas_left": [],
+          "skipped": [],
+          "note": "Hours and prices are estimates; check before you go.",
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Tuesday Mar 16 draft \u2014 chill, food-first \ud83c\udf64\n\n\u2600\ufe0f 10am \u2014 Wynwood Walls (from @Jake's ideas list) \u2192 https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami\n\ud83c\udf7d\ufe0f 12:30pm \u2014 lunch at Versailles Restaurant, ~$25/person \u2192 https://www.google.com/maps/search/?api=1&query=Versailles+Restaurant%2C+Miami\n\ud83c\udf06 7pm \u2014 dinner at Ball & Chain in Little Havana, ~$30/person \u2192 https://www.google.com/maps/search/?api=1&query=Ball+%26+Chain%2C+Miami\n\nAfternoon is wide open for the beach or a nap. Hours and prices are estimates. \u00a9 OpenStreetMap contributors\n\nWant any swaps, @jake @mia @aarav? Say the word and I'll save it."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Tuesday Mar 16 draft \u2014 chill, food-first \ud83c\udf64\n\n\u2600\ufe0f 10am \u2014 Wynwood Walls (from @Jake's ideas list) \u2192 https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami\n\ud83c\udf7d\ufe0f 12:30pm \u2014 lunch at Versailles Restaurant, ~$25/person \u2192 https://www.google.com/maps/search/?api=1&query=Versailles+Restaurant%2C+Miami\n\ud83c\udf06 7pm \u2014 dinner at Ball & Chain in Little Havana, ~$30/person \u2192 https://www.google.com/maps/search/?api=1&query=Ball+%26+Chain%2C+Miami\n\nAfternoon is wide open for the beach or a nap. Hours and prices are estimates. \u00a9 OpenStreetMap contributors\n\nWant any swaps, @jake @mia @aarav? Say the word and I'll save it."
+      }
+    ],
+    "stray_text": [
+      "Draft is posted for Tuesday only \u2014 Wynwood Walls in the morning, then two long food stops with the afternoon free."
+    ],
+    "stop_reason": "stop",
+    "seconds": 14.47,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 37425,
+      "completion_tokens": 745,
+      "total_tokens": 38170
+    },
+    "failures": []
+  }
+]

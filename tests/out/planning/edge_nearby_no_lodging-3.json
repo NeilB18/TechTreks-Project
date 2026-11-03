@@ -1,0 +1,175 @@
+[
+  {
+    "turn": 1,
+    "sender": "mia",
+    "text": "@tripbot any coffee near where we're staying?",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "No spot saved for the group yet, so I don't know where to search \u2615 Where are we staying \u2014 hotel name or Airbnb address? Send it over and I'll save it and find the closest coffee."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "No spot saved for the group yet, so I don't know where to search \u2615 Where are we staying \u2014 hotel name or Airbnb address? Send it over and I'll save it and find the closest coffee."
+      }
+    ],
+    "stray_text": [
+      "(Asked @Mia for the lodging address \u2014 once it's in, I'll save it and pull the closest coffee spots.)"
+    ],
+    "stop_reason": "stop",
+    "seconds": 5.12,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23012,
+      "completion_tokens": 110,
+      "total_tokens": 23122
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "mia",
+    "text": "@tripbot the Freehand Miami",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "trip_id": "miami",
+          "changes": {
+            "lodging": "The Freehand Miami"
+          }
+        },
+        "result": {
+          "updated": true,
+          "trip": {
+            "id": "miami",
+            "name": "Miami Spring Break",
+            "status": "PLANNING",
+            "destination": "Miami",
+            "start_date": "2027-03-14",
+            "end_date": "2027-03-18",
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": null,
+            "leader_id": "aarav",
+            "leader_approval": [
+              "member_changes",
+              "trip_changes"
+            ],
+            "auto_log_mode": "mention_only",
+            "planning_notes": null,
+            "lodging": {
+              "name": "The Freehand Miami",
+              "address": "Miami",
+              "lat": 25.759607843137253,
+              "lon": -80.28549019607843,
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=The+Freehand+Miami%2C+Miami"
+            }
+          },
+          "next_step": "Tell the group the address you saved, with the Maps link, so someone can correct it if it's the wrong place."
+        },
+        "error": null
+      },
+      {
+        "name": "find_nearby",
+        "input": {
+          "trip_id": "miami",
+          "what": "coffee"
+        },
+        "result": {
+          "what": "coffee",
+          "near": "The Freehand Miami",
+          "near_address": "Miami",
+          "within": "1 mi",
+          "results": [
+            {
+              "name": "Coffee Spot 1",
+              "distance": "0.1 mi",
+              "walk": "about a 3 min walk",
+              "address": "100 Collins Avenue",
+              "opening_hours": "Mo-Su 11:00-23:00",
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+1%2C+100+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Coffee Spot 2",
+              "distance": "0.2 mi",
+              "walk": "about a 5 min walk",
+              "address": "200 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+2%2C+200+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Coffee Spot 3",
+              "distance": "0.3 mi",
+              "walk": "about a 8 min walk",
+              "address": "300 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+3%2C+300+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Coffee Spot 4",
+              "distance": "0.4 mi",
+              "walk": "about a 10 min walk",
+              "address": "400 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+4%2C+400+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Coffee Spot 5",
+              "distance": "0.5 mi",
+              "walk": "about a 13 min walk",
+              "address": "500 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+5%2C+500+Collins+Avenue%2C+Miami"
+            }
+          ],
+          "more_found": 2,
+          "note": "Closest first (OpenStreetMap has no ratings). Straight-line distances; walking times are rough.",
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Saved: The Freehand Miami \u2192 https://www.google.com/maps/search/?api=1&query=The+Freehand+Miami%2C+Miami (shout if that's the wrong spot).\n\nClosest coffee from there \u2615\n\u2022 Coffee Spot 1, 100 Collins Ave \u2014 0.1 mi, ~3 min walk, 11:00\u201323:00 daily \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+1%2C+100+Collins+Avenue%2C+Miami\n\u2022 Coffee Spot 2, 200 Collins Ave \u2014 0.2 mi, ~5 min \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+2%2C+200+Collins+Avenue%2C+Miami\n\u2022 Coffee Spot 3, 300 Collins Ave \u2014 0.3 mi, ~8 min \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+3%2C+300+Collins+Avenue%2C+Miami\n\u2022 Coffee Spot 4, 400 Collins Ave \u2014 0.4 mi, ~10 min \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+4%2C+400+Collins+Avenue%2C+Miami\n\nWant me to look farther out? There are 2 more within a mile. \u00a9 OpenStreetMap contributors"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Saved: The Freehand Miami \u2192 https://www.google.com/maps/search/?api=1&query=The+Freehand+Miami%2C+Miami (shout if that's the wrong spot).\n\nClosest coffee from there \u2615\n\u2022 Coffee Spot 1, 100 Collins Ave \u2014 0.1 mi, ~3 min walk, 11:00\u201323:00 daily \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+1%2C+100+Collins+Avenue%2C+Miami\n\u2022 Coffee Spot 2, 200 Collins Ave \u2014 0.2 mi, ~5 min \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+2%2C+200+Collins+Avenue%2C+Miami\n\u2022 Coffee Spot 3, 300 Collins Ave \u2014 0.3 mi, ~8 min \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+3%2C+300+Collins+Avenue%2C+Miami\n\u2022 Coffee Spot 4, 400 Collins Ave \u2014 0.4 mi, ~10 min \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+4%2C+400+Collins+Avenue%2C+Miami\n\nWant me to look farther out? There are 2 more within a mile. \u00a9 OpenStreetMap contributors"
+      }
+    ],
+    "stray_text": [
+      "Lodging saved and coffee results posted for @Mia."
+    ],
+    "stop_reason": "stop",
+    "seconds": 14.45,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 49093,
+      "completion_tokens": 646,
+      "total_tokens": 49739
+    },
+    "failures": []
+  }
+]

@@ -1,0 +1,124 @@
+[
+  {
+    "turn": 1,
+    "sender": "mia",
+    "text": "@tripbot I can't come anymore, I'm out for the whole trip. sorry guys",
+    "tool_calls": [
+      {
+        "name": "remove_member",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia"
+        },
+        "result": {
+          "removed": true,
+          "removed_from_activities": [],
+          "still_owes_past_splits": true,
+          "was_leader": false,
+          "budget_warnings": {},
+          "next_step": "Budgets were checked automatically: no warnings, so don't mention budgets."
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "aarav"
+        },
+        "result": {
+          "person_id": "aarav",
+          "budget_set": false,
+          "spent_cents": 4000,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "jake"
+        },
+        "result": {
+          "person_id": "jake",
+          "budget_set": false,
+          "spent_cents": 4000,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_balances",
+        "input": {
+          "trip_id": "miami"
+        },
+        "result": {
+          "net_balances": {
+            "aarav": 8000,
+            "jake": -4000,
+            "mia": -4000
+          },
+          "suggested_payments": [
+            {
+              "from": "jake",
+              "to": "aarav",
+              "amount_cents": 4000,
+              "handle": "@aarav-venmo"
+            },
+            {
+              "from": "mia",
+              "to": "aarav",
+              "amount_cents": 4000,
+              "handle": "@aarav-venmo"
+            }
+          ],
+          "currency": "USD",
+          "lines": [
+            "Jake pays Aarav $40, @aarav-venmo",
+            "Mia pays Aarav $40, @aarav-venmo"
+          ],
+          "display": {
+            "net_balances": {
+              "aarav": "+$80",
+              "jake": "-$40",
+              "mia": "-$40"
+            }
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "No worries, @Mia \u2014 you're off the trip. One heads-up: the $120 dinner you already split into still counts, so you owe your $40 share.\n\nSettle-up now:\n- Mia pays Aarav $40, Venmo: @aarav-venmo\n- Jake pays Aarav $40, Venmo: @aarav-venmo"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "No worries, @Mia \u2014 you're off the trip. One heads-up: the $120 dinner you already split into still counts, so you owe your $40 share.\n\nSettle-up now:\n- Mia pays Aarav $40, Venmo: @aarav-venmo\n- Jake pays Aarav $40, Venmo: @aarav-venmo"
+      }
+    ],
+    "stray_text": [
+      "No worries, @Mia \u2014 you're off the trip. One heads-up: the $120 dinner you already split into still counts, so you owe your $40 share.\n\nSettle-up now:\n- Mia pays Aarav $40, Venmo: @aarav-venmo\n- Jake pays Aarav $40, Venmo: @aarav-venmo",
+      "Posted in the chat."
+    ],
+    "stop_reason": "stop",
+    "seconds": 15.21,
+    "model_calls": 5,
+    "tokens": {
+      "prompt_tokens": 59314,
+      "completion_tokens": 566,
+      "total_tokens": 59880
+    },
+    "failures": []
+  }
+]

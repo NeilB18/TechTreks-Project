@@ -1,0 +1,172 @@
+[
+  {
+    "turn": 1,
+    "sender": "aarav",
+    "text": "@tripbot hey! we're planning spring break",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Hey @Aarav! \ud83d\udc4b Spring break planning, my favorite subject. Before we dive in, let's get the housekeeping out of the way (3 quick ones):\n\n1. **Trip leader?** Someone has to be the final \"yes\" on big calls \u2014 you, Jake, or Mia?\n2. **Which decisions need the leader's OK?** Pick any mix: trip changes (dates/destination/budget), member changes, itinerary saves, refunds/deletes.\n3. **Expense logging:** should I log expenses I spot in chat automatically, or only when someone @mentions me?\n\nAlso tell me where you're thinking of going \ud83c\udf34 (and rough dates) and I'll start a poll if you want one."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Hey @Aarav! \ud83d\udc4b Spring break planning, my favorite subject. Before we dive in, let's get the housekeeping out of the way (3 quick ones):\n\n1. **Trip leader?** Someone has to be the final \"yes\" on big calls \u2014 you, Jake, or Mia?\n2. **Which decisions need the leader's OK?** Pick any mix: trip changes (dates/destination/budget), member changes, itinerary saves, refunds/deletes.\n3. **Expense logging:** should I log expenses I spot in chat automatically, or only when someone @mentions me?\n\nAlso tell me where you're thinking of going \ud83c\udf34 (and rough dates) and I'll start a poll if you want one."
+      }
+    ],
+    "stray_text": [
+      "Sent \u2014 waiting on the group's answers for leader, approvals, logging mode, and destination."
+    ],
+    "stop_reason": "stop",
+    "seconds": 7.55,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23059,
+      "completion_tokens": 281,
+      "total_tokens": 23340
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "mia",
+    "text": "@tripbot Aarav's the leader",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "trip_id": "miami",
+          "changes": {
+            "leader_id": "aarav"
+          }
+        },
+        "result": {
+          "updated": true,
+          "trip": {
+            "id": "miami",
+            "name": "Spring Break",
+            "status": "PLANNING",
+            "destination": null,
+            "start_date": null,
+            "end_date": null,
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": null,
+            "leader_id": "aarav",
+            "leader_approval": [],
+            "auto_log_mode": null,
+            "planning_notes": null,
+            "lodging": null
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Locked in: @Aarav is trip leader \u2705\n\nTwo things left from the checklist:\n1. **Which decisions need his OK?** trip changes (dates/destination/budget), member changes, itinerary saves, refunds/deletes \u2014 any combo, or none.\n2. **Expense logging:** auto (I log anything I spot in chat) or mention_only (only when someone @mentions me)?\n\nAnd whenever you're ready \u2014 destination and dates? \ud83c\udf34"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Locked in: @Aarav is trip leader \u2705\n\nTwo things left from the checklist:\n1. **Which decisions need his OK?** trip changes (dates/destination/budget), member changes, itinerary saves, refunds/deletes \u2014 any combo, or none.\n2. **Expense logging:** auto (I log anything I spot in chat) or mention_only (only when someone @mentions me)?\n\nAnd whenever you're ready \u2014 destination and dates? \ud83c\udf34"
+      }
+    ],
+    "stray_text": [
+      "Locked in: @Aarav is trip leader \u2705\n\nTwo things left from that checklist:\n1. **Which decisions need his OK?** trip changes (dates/destination/budget), member changes, itinerary saves, refunds/deletes \u2014 any combo, or none.\n2. **Expense logging:** `auto` (I log anything I spot in chat) or `mention_only`?\n\nAnd whenever you're ready \u2014 destination and dates? \ud83c\udf34",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 9.2,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47749,
+      "completion_tokens": 346,
+      "total_tokens": 48095
+    },
+    "failures": []
+  },
+  {
+    "turn": 3,
+    "sender": "aarav",
+    "text": "@tripbot just trip changes and member changes",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "trip_id": "miami",
+          "changes": {
+            "leader_approval": [
+              "trip_changes",
+              "member_changes"
+            ]
+          }
+        },
+        "result": {
+          "updated": true,
+          "trip": {
+            "id": "miami",
+            "name": "Spring Break",
+            "status": "PLANNING",
+            "destination": null,
+            "start_date": null,
+            "end_date": null,
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": null,
+            "leader_id": "aarav",
+            "leader_approval": [
+              "member_changes",
+              "trip_changes"
+            ],
+            "auto_log_mode": null,
+            "planning_notes": null,
+            "lodging": null
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Done \u2014 @Aarav's OK is needed for trip changes (dates/destination/budget) and member changes \u2705 Itinerary saves, refunds and deletes are open to the group.\n\nLast setting: should I log expenses automatically when I spot them in chat, or only when someone @mentions me? \ud83e\uddfe"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Done \u2014 @Aarav's OK is needed for trip changes (dates/destination/budget) and member changes \u2705 Itinerary saves, refunds and deletes are open to the group.\n\nLast setting: should I log expenses automatically when I spot them in chat, or only when someone @mentions me? \ud83e\uddfe"
+      }
+    ],
+    "stray_text": [
+      "Saved and posted."
+    ],
+    "stop_reason": "stop",
+    "seconds": 5.8,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 37095,
+      "completion_tokens": 211,
+      "total_tokens": 37306
+    },
+    "failures": []
+  }
+]

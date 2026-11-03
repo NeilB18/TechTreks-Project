@@ -1,0 +1,22 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "lol that boat was so fun, best day of the trip",
+    "tool_calls": [],
+    "outbox": [],
+    "stray_text": [
+      "No reply needed \u2014 Jake's just vibing about a past boat day, and there's nothing actionable (no expense, budget, or plan involved). Staying quiet.",
+      "(Nothing to send \u2014 that was small talk, not a request.)"
+    ],
+    "stop_reason": "stop",
+    "seconds": 5.34,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23055,
+      "completion_tokens": 128,
+      "total_tokens": 23183
+    },
+    "failures": []
+  }
+]

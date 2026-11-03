@@ -1,0 +1,202 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot can you find close pizza recs near where we're staying?",
+    "tool_calls": [
+      {
+        "name": "find_nearby",
+        "input": {
+          "trip_id": "miami",
+          "what": "pizza"
+        },
+        "result": {
+          "what": "pizza",
+          "near": "Freehand Miami",
+          "near_address": "Miami",
+          "within": "1 mi",
+          "results": [
+            {
+              "name": "Pizza Spot 1",
+              "distance": "0.1 mi",
+              "walk": "about a 3 min walk",
+              "address": "100 Collins Avenue",
+              "opening_hours": "Mo-Su 11:00-23:00",
+              "cuisine": "pizza",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Pizza+Spot+1%2C+100+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Pizza Spot 2",
+              "distance": "0.2 mi",
+              "walk": "about a 5 min walk",
+              "address": "200 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "pizza",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Pizza+Spot+2%2C+200+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Pizza Spot 3",
+              "distance": "0.3 mi",
+              "walk": "about a 8 min walk",
+              "address": "300 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "pizza",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Pizza+Spot+3%2C+300+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Pizza Spot 4",
+              "distance": "0.4 mi",
+              "walk": "about a 10 min walk",
+              "address": "400 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "pizza",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Pizza+Spot+4%2C+400+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Pizza Spot 5",
+              "distance": "0.5 mi",
+              "walk": "about a 13 min walk",
+              "address": "500 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "pizza",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Pizza+Spot+5%2C+500+Collins+Avenue%2C+Miami"
+            }
+          ],
+          "more_found": 2,
+          "note": "Closest first (OpenStreetMap has no ratings). Straight-line distances; walking times are rough.",
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Closest pizza to the Freehand, @Jake \ud83c\udf55 (no ratings on the map, so these are by distance):\n\n1. Pizza Spot 1 \u2014 100 Collins Ave, 0.1 mi (~3 min walk), open 11am\u201311pm daily \u2192 https://www.google.com/maps/search/?api=1&query=Pizza+Spot+1%2C+100+Collins+Avenue%2C+Miami\n2. Pizza Spot 2 \u2014 200 Collins Ave, 0.2 mi (~5 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Pizza+Spot+2%2C+200+Collins+Avenue%2C+Miami\n3. Pizza Spot 3 \u2014 300 Collins Ave, 0.3 mi (~8 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Pizza+Spot+3%2C+300+Collins+Avenue%2C+Miami\n4. Pizza Spot 4 \u2014 400 Collins Ave, 0.4 mi (~10 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Pizza+Spot+4%2C+400+Collins+Avenue%2C+Miami\n\n2 more within a mile \u2014 want me to look farther out?\n\n\u00a9 OpenStreetMap contributors"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Closest pizza to the Freehand, @Jake \ud83c\udf55 (no ratings on the map, so these are by distance):\n\n1. Pizza Spot 1 \u2014 100 Collins Ave, 0.1 mi (~3 min walk), open 11am\u201311pm daily \u2192 https://www.google.com/maps/search/?api=1&query=Pizza+Spot+1%2C+100+Collins+Avenue%2C+Miami\n2. Pizza Spot 2 \u2014 200 Collins Ave, 0.2 mi (~5 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Pizza+Spot+2%2C+200+Collins+Avenue%2C+Miami\n3. Pizza Spot 3 \u2014 300 Collins Ave, 0.3 mi (~8 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Pizza+Spot+3%2C+300+Collins+Avenue%2C+Miami\n4. Pizza Spot 4 \u2014 400 Collins Ave, 0.4 mi (~10 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Pizza+Spot+4%2C+400+Collins+Avenue%2C+Miami\n\n2 more within a mile \u2014 want me to look farther out?\n\n\u00a9 OpenStreetMap contributors"
+      }
+    ],
+    "stray_text": [
+      "Closest pizza to the Freehand, @Jake \ud83c\udf55 (no ratings on the map, so this is by distance):\n\n1. **Pizza Spot 1** \u2014 100 Collins Ave, 0.1 mi (~3 min walk) \u2014 open 11am\u201311pm daily \u2192 [Maps](https://www.google.com/maps/search/?api=1&query=Pizza+Spot+1%2C+100+Collins+Avenue%2C+Miami)\n2. **Pizza Spot 2** \u2014 200 Collins Ave, 0.2 mi (~5 min walk) \u2192 [Maps](https://www.google.com/maps/search/?api=1&query=Pizza+Spot+2%2C+200+Collins+Avenue%2C+Miami)\n3. **Pizza Spot 3** \u2014 300 Collins Ave, 0.3 mi (~8 min walk) \u2192 [Maps](https://www.google.com/maps/search/?api=1&query=Pizza+Spot+3%2C+300+Collins+Avenue%2C+Miami)\n4. **Pizza Spot 4** \u2014 400 Collins Ave, 0.4 mi (~10 min walk) \u2192 [Maps](https://www.google.com/maps/search/?api=1&query=Pizza+Spot+4%2C+400+Collins+Avenue%2C+Miami)\n\nThere are 2 more within a mile \u2014 want me to look farther out?\n\n\u00a9 OpenStreetMap contributors",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 20.12,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 49246,
+      "completion_tokens": 828,
+      "total_tokens": 50074
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "mia",
+    "text": "@tripbot any coffee near Wynwood Walls?",
+    "tool_calls": [
+      {
+        "name": "find_nearby",
+        "input": {
+          "trip_id": "miami",
+          "what": "coffee",
+          "near": "Wynwood Walls"
+        },
+        "result": {
+          "what": "coffee",
+          "near": "Wynwood Walls",
+          "near_address": "Miami",
+          "within": "1 mi",
+          "results": [
+            {
+              "name": "Coffee Spot 1",
+              "distance": "0.1 mi",
+              "walk": "about a 3 min walk",
+              "address": "100 Collins Avenue",
+              "opening_hours": "Mo-Su 11:00-23:00",
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+1%2C+100+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Coffee Spot 2",
+              "distance": "0.2 mi",
+              "walk": "about a 5 min walk",
+              "address": "200 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+2%2C+200+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Coffee Spot 3",
+              "distance": "0.3 mi",
+              "walk": "about a 8 min walk",
+              "address": "300 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+3%2C+300+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Coffee Spot 4",
+              "distance": "0.4 mi",
+              "walk": "about a 10 min walk",
+              "address": "400 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+4%2C+400+Collins+Avenue%2C+Miami"
+            },
+            {
+              "name": "Coffee Spot 5",
+              "distance": "0.5 mi",
+              "walk": "about a 13 min walk",
+              "address": "500 Collins Avenue",
+              "opening_hours": null,
+              "cuisine": "coffee",
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Coffee+Spot+5%2C+500+Collins+Avenue%2C+Miami"
+            }
+          ],
+          "more_found": 2,
+          "note": "Closest first (OpenStreetMap has no ratings). Straight-line distances; walking times are rough.",
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Closest coffee to Wynwood Walls, @Mia \u2615 (by distance, no ratings on the map):\n\n1. Coffee Spot 1 \u2014 100 Collins Ave, 0.1 mi (~3 min walk), open 11am\u201311pm daily \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+1%2C+100+Collins+Avenue%2C+Miami\n2. Coffee Spot 2 \u2014 200 Collins Ave, 0.2 mi (~5 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+2%2C+200+Collins+Avenue%2C+Miami\n3. Coffee Spot 3 \u2014 300 Collins Ave, 0.3 mi (~8 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+3%2C+300+Collins+Avenue%2C+Miami\n4. Coffee Spot 4 \u2014 400 Collins Ave, 0.4 mi (~10 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+4%2C+400+Collins+Avenue%2C+Miami\n\nHeads up: those addresses are all out on Collins Ave, so the map may have snapped them near the Freehand instead of Wynwood. 2 more within a mile \u2014 want me to look farther, or try a spot by name?\n\n\u00a9 OpenStreetMap contributors"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Closest coffee to Wynwood Walls, @Mia \u2615 (by distance, no ratings on the map):\n\n1. Coffee Spot 1 \u2014 100 Collins Ave, 0.1 mi (~3 min walk), open 11am\u201311pm daily \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+1%2C+100+Collins+Avenue%2C+Miami\n2. Coffee Spot 2 \u2014 200 Collins Ave, 0.2 mi (~5 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+2%2C+200+Collins+Avenue%2C+Miami\n3. Coffee Spot 3 \u2014 300 Collins Ave, 0.3 mi (~8 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+3%2C+300+Collins+Avenue%2C+Miami\n4. Coffee Spot 4 \u2014 400 Collins Ave, 0.4 mi (~10 min walk) \u2192 https://www.google.com/maps/search/?api=1&query=Coffee+Spot+4%2C+400+Collins+Avenue%2C+Miami\n\nHeads up: those addresses are all out on Collins Ave, so the map may have snapped them near the Freehand instead of Wynwood. 2 more within a mile \u2014 want me to look farther, or try a spot by name?\n\n\u00a9 OpenStreetMap contributors"
+      }
+    ],
+    "stray_text": [
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 10.46,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 40574,
+      "completion_tokens": 581,
+      "total_tokens": 41155
+    },
+    "failures": []
+  }
+]

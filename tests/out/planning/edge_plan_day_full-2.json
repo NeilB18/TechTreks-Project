@@ -1,0 +1,60 @@
+[
+  {
+    "turn": 1,
+    "sender": "mia",
+    "text": "@tripbot add La Mar for Sunday",
+    "tool_calls": [
+      {
+        "name": "add_activity",
+        "input": {
+          "trip_id": "miami",
+          "name": "La Mar",
+          "kind": "food",
+          "day": "2027-03-14"
+        },
+        "result": {
+          "created": false,
+          "day_full": true,
+          "closed_then": false,
+          "day": "2027-03-14",
+          "plans_that_day": [
+            "Versailles Restaurant",
+            "Joe's Stone Crab"
+          ],
+          "opening_hours": null,
+          "next_step": "Ask for a specific time, another day, or the ideas list."
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Heads up @Mia \u2014 Sunday (Mar 14) is already full for food: Versailles Restaurant at lunch and Joe's Stone Crab at dinner \ud83c\udf7d\ufe0f Want me to put La Mar on a different day, slot it in at a specific time Sunday (that would mean moving one of those), or just add it to the ideas list for now?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Heads up @Mia \u2014 Sunday (Mar 14) is already full for food: Versailles Restaurant at lunch and Joe's Stone Crab at dinner \ud83c\udf7d\ufe0f Want me to put La Mar on a different day, slot it in at a specific time Sunday (that would mean moving one of those), or just add it to the ideas list for now?"
+      }
+    ],
+    "stray_text": [
+      "Heads up @Mia \u2014 Sunday (Mar 14) is already full for food: Versailles Restaurant at lunch and Joe's Stone Crab at dinner. Want me to put La Mar on a different day, slot it in at a specific time Sunday (which would need moving one of those), or just drop it on the ideas list for now? \ud83c\udf2e",
+      "Sent! \ud83c\udf2e"
+    ],
+    "stop_reason": "stop",
+    "seconds": 19.18,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47931,
+      "completion_tokens": 826,
+      "total_tokens": 48757
+    },
+    "failures": []
+  }
+]

@@ -1,0 +1,49 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot we're staying at Zzqx Imaginary Taco Palace",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "trip_id": "miami",
+          "changes": {
+            "lodging": "Zzqx Imaginary Taco Palace"
+          }
+        },
+        "result": null,
+        "error": "Couldn't find 'Zzqx Imaginary Taco Palace' on the map near Miami, so nothing was saved. Ask for the street address (e.g. \"2727 Indian Creek Dr\")."
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "@Jake I couldn't find \"Zzqx Imaginary Taco Palace\" on the map near Miami, so nothing got saved \ud83d\ude05 Can you send the street address (e.g. \"1234 Ocean Dr, Miami Beach\")? Then I'll pin it as where we're staying."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "@Jake I couldn't find \"Zzqx Imaginary Taco Palace\" on the map near Miami, so nothing got saved \ud83d\ude05 Can you send the street address (e.g. \"1234 Ocean Dr, Miami Beach\")? Then I'll pin it as where we're staying."
+      }
+    ],
+    "stray_text": [
+      "@Jake couldn't find \"Zzqx Imaginary Taco Palace\" on the map near Miami, so I didn't save anything \ud83d\ude05 Can you send the street address (e.g. \"1234 Ocean Dr, Miami Beach\")? Then I'll pin it as where we're staying.",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 16.07,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 46582,
+      "completion_tokens": 334,
+      "total_tokens": 46916
+    },
+    "failures": []
+  }
+]
