@@ -22,6 +22,9 @@ from trips.services import DjangoBackend
 
 log = logging.getLogger(__name__)
 ERROR_REPLY = "Sorry, I hit a snag handling that. Try again in a minute?"
+# The turn failed after it already saved something, so it isn't rerun (that would save it twice).
+PARTIAL_REPLY = ("Sorry, I hit a snag partway through that. Some of it may already be saved, so check the trip "
+                 "before sending it again.")
 RETRY_AFTER_S = 20
 
 
@@ -81,14 +84,21 @@ def handle_callback(payload: dict) -> str:
             break
         except (APIConnectionError, APITimeoutError):
             # The client already retried for a few seconds; a longer outage (a DNS blip in the smoke test)
-            # gets one more try before the apology, so the message isn't simply lost.
-            if attempt == 0 and not settings.BOT_INLINE:
+            # gets one more try before the apology, so the message isn't simply lost. Only if nothing was saved
+            # yet: rerunning a turn that already logged an expense would log it twice.
+            if attempt == 0 and not settings.BOT_INLINE and not getattr(agent, "mutated", False):
                 log.warning("Model unreachable on message %s; retrying in %ss", message_id, RETRY_AFTER_S)
                 time.sleep(RETRY_AFTER_S)
                 continue
             log.exception("Agent failed on message %s", message_id)
         except Exception:
             log.exception("Agent failed on message %s", message_id)
+        if getattr(agent, "mutated", False):
+            # Keep the half turn, so the model sees what was saved if they ask again.
+            convo.history = agent.history
+            convo.save(update_fields=["history", "updated_at"])
+            groupme.post_to_group(chat.bot_id, PARTIAL_REPLY)
+            return "error after saving"
         groupme.post_to_group(chat.bot_id, ERROR_REPLY)
         return "error"
     # One line per reply, to watch latency and cost in a real chat.
