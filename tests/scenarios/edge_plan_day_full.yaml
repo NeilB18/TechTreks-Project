@@ -1,0 +1,29 @@
+kind: edge
+title: Adding a meal to a day whose meal slots are taken saves nothing and asks
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  activities:
+    - {id: a1, name: Versailles Restaurant, kind: food, start: "2027-03-14T12:30", end: "2027-03-14T14:00"}
+    - {id: a2, name: "Joe's Stone Crab", kind: food, start: "2027-03-14T19:00", end: "2027-03-14T21:00"}
+turns:
+  - sender: mia
+    text: "@tripbot add La Mar for Sunday"
+    expect:
+      calls:
+        - {name: add_activity, args: {day: "2027-03-14", kind: food}}
+      messages:
+        - {to: group, contains: ["?"], contains_any: [full, taken, booked, already]}
+      end_state:
+        - activity_count: 2
+    golden:
+      calls:
+        - {name: add_activity, args: {trip_id: miami, name: La Mar by Gastón Acurio, kind: food, day: "2027-03-14"}}
+      messages:
+        - {to: group, text: "Sunday's lunch and dinner are already taken (Versailles and Joe's). Want La Mar on another day, at a specific time, or on the ideas list?"}
