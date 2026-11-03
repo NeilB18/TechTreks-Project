@@ -1,0 +1,24 @@
+[
+  {
+    "place_id": 306029344,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "relation",
+    "osm_id": 19672042,
+    "lat": "25.7446992",
+    "lon": "-80.2115770",
+    "category": "leisure",
+    "type": "park",
+    "place_rank": 24,
+    "importance": 0.08007754558632789,
+    "addresstype": "park",
+    "name": "Vizcaya Museum and Gardens",
+    "display_name": "Vizcaya Museum and Gardens, Brickell Hammock, Miami, Miami-Dade County, Florida, United States",
+    "extratags": null,
+    "boundingbox": [
+      "25.7418861",
+      "25.7475128",
+      "-80.2137252",
+      "-80.2094451"
+    ]
+  }
+]
