@@ -259,7 +259,8 @@ class TripAgent:
                           "messaged you is already in trip_state members. Nothing was changed. If someone's missing, "
                           "ask them to say hi with @tripbot.")
             return f"Error: {call.error}"
-        if name in PLAN_TOOLS and self.event and not self.event.mentioned:
+        changes_lodging = name == "update_trip" and "lodging" in (args.get("changes") or {})
+        if (name in PLAN_TOOLS or changes_lodging) and self.event and not self.event.mentioned:
             call.error = ("You weren't @mentioned, so don't change the plan, drafts or ideas. Nothing was changed. "
                           "End the turn.")
             return f"Error: {call.error}"

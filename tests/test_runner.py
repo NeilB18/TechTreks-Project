@@ -210,6 +210,22 @@ def test_removing_an_important_activity_waits_for_a_confirmation():
     assert r.tool_calls[0].result["removed"] and backend.summary("miami")["activities"] == []
 
 
+def test_lodging_only_changes_on_a_mention():
+    from agent.backend.core.engine import TripEngine
+    backend = TripEngine()
+    backend.load_seed({**DINNER_TRIP, "trip": {**DINNER_TRIP["trip"], "destination": "Miami"}})
+    stay = {"trip_id": "miami", "changes": {"lodging": "Freehand Miami"}}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "update_trip", stay)), response("stop", ""),
+        response("tool_calls", None, tool_call("t2", "update_trip", stay)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="jake", text="we're at the freehand btw", mentioned=False))
+    assert "weren't @mentioned" in r.tool_calls[0].error and backend.summary("miami")["trip"]["lodging"] is None
+    agent.handle(ChatEvent(sender_id="jake", text="@tripbot we're staying at the freehand"))
+    assert backend.summary("miami")["trip"]["lodging"]["name"] == "Freehand Miami"
+
+
 def test_refund_tells_the_model_who_already_paid_back():
     backend = engine()
     backend.record_payback(trip_id="miami", from_person="jake", to_person="aarav", amount=4000, currency="USD")

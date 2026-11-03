@@ -100,6 +100,9 @@ BACKEND_TOOL_SCHEMAS = [
               "leader_approval": {"type": "array", "items": {"type": "string", "enum": [
                   "trip_changes", "member_changes", "itinerary_saves", "refunds_deletes"]}},
               "auto_log_mode": {"type": "string"},
+              "lodging": {"type": "string", "description": "Where the group is staying: a hotel name or street address. "
+                          "It's looked up on the map; if it can't be found nothing is saved, so ask for the address. "
+                          "Empty string clears it. No confirmation needed."},
               "planning_notes": {"type": "string", "description": "The group's interests and pace for planning, "
                                  "e.g. \"chill mornings, big on food, one night out\". No confirmation needed."}}}},
           ["trip_id", "changes"]),

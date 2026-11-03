@@ -24,6 +24,7 @@ class Trip(models.Model):
     auto_log_mode = models.CharField(max_length=32, null=True, blank=True)
     planning_notes = models.TextField(null=True, blank=True)  # interests and pace, for itinerary drafts
     ideas = models.JSONField(default=list)  # places the group wants to do, not on a day yet (up to 20)
+    lodging = models.JSONField(null=True, blank=True)  # where the group is staying, found on the map
 
     def __str__(self):
         return self.name

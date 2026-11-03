@@ -25,7 +25,10 @@ export type TripInfo = {
   leader_approval: string[];
   auto_log_mode: string | null;
   planning_notes?: string | null; // interests and pace, for itinerary drafts
+  lodging?: Lodging | null; // not shown on the page yet: an address belongs behind sign-in
 };
+
+export type Lodging = { name: string; address: string; lat: number; lon: number; maps_url: string };
 
 export type Activity = {
   activity_id: string;

@@ -40,7 +40,7 @@ STATUSES = [s.name for s in TripStatus]
 APPROVAL_TYPES = ["trip_changes", "member_changes", "itinerary_saves", "refunds_deletes"]
 TRIP_FIELDS = ["destination", "start_date", "end_date", "base_currency", "status",
                "target_break", "group_budget", "leader_id", "leader_approval", "name",
-               "auto_log_mode", "planning_notes"]
+               "auto_log_mode", "planning_notes", "lodging"]
 
 # Itinerary drafts: each suggested stop is checked on the map (about a second each), so a draft is capped.
 MAX_STOPS_PER_DAY = 3
@@ -260,7 +260,7 @@ class TripEngine:
         if "now" in seed:
             self.now = str(seed["now"])
         t = seed["trip"]
-        fields = {k: t[k] for k in TRIP_FIELDS if k in t and k != "name"}
+        fields = {k: t[k] for k in TRIP_FIELDS if k in t and k not in ("name", "lodging")}
         if "status" in fields:
             fields["status"] = TripStatus[fields["status"]]
         for k in ("start_date", "end_date"):
@@ -270,6 +270,8 @@ class TripEngine:
         if "leader" in t:
             trip.leader_id = t["leader"]
         self.trips[trip.id] = trip
+        if t.get("lodging"):  # looked up on the map like one set from chat
+            self.update_trip(trip.id, {"lodging": t["lodging"]})
         for m in seed.get("members", []):
             trip.add_member(Person(m["id"], m["name"], m.get("chat_user_id", m["id"]), m.get("handle"),
                                    active=m.get("active", True)))
@@ -401,6 +403,25 @@ class TripEngine:
         return {"removed": True, "removed_from_activities": removed_from,
                 "still_owes_past_splits": True, "was_leader": trip.leader_id == person_id}
 
+    def _find_lodging(self, name, city: str | None) -> dict | None:
+        """Where the group is staying, looked up on the map near the destination. Empty clears it. Nothing is saved
+        if the map can't find it, so the agent asks for the street address."""
+        if name is None or not str(name).strip():
+            return None
+        name = str(name).strip()
+        if not city:
+            raise ToolError("Set the destination first, so the place can be found on the map")
+        try:
+            found = self.travel.find_place(name, city)
+        except Exception as e:  # noqa: BLE001
+            log.warning("Lodging lookup failed for %r in %s: %s", name, city, e)
+            raise ToolError("The map lookup failed, so nothing was saved. Try again in a minute.") from e
+        if found is None:
+            raise ToolError(f"Couldn't find {name!r} on the map near {city}, so nothing was saved. "
+                            'Ask for the street address (e.g. "2727 Indian Creek Dr").')
+        return {"name": name, "address": osm.short_address(found), "lat": found.lat, "lon": found.lon,
+                "maps_url": found.maps_url}
+
     def update_trip(self, trip_id: str, changes: dict) -> dict:
         trip = self._trip(trip_id)
         bad = set(changes) - set(TRIP_FIELDS)
@@ -432,9 +453,14 @@ class TripEngine:
         new_end = new.get("end_date", trip.end_date)
         if new_start and new_end and new_start > new_end:
             raise ToolError("start_date is after end_date")
+        if "lodging" in new:  # last, so a lodging the map can't find leaves the whole change unsaved
+            new["lodging"] = self._find_lodging(new["lodging"], new.get("destination", trip.destination))
         for k, v in new.items():
             setattr(trip, k, v)
         out = {"updated": True, "trip": self.summary(trip_id)["trip"]}
+        if new.get("lodging"):
+            out["next_step"] = ("Tell the group the address you saved, with the Maps link, so someone can correct it "
+                                "if it's the wrong place.")
         if "start_date" in changes or "end_date" in changes:
             out["activities_outside_dates"] = self._activities_outside(trip)
         if "group_budget" in changes and changes["group_budget"] is not None:
@@ -985,7 +1011,8 @@ class TripEngine:
                      "end_date": iso(trip.end_date), "target_break": trip.target_break,
                      "base_currency": trip.base_currency, "group_budget_cents": trip.group_budget,
                      "leader_id": trip.leader_id, "leader_approval": sorted(trip.leader_approval),
-                     "auto_log_mode": trip.auto_log_mode, "planning_notes": trip.planning_notes},
+                     "auto_log_mode": trip.auto_log_mode, "planning_notes": trip.planning_notes,
+                     "lodging": trip.lodging},
             "members": [{"id": p.id, "name": p.name, "handle": p.payment_handle,
                          "active": p.active, "budget_set": p.budget is not None,
                          "budget_cents": p.budget.total_cents if p.budget else None}
