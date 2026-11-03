@@ -47,6 +47,19 @@ def test_a_stop_moves_to_a_slot_its_open_for():
     assert day["items"][0]["slot"] == "dinner" and not day["items"][0]["hours_conflict"]
 
 
+def test_a_stop_closed_on_its_day_moves_to_a_day_its_open():
+    closed_mondays = {d: [(600, 1320)] for d in range(1, 7)}
+    mon, tue = plan_days([stop("Museum", "activity", hours=closed_mondays)], MON, 2)
+    assert mon["items"] == [] and not tue["items"][0]["hours_conflict"]
+
+
+def test_meals_spread_across_days_before_staying_close():
+    acts = [stop("North", "activity", 25.80, -80.13), stop("South", "activity", 25.70, -80.25)]
+    food = [stop("N lunch", "food", 25.801, -80.13), stop("N dinner", "food", 25.802, -80.13)]
+    days = plan_days([*acts, *food], MON, 2)
+    assert [sum(it["kind"] == "food" for it in d["items"]) for d in days] == [1, 1]
+
+
 def test_closed_all_day_is_flagged():
     closed_mondays = {d: [(600, 1320)] for d in range(1, 7)}
     [day] = plan_days([stop("Museum", "activity", hours=closed_mondays)], MON, 1)
@@ -110,7 +123,8 @@ def test_a_map_outage_keeps_the_draft_going():
     d = engine(StubTravel(fail={"Wynwood Walls"})).generate_itinerary(
         "t", places=[{"name": "Wynwood Walls", "kind": "activity"}, {"name": "Versailles Restaurant", "kind": "food"}])
     assert d["map_check_failed"] == ["Wynwood Walls"] and d["not_found"] == []
-    assert sum(len(day["items"]) for day in d["days"]) == 2
+    items = {it["name"]: it for day in d["days"] for it in day["items"]}
+    assert items["Wynwood Walls"]["verified"] is None and items["Versailles Restaurant"]["verified"] is True
 
 
 def test_real_hours_from_the_map_move_a_stop():
@@ -129,11 +143,40 @@ def test_saved_activities_keep_the_map_check():
     b.generate_itinerary("t", save_draft_id=d["draft_id"])
     [a] = b.get_trip("t")["activities"]
     assert a["verified"] is True and a["lat"] is not None and a["start"] == "2027-03-15T10:00"
+    assert a["maps_url"].startswith("https://www.google.com/maps/search/")
 
 
-@pytest.mark.parametrize("bad", [[{"name": "", "kind": "food"}], [{"name": "X"}], ["Versailles"]])
-def test_bad_places_are_rejected_before_any_lookup(bad):
+def test_a_new_draft_replaces_the_old_one():
+    b = engine(FakeTravel())
+    old = b.generate_itinerary("t", places=[{"name": "Wynwood Walls", "kind": "activity"}])
+    new = b.generate_itinerary("t", places=[{"name": "Vizcaya Museum", "kind": "activity"}])
+    assert new["replaced_drafts"] == [old["draft_id"]] and b.get_trip("t")["itinerary_drafts"] == [new["draft_id"]]
+    with pytest.raises(Exception, match="No draft"):
+        b.generate_itinerary("t", save_draft_id=old["draft_id"])
+
+
+def test_saving_again_skips_stops_already_on_the_trip():
+    b = engine(FakeTravel())
+    places = [{"name": "Wynwood Walls", "kind": "activity"}, {"name": "Versailles Restaurant", "kind": "food"}]
+    b.generate_itinerary("t", save_draft_id=b.generate_itinerary("t", places=places)["draft_id"])
+    again = b.generate_itinerary("t", save_draft_id=b.generate_itinerary("t", places=places)["draft_id"])
+    assert again["activity_ids"] == [] and sorted(again["already_on_trip"]) == ["Versailles Restaurant", "Wynwood Walls"]
+    assert len(b.get_trip("t")["activities"]) == 2
+
+
+def test_the_same_place_twice_is_looked_up_once():
     travel = StubTravel()
-    with pytest.raises(Exception, match="name and a kind"):
+    d = engine(travel).generate_itinerary("t", places=[{"name": "Wynwood Walls", "kind": "activity"},
+                                                       {"name": "wynwood walls ", "kind": "activity"}])
+    assert travel.calls == ["Wynwood Walls"] and sum(len(day["items"]) for day in d["days"]) == 1
+
+
+@pytest.mark.parametrize("bad, error", [
+    ([{"name": "", "kind": "food"}], "name and a kind"), ([{"name": "X"}], "name and a kind"),
+    (["Versailles"], "name and a kind"), ([{"name": "X", "kind": "food", "est_cost_cents": "25"}], "whole cents"),
+    ([{"name": "X", "kind": "food", "est_cost_cents": -100}], "whole cents")])
+def test_bad_places_are_rejected_before_any_lookup(bad, error):
+    travel = StubTravel()
+    with pytest.raises(Exception, match=error):
         engine(travel).generate_itinerary("t", places=bad)
     assert travel.calls == []

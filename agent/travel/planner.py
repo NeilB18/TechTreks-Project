@@ -2,9 +2,10 @@
 
 Each day has a simple template: a morning and an afternoon slot for activities, lunch and dinner for food, and a
 night slot. Activities are split across the days first, in map order (each one next to its nearest neighbor), so a
-day stays in one area. Food and night stops then go to the day whose stops are closest, while that day still has a
-free slot of the right kind. Opening hours are respected when they're known: a stop that would be closed is moved
-to another free slot that day, and if none works it's flagged so the agent can mention it.
+day stays in one area; one that's closed on its day moves to the closest day it's open. Food and night stops then go
+to the day with the fewest stops of their kind (so meals spread out), and among those the day whose stops are
+closest. Opening hours are respected when they're known: a stop that would be closed is moved to another free slot,
+and if none works it's flagged so the agent can mention it.
 """
 
 import math
@@ -33,7 +34,9 @@ def plan_days(stops: list[dict], first_day: date, n_days: int) -> list[dict]:
     activities = _map_order([s for s in stops if s["kind"] == "activity"])
     per_day = math.ceil(len(activities) / n_days) if activities else 0
     for i, s in enumerate(activities):
-        _place(days[min(i // per_day, n_days - 1)], s)
+        day = days[min(i // per_day, n_days - 1)]
+        fits = [d for d in days if _open_slots(d, s)]
+        _place(day if _open_slots(day, s) or not fits else _best_day(fits, s), s)
     for s in (s for s in stops if s["kind"] != "activity"):
         _place(_best_day(days, s), s)
     for day in days:
@@ -66,15 +69,23 @@ def _free(day: dict, kind: str | None = None) -> list[tuple]:
     return [sl for sl in SLOTS if sl[0] not in used and (kind is None or sl[1] == kind)]
 
 
+def _open_slots(day: dict, s: dict) -> list[tuple]:
+    """Free slots of the stop's kind that it isn't known to be closed for."""
+    weekday = day["date"].weekday()
+    return [sl for sl in _free(day, s["kind"]) if is_open(s.get("hours"), weekday, sl[2], sl[3]) is not False]
+
+
 def _best_day(days: list[dict], s: dict) -> dict:
-    candidates = [d for d in days if _free(d, s["kind"])] or [d for d in days if _free(d)] or days
+    candidates = ([d for d in days if _open_slots(d, s)] or [d for d in days if _free(d, s["kind"])]
+                  or [d for d in days if _free(d)] or days)
 
     def score(d):
+        same_kind = sum(it["kind"] == s["kind"] for it in d["items"])
         located = [it for it in d["items"] if it.get("lat") is not None]
         if s.get("lat") is None or not located:
-            return (1, len(d["items"]))
+            return (same_kind, 1, len(d["items"]))
         mid = (sum(it["lat"] for it in located) / len(located), sum(it["lon"] for it in located) / len(located))
-        return (0, _dist(s, mid))
+        return (same_kind, 0, _dist(s, mid))
     return min(candidates, key=score)
 
 

@@ -103,7 +103,7 @@ Once everyone needed has confirmed:
 1. Pick the stops yourself: real, well-known places in the destination that fit the group's interests and budget tier, about 3 a day (a mix of food, activities and one night out). Pass them to `generate_itinerary` as `places`, each with a name, a kind (`food`, `activity` or `night`) and your estimate of the cost per person.
 2. It checks each place on the map and lays out the days. If `not_found` isn't empty, say which places couldn't be found and offer a swap. If an item has `hours_conflict`, mention it may be closed then.
 3. Post the draft: a line or two per day, with each stop's Google Maps link. Say that hours and prices are estimates, and credit "© OpenStreetMap contributors".
-4. Save it only after the right confirmation (call again with `save_draft_id`). To change a stop before saving, call `generate_itinerary` again with the new list.
+4. Save it only after the right confirmation (call again with `save_draft_id`). To change a stop before saving, call `generate_itinerary` again with the new list; the new draft replaces the old one, so save the newest `draft_id`. Stops in `already_on_trip` were saved before and aren't added twice.
 
 **Polls.** `create_poll` for group decisions; `vote_poll` when people reply with a choice; `close_poll` returns the winner. Post the result and ask before applying it.
 
