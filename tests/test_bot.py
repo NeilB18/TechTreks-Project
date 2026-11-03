@@ -206,6 +206,32 @@ def test_model_outage_gets_one_retry_before_the_apology(bot, monkeypatch, settin
     assert [p["json"]["text"] for p in bot] == ["Logged"]
 
 
+def test_a_turn_that_already_saved_something_isnt_rerun(bot, monkeypatch, settings):
+    import httpx2 as httpx
+    from openai import APIConnectionError
+    settings.BOT_INLINE = False  # the retry would only happen in the background worker
+    monkeypatch.setattr(services, "RETRY_AFTER_S", 0)
+    attempts = []
+
+    class SavedThenFailed:
+        def __init__(self, history):
+            self.history = list(history)
+            self.mutated = False
+
+        def handle(self, event):
+            attempts.append(1)
+            self.history.append({"role": "user", "content": event.text})
+            self.mutated = True  # e.g. log_expense went through, then the next model call failed
+            raise APIConnectionError(request=httpx.Request("POST", "https://qwen.example"))
+    monkeypatch.setattr(services, "make_agent", lambda backend, trip_id, history: SavedThenFailed(history))
+    payload = {"id": "r2", "group_id": "g1", "user_id": "111", "name": "Aarav",
+               "text": "@tripbot dinner $120", "sender_type": "user"}
+    assert services.handle_callback(payload) == "error after saving"
+    assert attempts == [1]  # not rerun, so the expense isn't logged twice
+    assert [p["json"]["text"] for p in bot] == [services.PARTIAL_REPLY]
+    assert Conversation.objects.get(trip_id="miami").history[-1]["content"] == "@tripbot dinner $120"
+
+
 def test_the_agent_gets_the_groups_local_time(bot, settings):
     settings.BOT_TIME_ZONE = "America/New_York"
     callback()
