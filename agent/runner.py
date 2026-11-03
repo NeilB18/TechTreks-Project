@@ -31,7 +31,7 @@ TRIP_CHANGE_FIELDS = {"destination", "start_date", "end_date", "base_currency", 
 BUDGET_CHECK_AFTER = {"log_expense", "edit_expense", "record_refund", "remove_member"}
 # Planning only happens when someone asks: these don't run on a message that didn't @mention the bot (which it only
 # sees with BOT_FORWARD_ALL on, for automatic expense logging).
-PLAN_TOOLS = {"save_idea", "add_activity", "generate_itinerary"}
+PLAN_TOOLS = {"save_idea", "add_activity", "remove_activity", "generate_itinerary", "edit_draft"}
 CONFIRM_WORDS = re.compile(r"\b(confirm|yes)\b", re.I)
 UNDELIVERED_NOTE = (
     "[runner] Your last text was not delivered: nobody sees text outside send_message. "
@@ -173,6 +173,19 @@ class TripAgent:
         return ("Not recorded yet: refunds need a confirmation first. Ask the payer to confirm the refund and "
                 "what it means per person (\"Confirm?\"), then record it once they reply yes.")
 
+    def _remove_guard(self, name: str, args: dict) -> str | None:
+        """Removing a plan is a small thing, unless it's paid for (linked to an expense) or marked important: then
+        the group confirms first, so the bot's previous turn must have asked."""
+        if name != "remove_activity":
+            return None
+        a = next((a for a in self.backend.summary(self.trip_id)["activities"]
+                  if a["activity_id"] == args.get("activity_id")), None)
+        if a is None or not (a["expense_id"] or a["important"]) or self._asked_last_turn():
+            return None
+        why = "it's linked to a paid expense" if a["expense_id"] else "it's marked important"
+        return (f"Not removed yet: {why}. Ask the group to confirm first (\"Remove {a['name']}? Confirm?\"), "
+                "then remove it once they say yes.")
+
     def _events(self) -> list[int]:
         """Where each incoming chat message starts in the history (the runner's own notes don't count)."""
         return [i for i, m in enumerate(self.history) if m["role"] == "user" and "<event>" in (m["content"] or "")]
@@ -253,7 +266,7 @@ class TripAgent:
         if name == "save_idea" and not args.get("remove") and self.sender_id:
             args.setdefault("suggested_by", self.sender_id)  # the model never has to say who suggested it
         blocked = (self._trip_guard(name, args) or self._payer_guard(name, args) or self._leader_guard(name, args)
-                   or self._refund_guard(name))
+                   or self._refund_guard(name) or self._remove_guard(name, args))
         if blocked:
             call.error = blocked
             return f"Error: {blocked}"

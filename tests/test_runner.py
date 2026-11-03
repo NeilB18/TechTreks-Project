@@ -189,6 +189,27 @@ def test_planning_needs_a_mention_and_ideas_record_who_asked():
     assert r.tool_calls[0].result["idea"]["suggested_by"] == "jake"
 
 
+def test_removing_an_important_activity_waits_for_a_confirmation():
+    from agent.backend.core.engine import TripEngine
+    backend = TripEngine()
+    backend.load_seed({**DINNER_TRIP, "trip": {**DINNER_TRIP["trip"], "destination": "Miami"}})
+    boat = backend.add_activity(trip_id="miami", name="Boat tour", start="2027-03-15T14:00", important=True)
+    beach = backend.add_activity(trip_id="miami", name="Beach day", start="2027-03-16")
+    remove = lambda aid: tool_call("t", "remove_activity", {"trip_id": "miami", "activity_id": aid})  # noqa: E731
+    client = ScriptedClient([
+        response("tool_calls", None, remove(boat["activity_id"]), remove(beach["activity_id"]),
+                 tool_call("m", "send_message", {"text": "Removed the beach day. Remove the boat tour too? Confirm?"})),
+        response("stop", ""),
+        response("tool_calls", None, remove(boat["activity_id"])), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="jake", text="@tripbot drop the boat tour and the beach day"))
+    assert "marked important" in r.tool_calls[0].error and r.tool_calls[1].result["removed"]
+    assert [a["name"] for a in backend.summary("miami")["activities"]] == ["Boat tour"]
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot yes"))
+    assert r.tool_calls[0].result["removed"] and backend.summary("miami")["activities"] == []
+
+
 def test_refund_tells_the_model_who_already_paid_back():
     backend = engine()
     backend.record_payback(trip_id="miami", from_person="jake", to_person="aarav", amount=4000, currency="USD")

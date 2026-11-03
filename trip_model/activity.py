@@ -5,6 +5,8 @@
 #     expense_id | None              # links the plan to the real cost once someone pays
 #     lat, lon | None                # from the map check, when the stop came from an itinerary draft
 #     verified: bool | None          # True: found on the map; False: not found; None: never checked (added by hand)
+#     kind | None                    # "food", "activity" or "night" for a place; None for things like flights
+#     from_idea: bool                # came off the ideas list (goes back on it if removed)
 #
 #     est_per_person_cents() -> int | None
 #     update(**changes)              # edits, re-checking that it doesn't end before it starts
@@ -21,7 +23,7 @@ class Activity:
                  end: date | datetime | None = None, est_cost_cents=None,
                  cost_is_per_person: bool = True, attendees: list[Person] | None = None,
                  important: bool = False, booking_url=None, expense_id=None, lat=None, lon=None,
-                 verified: bool | None = None):
+                 verified: bool | None = None, kind: str | None = None, from_idea: bool = False):
         self.id = id
         self.name = name
         self.location = location
@@ -36,6 +38,8 @@ class Activity:
         self.lat = lat
         self.lon = lon
         self.verified = verified
+        self.kind = kind
+        self.from_idea = from_idea
         self._check_times()
 
     def _check_times(self):

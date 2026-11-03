@@ -1,4 +1,4 @@
-"""Qwen function-calling tool definitions (OpenAI format): the 22 backend tools
+"""Qwen function-calling tool definitions (OpenAI format): the 24 backend tools
 from specs.md plus send_message.
 
 Schemas stick to plain JSON Schema (type, properties, required, items, enum,
@@ -136,7 +136,8 @@ BACKEND_TOOL_SCHEMAS = [
            "save_draft_id": {"type": "string"}},
           ["trip_id"]),
     _tool("add_activity",
-          "Add one activity, or edit one by passing activity_id. For a place, pass kind: it's checked on the map, and with day "
+          "Add one activity, or edit one by passing activity_id (with day and no start, it moves to a free slot of its kind that day; "
+          "updated: false means that day is full). For a place, pass kind: it's checked on the map, and with day "
           "(and no start) it goes in the first free slot of its kind that day. If the day has no free slot of that kind, or the "
           "place is closed then, nothing is saved (created: false): ask for a time, another day, or the ideas list. "
           "Pass idea_id to put an idea from the ideas list on a day; it leaves the list.",
@@ -151,6 +152,25 @@ BACKEND_TOOL_SCHEMAS = [
            "attendees": PEOPLE, "important": {"type": "boolean"}, "booking_url": {"type": "string"},
            "expense_id": {"type": "string", "description": "Link to the expense once it's paid"}},
           ["trip_id"]),
+    _tool("remove_activity",
+          "Remove a saved activity. Small change: do it and confirm, unless it's linked to an expense or marked important, "
+          "then ask the group first. One that came from the ideas list goes back on it (back_on_ideas). A linked expense stays logged.",
+          {"trip_id": TRIP_ID, "activity_id": {"type": "string"}},
+          ["trip_id", "activity_id"]),
+    _tool("edit_draft",
+          "One change to an unsaved itinerary draft, without rebuilding it: drop a stop, swap a stop for another place (it keeps "
+          "that slot if it fits, otherwise a free slot of its kind that day), move a stop to another day, or add a place to a day. "
+          "The draft keeps its draft_id. Returns the whole draft; changed: false means nothing changed (day_full or closed_then), so ask.",
+          {"trip_id": TRIP_ID, "draft_id": {"type": "string"},
+           "action": {"type": "string", "enum": ["drop", "swap", "move", "add"]},
+           "stop": {"type": "string", "description": "The name of the stop in the draft (drop, swap, move)"},
+           "place": {"type": "object", "additionalProperties": False, "required": ["name", "kind"],
+                     "description": "The new place (swap, add): a real place in the destination",
+                     "properties": {"name": {"type": "string"},
+                                    "kind": {"type": "string", "enum": ["food", "activity", "night"]},
+                                    "est_cost_cents": {**CENTS, "description": "Your estimate per person"}}},
+           "day": {**ISO_DATE, "description": "The day to move it to (move) or put it on (add)"}},
+          ["trip_id", "draft_id", "action"]),
     _tool("save_idea",
           "The ideas list: places the group wants to do but hasn't put on a day. Save one when someone asks you to add a place "
           "without a day, or remove one (remove=true with idea_id or name; anyone on the trip can). Each idea is checked on the map; "

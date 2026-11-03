@@ -57,13 +57,14 @@ def taken(start: int | None, end: int | None, lat: float | None = None, lon: flo
     return [{"slot": name, "kind": kind, "lat": lat, "lon": lon} for name, kind, _, _ in hit]
 
 
-def pick_slot(day: date, busy: list[dict], stop: dict) -> tuple[tuple | None, str | None]:
+def pick_slot(day: date, busy: list[dict], stop: dict, prefer: str | None = None) -> tuple[tuple | None, str | None]:
     """A slot for one stop on one day: (the first free slot of its kind it's open for, None), or (None, "full") when
-    every slot of its kind is taken, or (None, "closed") when it's closed for the free ones."""
+    every slot of its kind is taken, or (None, "closed") when it's closed for the free ones. `prefer` (a slot name,
+    e.g. the one a swapped stop had) wins when it fits."""
     d = {"date": day, "items": busy}
     if not _free(d, stop["kind"]):
         return None, "full"
-    fits = _open_slots(d, stop)
+    fits = sorted(_open_slots(d, stop), key=lambda sl: sl[0] != prefer)
     return (fits[0], None) if fits else (None, "closed")
 
 

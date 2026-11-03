@@ -79,7 +79,9 @@
         "expense_id": null,
         "lat": null,
         "lon": null,
-        "verified": null
+        "verified": null,
+        "kind": null,
+        "from_idea": false
       },
       {
         "activity_id": "beach_day",
@@ -100,7 +102,9 @@
         "expense_id": null,
         "lat": null,
         "lon": null,
-        "verified": null
+        "verified": null,
+        "kind": null,
+        "from_idea": false
       }
     ],
     "ideas": [],
