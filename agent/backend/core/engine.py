@@ -20,7 +20,7 @@ from datetime import date, datetime, time, timedelta
 
 from agent.backend.core import rules
 from agent.backend.protocol import BACKEND_TOOLS, ToolError
-from agent.travel import osm, planner
+from agent.travel import nearby, osm, planner
 from agent.travel.planner import KINDS, pick_slot, plan_days, taken
 from agent.travel.provider import get_provider
 from trip_model.activity import Activity, as_datetime
@@ -47,6 +47,10 @@ MAX_STOPS_PER_DAY = 3
 MAX_STOPS = 15
 MAX_IDEAS = 20  # the ideas list stays short: places the group asked to keep, not a catalog
 MAX_NOTES = 500
+NEARBY_RADIUS_M = 1600  # about a mile, about a 20-minute walk
+MAX_RADIUS_M = 5000     # about 3 miles
+MAX_NEARBY = 5
+NEARBY_NOTE = "Closest first (OpenStreetMap has no ratings). Straight-line distances; walking times are rough."
 ESTIMATES_NOTE = "Hours and prices are estimates; check before you go."
 
 log = logging.getLogger(__name__)
@@ -820,6 +824,57 @@ class TripEngine:
             target["items"].sort(key=lambda it: it["start"])
         return {"draft_id": draft_id, "changed": True, "days": draft, "not_found": status == "not_found",
                 "map_check_failed": status == "unchecked", "note": ESTIMATES_NOTE, "credit": osm.ATTRIBUTION}
+
+    def find_nearby(self, trip_id: str, what: str, near: str | None = None, radius_m: int | None = None) -> dict:
+        """The closest places of a kind ("pizza", "coffee", "pharmacy") to where the group is staying, or to `near`
+        (a place someone names). Distances are worked out here, so the agent never does the math."""
+        trip = self._trip(trip_id)
+        radius = NEARBY_RADIUS_M if radius_m is None else radius_m
+        if isinstance(radius, bool) or not isinstance(radius, int) or not 100 <= radius <= MAX_RADIUS_M:
+            raise ToolError(f"radius_m must be 100 to {MAX_RADIUS_M} meters (about 3 miles)")
+        if nearby.normalize(what) is None:
+            raise ToolError("what must be a short word or two, like pizza, coffee, bar or pharmacy")
+        if near and str(near).strip():
+            if not trip.destination:
+                raise ToolError("Set the destination first, so the place can be found on the map")
+            try:
+                found = self.travel.find_place(str(near).strip(), trip.destination)
+            except Exception as e:  # noqa: BLE001
+                log.warning("Lookup failed for %r in %s: %s", near, trip.destination, e)
+                raise ToolError("The map lookup failed. Say so and suggest trying again in a minute.") from e
+            if found is None:
+                raise ToolError(f"Couldn't find {near!r} on the map near {trip.destination}. "
+                                "Ask for an address or a well-known landmark.")
+            origin = {"name": str(near).strip(), "address": osm.short_address(found), "lat": found.lat,
+                      "lon": found.lon}
+        elif trip.lodging:
+            origin = trip.lodging
+        else:
+            raise ToolError("No lodging saved, so there's no starting point. Ask where the group is staying (and "
+                            "offer to save it with update_trip lodging), or pass near.")
+        try:
+            places = self.travel.find_nearby(what, origin["lat"], origin["lon"], radius)
+        except Exception as e:  # noqa: BLE001 - a busy map server gets a friendly reply, not a crash
+            log.warning("Nearby search for %r failed: %s", what, e)
+            raise ToolError("The map search is busy right now. Say so and suggest trying again in a minute.") from e
+        ranked = sorted(((nearby.distance_m(origin["lat"], origin["lon"], p["lat"], p["lon"]), p) for p in places),
+                        key=lambda mp: mp[0])
+        ranked = [(m, p) for m, p in ranked if m <= radius]
+        results = []
+        for m, p in ranked[:MAX_NEARBY]:
+            distance, walk = nearby.describe_distance(m)
+            where = f"{p['street']}, {trip.destination}" if p.get("street") else trip.destination or ""
+            results.append({"name": p["name"], "distance": distance, "walk": walk, "address": p.get("street"),
+                            "opening_hours": p.get("opening_hours"), "cuisine": p.get("cuisine"),
+                            "maps_url": osm.maps_url(p["name"], where)})
+        within = f"{radius / 1609.344:.1f}".rstrip("0").rstrip(".") + " mi"  # 1600 m -> "1 mi", 400 m -> "0.2 mi"
+        out = {"what": what, "near": origin["name"], "near_address": origin.get("address"), "within": within,
+               "results": results, "more_found": max(0, len(ranked) - MAX_NEARBY), "note": NEARBY_NOTE,
+               "credit": osm.ATTRIBUTION}
+        if not results:
+            out["next_step"] = (f"Nothing found within {within}. Say so and offer to look farther "
+                                f"(radius_m up to {MAX_RADIUS_M}).")
+        return out
 
     def save_idea(self, trip_id: str, name: str | None = None, kind: str | None = None,
                   est_cost_cents: int | None = None, idea_id: str | None = None, remove: bool = False,

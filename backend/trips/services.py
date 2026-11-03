@@ -27,7 +27,7 @@ from trip_model.trip import Trip
 from trip_model.trip_status import TripStatus
 from trips import models as m
 
-READ_ONLY = {"get_balances", "get_budget_status", "convert_currency", "get_trip", "get_travel_tips"}
+READ_ONLY = {"get_balances", "get_budget_status", "convert_currency", "get_trip", "get_travel_tips", "find_nearby"}
 
 
 # ------------------------------------------------------------------- load
