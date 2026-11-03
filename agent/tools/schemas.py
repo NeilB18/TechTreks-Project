@@ -115,9 +115,18 @@ BACKEND_TOOL_SCHEMAS = [
           ["trip_id", "person_id", "category"]),
     # ------------------------------------------------------------ planning
     _tool("generate_itinerary",
-          "Build a day-by-day itinerary draft from external travel APIs and return draft_id + days. Post the draft for the group. "
+          "Build a day-by-day itinerary draft from the stops you suggest. Each one is checked on OpenStreetMap and put into a day "
+          "(lunch, afternoon, dinner, night), grouped by area and respecting opening hours when known. Returns draft_id, days, "
+          "not_found (stops the map couldn't find: offer a swap) and skipped (over the limit). A new draft replaces the old one. Post the draft for the group. "
           "Only after the group confirms (the leader, if itinerary_saves is in leader_approval), call again with save_draft_id to save it as activities.",
-          {"trip_id": TRIP_ID, "constraints": {"type": "string", "description": "Interests, pace, budget notes"},
+          {"trip_id": TRIP_ID,
+           "places": {"type": "array", "maxItems": 15,
+                      "description": "Real, well-known places in the destination, up to 3 a day",
+                      "items": {"type": "object", "additionalProperties": False, "required": ["name", "kind"],
+                                "properties": {"name": {"type": "string", "description": "The place's real name, e.g. \"Versailles Restaurant\""},
+                                               "kind": {"type": "string", "enum": ["food", "activity", "night"]},
+                                               "est_cost_cents": {**CENTS, "description": "Your estimate per person"}}}},
+           "constraints": {"type": "string", "description": "Interests, pace, budget notes"},
            "save_draft_id": {"type": "string"}},
           ["trip_id"]),
     _tool("add_activity",

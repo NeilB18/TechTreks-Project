@@ -133,6 +133,9 @@ class Activity(models.Model):
     important = models.BooleanField(default=False)
     booking_url = models.URLField(max_length=500, null=True, blank=True)
     expense_id = models.CharField(max_length=32, null=True, blank=True)
+    lat = models.FloatField(null=True, blank=True)
+    lon = models.FloatField(null=True, blank=True)
+    verified = models.BooleanField(null=True, blank=True)  # None: never checked on the map
     position = models.IntegerField(default=0)
 
     class Meta:

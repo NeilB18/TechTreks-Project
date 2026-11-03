@@ -14,11 +14,14 @@ tests.
 """
 
 import functools
+import logging
 import re
 from datetime import date, datetime
 
 from agent.backend.core import rules
 from agent.backend.protocol import BACKEND_TOOLS, ToolError
+from agent.travel import osm
+from agent.travel.planner import KINDS, plan_days
 from agent.travel.provider import get_provider
 from trip_model.activity import Activity
 from trip_model.budget import Budget
@@ -39,7 +42,12 @@ TRIP_FIELDS = ["destination", "start_date", "end_date", "base_currency", "status
                "target_break", "group_budget", "leader_id", "leader_approval", "name",
                "auto_log_mode"]
 
-# Canned "external API" content until Google Places / SerpAPI are wired up.
+# Itinerary drafts: each suggested stop is checked on the map (about a second each), so a draft is capped.
+MAX_STOPS_PER_DAY = 3
+MAX_STOPS = 15
+ESTIMATES_NOTE = "Hours and prices are estimates; check before you go."
+
+log = logging.getLogger(__name__)
 
 
 def _slug(name: str) -> str:
@@ -209,7 +217,8 @@ class TripEngine:
                 "end": iso(a.end), "est_cost_cents": a.est_cost_cents,
                 "cost_is_per_person": a.cost_is_per_person, "est_per_person_cents": a.est_per_person_cents(),
                 "attendees": [p.id for p in a.attendees], "important": a.important,
-                "booking_url": a.booking_url, "expense_id": a.expense_id}
+                "booking_url": a.booking_url, "expense_id": a.expense_id,
+                "lat": a.lat, "lon": a.lon, "verified": a.verified}
 
     def _poll_view(self, p: Poll) -> dict:
         return {"id": p.id, "question": p.question, "options": p.options, "votes": p.votes,
@@ -439,28 +448,96 @@ class TripEngine:
         return {"saved": True, "person_id": person_id, "category": category, "opted_out": not remove}
 
     # ---------------------------------------------------------------- planning
-    def generate_itinerary(self, trip_id: str, constraints: str | None = None,
+    def generate_itinerary(self, trip_id: str, places: list[dict] | None = None, constraints: str | None = None,
                            save_draft_id: str | None = None) -> dict:
         trip = self._trip(trip_id)
         if save_draft_id:
             if save_draft_id not in trip.itinerary_drafts:
                 raise ToolError(f"No draft {save_draft_id!r}")
-            ids = []
+            ids, already = [], []
+            on_trip = {(a.name.lower(), iso(a.start)) for a in trip.activities}
             for day in trip.itinerary_drafts.pop(save_draft_id):
                 for item in day["items"]:
+                    if (item["name"].lower(), item["start"]) in on_trip:  # saved from an earlier draft
+                        already.append(item["name"])
+                        continue
                     a = Activity(self._next_id("a", {a.id for a in trip.activities}), item["name"],
                                  location=item["location"], start=parse_day_or_time(item["start"], "start"),
                                  end=parse_day_or_time(item["end"], "end"),
                                  est_cost_cents=item["est_cost_cents"],
                                  cost_is_per_person=item["cost_is_per_person"],
-                                 attendees=[p for p in trip.members if p.active])
+                                 attendees=[p for p in trip.members if p.active],
+                                 lat=item.get("lat"), lon=item.get("lon"), verified=item.get("verified"))
                     trip.add_activity(a)
                     ids.append(a.id)
-            return {"saved": True, "activity_ids": ids}
+            return {"saved": True, "activity_ids": ids, "already_on_trip": already}
         if not (trip.destination and trip.start_date and trip.end_date):
             raise ToolError("Set destination, start_date and end_date before generating an itinerary")
-        days = []
         n_days = (trip.end_date - trip.start_date).days + 1
+        if places:
+            days, extra = self._draft_from_places(trip, places, n_days)
+        elif self.travel.source == "live":  # Google Places picks the stops (only when its key is set)
+            days, extra = self._draft_from_provider(trip, n_days, constraints), {}
+        else:
+            raise ToolError(f"Pass places: the stops you suggest, up to {MAX_STOPS_PER_DAY} a day, each with name, "
+                            "kind (food, activity or night) and est_cost_cents per person")
+        # One draft at a time: a rebuilt draft replaces the old one, so an old draft_id can't save a stale plan.
+        replaced = sorted(trip.itinerary_drafts)
+        draft_id = self._next_id("d", set(replaced))
+        trip.itinerary_drafts = {draft_id: days}
+        return {"draft_id": draft_id, "days": days, "constraints": constraints, "source": self.travel.source,
+                "saved": False, "replaced_drafts": replaced, **extra}
+
+    def _draft_from_places(self, trip: Trip, places: list[dict], n_days: int) -> tuple[list[dict], dict]:
+        """Check each suggested stop on the map, then lay them out into days (agent/travel/planner.py)."""
+        for p in places:
+            if not isinstance(p, dict) or not str(p.get("name") or "").strip() or p.get("kind") not in KINDS:
+                raise ToolError("Each place needs a name and a kind: food, activity or night")
+            cost = p.get("est_cost_cents")
+            if cost is not None and (isinstance(cost, bool) or not isinstance(cost, int) or cost < 0):
+                raise ToolError(f"est_cost_cents for {p['name']!r} must be whole cents, 0 or more ($25 -> 2500)")
+        unique: dict[str, dict] = {}
+        for p in places:  # the same place twice would be looked up and scheduled twice
+            unique.setdefault(p["name"].strip().lower(), p)
+        places = list(unique.values())
+        cap = min(MAX_STOPS_PER_DAY * n_days, MAX_STOPS)
+        stops, not_found, unchecked = [], [], []
+        for p in places[:cap]:
+            name = p["name"].strip()
+            try:
+                found = self.travel.find_place(name, trip.destination)
+            except Exception as e:  # noqa: BLE001 - a map outage shouldn't stop the draft
+                log.warning("Place lookup failed for %r in %s: %s", name, trip.destination, e)
+                found = None
+                unchecked.append(name)
+            else:
+                if found is None:
+                    not_found.append(name)
+            stops.append({"name": name, "kind": p["kind"],
+                          "location": osm.short_address(found) if found else trip.destination,
+                          "est_cost_cents": p.get("est_cost_cents"),
+                          # None: the lookup failed, so it's unchecked rather than not found
+                          "verified": None if name in unchecked else found is not None,
+                          "lat": found.lat if found else None, "lon": found.lon if found else None,
+                          "hours": found.hours if found else None,
+                          "opening_hours": found.opening_hours if found else None,
+                          "maps_url": found.maps_url if found else osm.maps_url(name, trip.destination)})
+        days = []
+        for day in plan_days(stops, trip.start_date, n_days):
+            d = day["date"].isoformat()
+            days.append({"date": d, "items": [
+                {"name": it["name"], "kind": it["kind"], "slot": it["slot"], "location": it["location"],
+                 "start": f"{d}T{it['start_min'] // 60:02d}:{it['start_min'] % 60:02d}",
+                 "end": f"{d}T{it['end_min'] // 60:02d}:{it['end_min'] % 60:02d}",
+                 "est_cost_cents": it["est_cost_cents"], "cost_is_per_person": True, "verified": it["verified"],
+                 "lat": it["lat"], "lon": it["lon"], "opening_hours": it["opening_hours"],
+                 "hours_conflict": it["hours_conflict"], "maps_url": it["maps_url"]} for it in day["items"]]})
+        extra = {"not_found": not_found, "map_check_failed": unchecked,
+                 "skipped": [p["name"] for p in places[cap:]], "note": ESTIMATES_NOTE, "credit": osm.ATTRIBUTION}
+        return days, extra
+
+    def _draft_from_provider(self, trip: Trip, n_days: int, constraints: str | None) -> list[dict]:
+        days = []
         ideas = self.travel.itinerary_items(trip.destination, 2 * n_days, constraints)
         for i in range(n_days):
             d = date.fromordinal(trip.start_date.toordinal() + i).isoformat()
@@ -471,10 +548,7 @@ class TripEngine:
                               "start": f"{d}T{hour}:00", "end": f"{d}T{hour + 2}:00",
                               "est_cost_cents": cost, "cost_is_per_person": True})
             days.append({"date": d, "items": items})
-        draft_id = self._next_id("d", set(trip.itinerary_drafts))
-        trip.itinerary_drafts[draft_id] = days
-        return {"draft_id": draft_id, "days": days, "constraints": constraints, "source": self.travel.source,
-                "saved": False}
+        return days
 
     def add_activity(self, trip_id: str, name: str | None = None, activity_id: str | None = None,
                      location: str | None = None, start: str | None = None, end: str | None = None,
@@ -638,6 +712,9 @@ class TripEngine:
         s["polls"] = [self._poll_view(p) for p in trip.polls]
         s["reminders"] = [self._reminder_view(r) for r in trip.reminders]
         s["itinerary_drafts"] = sorted(trip.itinerary_drafts)
+        for view, a in zip(s["activities"], trip.activities):
+            if a.verified is not None:  # came from an itinerary draft: rebuild its Maps link
+                view["maps_url"] = osm.maps_url(a.name, a.location or trip.destination)
         # Budgets are shared with everyone on the trip (decided Oct 28, 2026).
         s["budgets"] = {p.id: {"total_cents": p.budget.total_cents,
                                "limits": {c.name: v for c, v in p.budget.limits.items()}}

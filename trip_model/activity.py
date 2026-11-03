@@ -3,6 +3,8 @@
 #     est_cost_cents | None; cost_is_per_person: bool        # False: est_cost_cents is the group total
 #     attendees: list[Person]; important: bool; booking_url | None
 #     expense_id | None              # links the plan to the real cost once someone pays
+#     lat, lon | None                # from the map check, when the stop came from an itinerary draft
+#     verified: bool | None          # True: found on the map; False: not found; None: never checked (added by hand)
 #
 #     est_per_person_cents() -> int | None
 #     update(**changes)              # edits, re-checking that it doesn't end before it starts
@@ -18,7 +20,8 @@ class Activity:
     def __init__(self, id, name, location=None, start: date | datetime | None = None,
                  end: date | datetime | None = None, est_cost_cents=None,
                  cost_is_per_person: bool = True, attendees: list[Person] | None = None,
-                 important: bool = False, booking_url=None, expense_id=None):
+                 important: bool = False, booking_url=None, expense_id=None, lat=None, lon=None,
+                 verified: bool | None = None):
         self.id = id
         self.name = name
         self.location = location
@@ -30,6 +33,9 @@ class Activity:
         self.important = important
         self.booking_url = booking_url
         self.expense_id = expense_id
+        self.lat = lat
+        self.lon = lon
+        self.verified = verified
         self._check_times()
 
     def _check_times(self):

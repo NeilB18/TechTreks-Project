@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from agent.backend.core.engine import TripEngine  # noqa: E402
+from agent.travel.provider import FakeTravel  # noqa: E402
 from agent.scenarios import golden_turn, load_scenarios  # noqa: E402
 
 OUT = ROOT / "web" / "fixtures"
@@ -26,7 +27,7 @@ def page_data(backend: TripEngine, trip_id: str) -> dict:
 
 
 def demo(backend=None, trip_id: str = "miami-demo") -> dict:
-    b = backend if backend is not None else TripEngine()
+    b = backend if backend is not None else TripEngine(travel=FakeTravel())  # made-up map data: no network
     b.load_seed({
         "now": "2027-03-01T12:00:00",
         "trip": {"id": trip_id, "name": "Miami Spring Break", "status": "BOOKED", "destination": "Miami",
@@ -40,7 +41,17 @@ def demo(backend=None, trip_id: str = "miami-demo") -> dict:
         "exclusions": [["jake", "DRINKS"]],
     })
     t = trip_id
-    draft = b.generate_itinerary(trip_id=t, constraints="beach, food, one night out")["draft_id"]
+    draft = b.generate_itinerary(trip_id=t, constraints="beach, food, one night out", places=[
+        {"name": "South Pointe Park", "kind": "activity", "est_cost_cents": 0},
+        {"name": "Joe's Stone Crab", "kind": "food", "est_cost_cents": 7000},
+        {"name": "Wynwood Walls", "kind": "activity", "est_cost_cents": 0},
+        {"name": "Versailles Restaurant", "kind": "food", "est_cost_cents": 2500},
+        {"name": "Ball & Chain", "kind": "night", "est_cost_cents": 3000},
+        {"name": "Vizcaya Museum and Gardens", "kind": "activity", "est_cost_cents": 2500},
+        {"name": "Little Havana Walking Tour", "kind": "activity", "est_cost_cents": 2000},
+        {"name": "La Mar by Gastón Acurio", "kind": "food", "est_cost_cents": 6000},
+        {"name": "Bayside Marketplace", "kind": "activity", "est_cost_cents": 1500},
+        {"name": "Mandolin Aegean Bistro", "kind": "food", "est_cost_cents": 4000}])["draft_id"]
     b.generate_itinerary(trip_id=t, save_draft_id=draft)
     b.add_activity(trip_id=t, name="Boat tour", location="Miami Beach Marina", start="2027-03-15T14:00",
                    est_cost_cents=60000, cost_is_per_person=False, important=True)
@@ -68,7 +79,7 @@ def main() -> None:
     for scn in load_scenarios():
         if scn.get("skip") or scn.get("kind") == "edge":
             continue
-        b = TripEngine()
+        b = TripEngine(travel=FakeTravel())
         b.load_seed(scn["seed"])
         for turn in scn["turns"]:
             golden_turn(b, turn.get("golden", {}))

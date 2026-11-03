@@ -216,10 +216,24 @@ def test_poll_flow(b):
 
 
 def test_itinerary_saved_only_with_draft_id(b):
-    d = dispatch(b, "generate_itinerary", {"trip_id": "t"})
-    assert len(d["days"]) == 5 and b.trips["t"].activities == []
+    places = [{"name": "Versailles Restaurant", "kind": "food", "est_cost_cents": 2500},
+              {"name": "Vizcaya Museum and Gardens", "kind": "activity", "est_cost_cents": 2500},
+              {"name": "Zzqx Imaginary Taco Palace", "kind": "food"}]
+    d = dispatch(b, "generate_itinerary", {"trip_id": "t", "places": places})
+    assert len(d["days"]) == 5 and d["not_found"] == ["Zzqx Imaginary Taco Palace"]
+    assert b.get_trip("t")["activities"] == []
     s = dispatch(b, "generate_itinerary", {"trip_id": "t", "save_draft_id": d["draft_id"]})
-    assert len(s["activity_ids"]) == 10
+    assert len(s["activity_ids"]) == 3
+    saved = {a["name"]: a for a in b.get_trip("t")["activities"]}  # coordinates survive the database round trip
+    assert saved["Vizcaya Museum and Gardens"]["verified"] is True and saved["Vizcaya Museum and Gardens"]["lat"]
+    assert saved["Zzqx Imaginary Taco Palace"]["verified"] is False and saved["Zzqx Imaginary Taco Palace"]["lat"] is None
+
+
+def test_itinerary_needs_places(b):
+    with pytest.raises(ToolError, match="Pass places"):
+        dispatch(b, "generate_itinerary", {"trip_id": "t"})
+    with pytest.raises(ToolError, match="kind"):
+        dispatch(b, "generate_itinerary", {"trip_id": "t", "places": [{"name": "Somewhere", "kind": "shopping"}]})
 
 
 def test_unknown_args_are_tool_errors(b):
