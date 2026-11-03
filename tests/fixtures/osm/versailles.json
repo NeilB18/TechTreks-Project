@@ -1,0 +1,45 @@
+[
+  {
+    "place_id": 305320529,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "node",
+    "osm_id": 1576341770,
+    "lat": "25.7649886",
+    "lon": "-80.2527677",
+    "category": "amenity",
+    "type": "restaurant",
+    "place_rank": 30,
+    "importance": 0.22697289548003588,
+    "addresstype": "amenity",
+    "name": "Versailles Restaurant",
+    "display_name": "Versailles Restaurant, 3555, Southwest 8th Street, Silver Court Trailer Park, Miami, Miami-Dade County, Florida, 33135, United States",
+    "extratags": {
+      "bar": "no",
+      "phone": "+1-305-444-0240",
+      "cuisine": "cuban;latin_american;sandwich",
+      "toilets": "yes",
+      "website": "https://www.versaillesrestaurant.com/location",
+      "takeaway": "yes",
+      "wikidata": "Q7922622",
+      "wikipedia": "en:Versailles (restaurant)",
+      "check_date": "2026-06-27",
+      "wheelchair": "yes",
+      "reservation": "no",
+      "payment:cash": "yes",
+      "opening_hours": "Mo-Th 08:00-24:00; Su 09:00-24:00; Fr-Sa 08:00-01:00",
+      "internet_access": "wlan",
+      "outdoor_seating": "yes",
+      "contact:facebook": "VersaillesMiami",
+      "toilets:wheelchair": "yes",
+      "payment:debit_cards": "yes",
+      "payment:credit_cards": "yes",
+      "check_date:opening_hours": "2026-06-27"
+    },
+    "boundingbox": [
+      "25.7649386",
+      "25.7650386",
+      "-80.2528177",
+      "-80.2527177"
+    ]
+  }
+]
