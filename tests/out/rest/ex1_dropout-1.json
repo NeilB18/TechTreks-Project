@@ -1,0 +1,270 @@
+[
+  {
+    "turn": 1,
+    "sender": "priya",
+    "text": "@tripbot guys I can't make it anymore, so sorry \ud83d\ude2d",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Aw no worries @Priya \ud83e\udef6 quick check before I change anything: you're out for the *whole* trip (Mar 14\u201318), not just a day or two? And @Aarav you'll need to OK the member change. Heads up: the $1,200 Airbnb is already split 4 ways, so Priya would still owe her $300 share for it."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Aw no worries @Priya \ud83e\udef6 quick check before I change anything: you're out for the *whole* trip (Mar 14\u201318), not just a day or two? And @Aarav you'll need to OK the member change. Heads up: the $1,200 Airbnb is already split 4 ways, so Priya would still owe her $300 share for it."
+      }
+    ],
+    "stray_text": [
+      "Sent \u2014 waiting on Priya to confirm she's out for the whole trip and on Aarav (leader) to approve."
+    ],
+    "stop_reason": "stop",
+    "seconds": 8.61,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23651,
+      "completion_tokens": 349,
+      "total_tokens": 24000
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "priya",
+    "text": "@tripbot yeah whole trip",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Got it @Priya. @Aarav last piece: I need your OK to remove her from the trip (member changes are gated to you). Once you say go, she drops off the boat tour (so that's ~$133/person for you three instead of $100) but still owes her $300 of the Airbnb, and I'll post the updated settle-up."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Got it @Priya. @Aarav last piece: I need your OK to remove her from the trip (member changes are gated to you). Once you say go, she drops off the boat tour (so that's ~$133/person for you three instead of $100) but still owes her $300 of the Airbnb, and I'll post the updated settle-up."
+      }
+    ],
+    "stray_text": [
+      "Priya's confirmed she's out for the whole trip. Now waiting on @Aarav (leader) to approve the member change before I remove her."
+    ],
+    "stop_reason": "stop",
+    "seconds": 10.08,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 24054,
+      "completion_tokens": 466,
+      "total_tokens": 24520
+    },
+    "failures": []
+  },
+  {
+    "turn": 3,
+    "sender": "aarav",
+    "text": "@tripbot approved",
+    "tool_calls": [
+      {
+        "name": "remove_member",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "priya"
+        },
+        "result": {
+          "removed": true,
+          "removed_from_activities": [
+            "boat_tour"
+          ],
+          "still_owes_past_splits": true,
+          "was_leader": false,
+          "budget_warnings": {
+            "mia": [
+              "ACTIVITIES under 10% remaining"
+            ]
+          },
+          "next_step": "Budgets were checked automatically. In the group, @mention each person in budget_warnings (mia) with their warning."
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "aarav"
+        },
+        "result": {
+          "person_id": "aarav",
+          "budget_set": true,
+          "total_cents": 150000,
+          "spent_cents": 30000,
+          "remaining_cents": 120000,
+          "planned_cents": 13333,
+          "remaining_after_planned_cents": 106667,
+          "by_category": {
+            "ACTIVITIES": {
+              "limit_cents": null,
+              "spent_cents": 0,
+              "planned_cents": 13333
+            },
+            "LODGING": {
+              "limit_cents": null,
+              "spent_cents": 30000,
+              "planned_cents": 0
+            }
+          },
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "jake"
+        },
+        "result": {
+          "person_id": "jake",
+          "budget_set": true,
+          "total_cents": 110000,
+          "spent_cents": 30000,
+          "remaining_cents": 80000,
+          "planned_cents": 13333,
+          "remaining_after_planned_cents": 66667,
+          "by_category": {
+            "ACTIVITIES": {
+              "limit_cents": null,
+              "spent_cents": 0,
+              "planned_cents": 13333
+            },
+            "LODGING": {
+              "limit_cents": null,
+              "spent_cents": 30000,
+              "planned_cents": 0
+            }
+          },
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia"
+        },
+        "result": {
+          "person_id": "mia",
+          "budget_set": true,
+          "total_cents": 95000,
+          "spent_cents": 30000,
+          "remaining_cents": 65000,
+          "planned_cents": 13333,
+          "remaining_after_planned_cents": 51667,
+          "by_category": {
+            "ACTIVITIES": {
+              "limit_cents": 14000,
+              "spent_cents": 0,
+              "planned_cents": 13333
+            },
+            "LODGING": {
+              "limit_cents": null,
+              "spent_cents": 30000,
+              "planned_cents": 0
+            }
+          },
+          "warnings": [
+            "ACTIVITIES under 10% remaining"
+          ]
+        },
+        "error": null
+      },
+      {
+        "name": "get_balances",
+        "input": {
+          "trip_id": "miami"
+        },
+        "result": {
+          "net_balances": {
+            "aarav": 90000,
+            "priya": -30000,
+            "jake": -30000,
+            "mia": -30000
+          },
+          "suggested_payments": [
+            {
+              "from": "jake",
+              "to": "aarav",
+              "amount_cents": 30000,
+              "handle": "@aarav-venmo"
+            },
+            {
+              "from": "mia",
+              "to": "aarav",
+              "amount_cents": 30000,
+              "handle": "@aarav-venmo"
+            },
+            {
+              "from": "priya",
+              "to": "aarav",
+              "amount_cents": 30000,
+              "handle": "@aarav-venmo"
+            }
+          ],
+          "currency": "USD",
+          "lines": [
+            "Jake pays Aarav $300, @aarav-venmo",
+            "Mia pays Aarav $300, @aarav-venmo",
+            "Priya pays Aarav $300, @aarav-venmo"
+          ],
+          "display": {
+            "net_balances": {
+              "aarav": "+$900",
+              "priya": "-$300",
+              "jake": "-$300",
+              "mia": "-$300"
+            }
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Done \u2014 Priya's off the trip. \ud83e\uddf3\n\n@Priya you still owe $300 for the Airbnb (that split stays). Venmo: @aarav-venmo\n\nBoat tour (Mar 15) is a $400 group total, so it's now ~$133.33 each for Aarav, Jake and Mia (was $100).\n\nSettle-up: Jake pays Aarav $300 (@aarav-venmo) \u00b7 Mia pays Aarav $300 (@aarav-venmo) \u00b7 Priya pays Aarav $300 (@aarav-venmo)\n\nHeads-up @Mia: you're within 10% of your ACTIVITIES limit now. Want me to check your budget status or find some cheaper things to do?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Done \u2014 Priya's off the trip. \ud83e\uddf3\n\n@Priya you still owe $300 for the Airbnb (that split stays). Venmo: @aarav-venmo\n\nBoat tour (Mar 15) is a $400 group total, so it's now ~$133.33 each for Aarav, Jake and Mia (was $100).\n\nSettle-up: Jake pays Aarav $300 (@aarav-venmo) \u00b7 Mia pays Aarav $300 (@aarav-venmo) \u00b7 Priya pays Aarav $300 (@aarav-venmo)\n\nHeads-up @Mia: you're within 10% of your ACTIVITIES limit now. Want me to check your budget status or find some cheaper things to do?"
+      }
+    ],
+    "stray_text": [
+      "Posted. Priya's removed, the boat tour is re-split across the three of you, and everyone's settle-up line plus Mia's budget warning are in the chat."
+    ],
+    "stop_reason": "stop",
+    "seconds": 11.83,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 49987,
+      "completion_tokens": 550,
+      "total_tokens": 50537
+    },
+    "failures": []
+  }
+]

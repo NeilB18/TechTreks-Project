@@ -1,0 +1,137 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot drop the boat tour",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "The boat tour (Mar 15, 2:30\u20135:30pm) is flagged as important, so I don't want to drop it on one vote. @Aarav @Mia \u2014 you guys cool with removing it? Once two of us confirm I'll pull it. \ud83d\udea4"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "The boat tour (Mar 15, 2:30\u20135:30pm) is flagged as important, so I don't want to drop it on one vote. @Aarav @Mia \u2014 you guys cool with removing it? Once two of us confirm I'll pull it. \ud83d\udea4"
+      }
+    ],
+    "stray_text": [
+      "Asked the group before pulling it, since it's marked important."
+    ],
+    "stop_reason": "stop",
+    "seconds": 8.24,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23623,
+      "completion_tokens": 267,
+      "total_tokens": 23890
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "aarav",
+    "text": "@tripbot yes drop it",
+    "tool_calls": [
+      {
+        "name": "remove_activity",
+        "input": {
+          "trip_id": "miami",
+          "activity_id": "boat_tour"
+        },
+        "result": {
+          "removed": true,
+          "activity_id": "boat_tour",
+          "name": "Boat tour",
+          "back_on_ideas": false,
+          "expense_still_logged": null
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Boat tour is off the itinerary \u2014 Mar 15 is open now (nothing was booked or paid for it). @Mia if you still want something that afternoon, say the word and I'll put something on the ideas list. \ud83c\udf34"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Boat tour is off the itinerary \u2014 Mar 15 is open now (nothing was booked or paid for it). @Mia if you still want something that afternoon, say the word and I'll put something on the ideas list. \ud83c\udf34"
+      }
+    ],
+    "stray_text": [
+      "Removed it \u2014 Jake asked and you confirmed."
+    ],
+    "stop_reason": "stop",
+    "seconds": 13.11,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 36089,
+      "completion_tokens": 518,
+      "total_tokens": 36607
+    },
+    "failures": []
+  },
+  {
+    "turn": 3,
+    "sender": "mia",
+    "text": "@tripbot also drop south pointe park",
+    "tool_calls": [
+      {
+        "name": "remove_activity",
+        "input": {
+          "trip_id": "miami",
+          "activity_id": "beach"
+        },
+        "result": {
+          "removed": true,
+          "activity_id": "beach",
+          "name": "South Pointe Park",
+          "back_on_ideas": false,
+          "expense_still_logged": null
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "South Pointe Park is dropped too \ud83d\uddd1\ufe0f \u2014 the itinerary's now empty. Want me to draft a fresh plan for Mar 14\u201318, or just add things as you all think of them?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "South Pointe Park is dropped too \ud83d\uddd1\ufe0f \u2014 the itinerary's now empty. Want me to draft a fresh plan for Mar 14\u201318, or just add things as you all think of them?"
+      }
+    ],
+    "stray_text": [
+      "Both activities are gone. Nothing was booked or paid for either, so no balances changed."
+    ],
+    "stop_reason": "stop",
+    "seconds": 7.39,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 36381,
+      "completion_tokens": 198,
+      "total_tokens": 36579
+    },
+    "failures": []
+  }
+]

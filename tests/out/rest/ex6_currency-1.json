@@ -1,0 +1,171 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot paid $1,800 for the snorkel tour",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "On it, @Jake \u2014 two quick things before I log it: is that $1,800 MXN (\u2248$90 USD) or USD? And who's on the tour \u2014 you, Aarav and Mia split three ways, or just some of you? \ud83d\udc20"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "On it, @Jake \u2014 two quick things before I log it: is that $1,800 MXN (\u2248$90 USD) or USD? And who's on the tour \u2014 you, Aarav and Mia split three ways, or just some of you? \ud83d\udc20"
+      }
+    ],
+    "stray_text": [
+      "Asked Jake to clarify the currency and who's splitting the snorkel tour before logging it."
+    ],
+    "stop_reason": "stop",
+    "seconds": 7.75,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23062,
+      "completion_tokens": 370,
+      "total_tokens": 23432
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "jake",
+    "text": "@tripbot pesos, everyone",
+    "tool_calls": [
+      {
+        "name": "log_expense",
+        "input": {
+          "trip_id": "cancun",
+          "paid_by": "jake",
+          "amount": 180000,
+          "currency": "MXN",
+          "description": "Snorkel tour",
+          "category": "ACTIVITIES",
+          "split_with": [
+            "aarav",
+            "jake",
+            "mia"
+          ],
+          "source_message": "paid $1,800 for the snorkel tour \u2014 pesos, everyone"
+        },
+        "result": {
+          "expense_id": "e1",
+          "base_amount": 10008,
+          "base_currency": "USD",
+          "original_amount": 180000,
+          "original_currency": "MXN",
+          "fx_rate": 0.0556,
+          "shares": {
+            "aarav": 3336,
+            "jake": 3336,
+            "mia": 3336
+          },
+          "splits": {
+            "aarav": -3336,
+            "jake": 6672,
+            "mia": -3336
+          },
+          "auto_excluded": [],
+          "display": {
+            "amount": "$100.08",
+            "original_amount": "MX$1,800",
+            "shares": {
+              "aarav": "$33.36",
+              "jake": "$33.36",
+              "mia": "$33.36"
+            },
+            "splits": {
+              "aarav": "-$33.36",
+              "jake": "+$66.72",
+              "mia": "-$33.36"
+            },
+            "pay_to": "Jake (@jake-venmo)"
+          },
+          "budget_warnings": {},
+          "next_step": "Budgets were checked automatically: no warnings, so don't mention budgets."
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "cancun",
+          "person_id": "aarav"
+        },
+        "result": {
+          "person_id": "aarav",
+          "budget_set": false,
+          "spent_cents": 3336,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "cancun",
+          "person_id": "jake"
+        },
+        "result": {
+          "person_id": "jake",
+          "budget_set": false,
+          "spent_cents": 3336,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "cancun",
+          "person_id": "mia"
+        },
+        "result": {
+          "person_id": "mia",
+          "budget_set": false,
+          "spent_cents": 3336,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Logged \u2705 Snorkel tour MX$1,800 (\u2248 $100.08), paid by @Jake \u2014 split three ways, so $33.36 each. @Aarav and @Mia: Venmo @jake-venmo $33.36.\n\nHeads up: nobody's set a trip budget yet. Want to drop yours here so I can keep an eye on it? \ud83d\udca1"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Logged \u2705 Snorkel tour MX$1,800 (\u2248 $100.08), paid by @Jake \u2014 split three ways, so $33.36 each. @Aarav and @Mia: Venmo @jake-venmo $33.36.\n\nHeads up: nobody's set a trip budget yet. Want to drop yours here so I can keep an eye on it? \ud83d\udca1"
+      }
+    ],
+    "stray_text": [
+      "Snorkel tour logged as MX$1,800 (\u2248$100.08), $33.36 each \u2014 Aarav and Mia owe Jake. Also nudged everyone to set budgets."
+    ],
+    "stop_reason": "stop",
+    "seconds": 11.21,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 35976,
+      "completion_tokens": 573,
+      "total_tokens": 36549
+    },
+    "failures": []
+  }
+]

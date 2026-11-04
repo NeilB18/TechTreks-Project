@@ -1,0 +1,56 @@
+[
+  {
+    "turn": 1,
+    "sender": "aarav",
+    "text": "@tripbot groceries $100, I paid. I had $40, Mia $30, Jake $20",
+    "tool_calls": [
+      {
+        "name": "log_expense",
+        "input": {
+          "trip_id": "miami",
+          "paid_by": "aarav",
+          "amount": 10000,
+          "currency": "USD",
+          "description": "Groceries",
+          "category": "FOOD",
+          "exact_amounts": {
+            "aarav": 4000,
+            "mia": 3000,
+            "jake": 2000
+          },
+          "source_message": "@tripbot groceries $100, I paid. I had $40, Mia $30, Jake $20"
+        },
+        "result": null,
+        "error": "exact_amounts sum to 9000, but amount is 10000"
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "@Aarav quick check on the groceries \u2014 the shares add to $90 ($40 + $30 + $20) but you said $100 total. Was the receipt $90, or should I spread the extra $10 somewhere? \ud83d\udc40"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "@Aarav quick check on the groceries \u2014 the shares add to $90 ($40 + $30 + $20) but you said $100 total. Was the receipt $90, or should I spread the extra $10 somewhere? \ud83d\udc40"
+      }
+    ],
+    "stray_text": [
+      "Asked Aarav to clarify \u2014 the amounts add up to $90, not $100."
+    ],
+    "stop_reason": "stop",
+    "seconds": 9.4,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 34997,
+      "completion_tokens": 416,
+      "total_tokens": 35413
+    },
+    "failures": []
+  }
+]

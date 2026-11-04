@@ -1,0 +1,54 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "actually I drink now, put me back in drinks",
+    "tool_calls": [
+      {
+        "name": "set_exclusion",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "jake",
+          "category": "DRINKS",
+          "remove": true
+        },
+        "result": {
+          "saved": true,
+          "person_id": "jake",
+          "category": "DRINKS",
+          "opted_out": false
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Done @Jake \u2014 you're back in for drinks splits \ud83c\udf7b"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Done @Jake \u2014 you're back in for drinks splits \ud83c\udf7b"
+      }
+    ],
+    "stray_text": [
+      "Done \u2014 Jake is back in for drinks splits \ud83c\udf7b",
+      "Posted in the chat."
+    ],
+    "stop_reason": "stop",
+    "seconds": 8.83,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 46461,
+      "completion_tokens": 213,
+      "total_tokens": 46674
+    },
+    "failures": []
+  }
+]

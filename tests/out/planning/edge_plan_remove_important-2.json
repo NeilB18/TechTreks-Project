@@ -1,0 +1,138 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot drop the boat tour",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Heads up @Jake \u2014 the boat tour (Mar 15, 2:30\u20135:30pm) is marked as important, so I want the group's OK before dropping it. @Aarav @Mia, good to remove? Nothing's paid on it yet, so no money is affected."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Heads up @Jake \u2014 the boat tour (Mar 15, 2:30\u20135:30pm) is marked as important, so I want the group's OK before dropping it. @Aarav @Mia, good to remove? Nothing's paid on it yet, so no money is affected."
+      }
+    ],
+    "stray_text": [
+      "Asked the group before removing it, since it's flagged important."
+    ],
+    "stop_reason": "stop",
+    "seconds": 6.32,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23625,
+      "completion_tokens": 135,
+      "total_tokens": 23760
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "aarav",
+    "text": "@tripbot yes drop it",
+    "tool_calls": [
+      {
+        "name": "remove_activity",
+        "input": {
+          "trip_id": "miami",
+          "activity_id": "boat_tour"
+        },
+        "result": {
+          "removed": true,
+          "activity_id": "boat_tour",
+          "name": "Boat tour",
+          "back_on_ideas": false,
+          "expense_still_logged": null
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Done \u2014 boat tour dropped from Mar 15 \u2705 Nothing was paid on it, so no balances changed. South Pointe Park on Mar 16 is still on."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Done \u2014 boat tour dropped from Mar 15 \u2705 Nothing was paid on it, so no balances changed. South Pointe Park on Mar 16 is still on."
+      }
+    ],
+    "stray_text": [
+      "Dropped \u2705 the boat tour is off the itinerary for Mar 15. Nothing was paid on it, so no balances changed. South Pointe Park on Mar 16 is still on.",
+      "Confirmed the removal in the group chat."
+    ],
+    "stop_reason": "stop",
+    "seconds": 7.51,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 48321,
+      "completion_tokens": 271,
+      "total_tokens": 48592
+    },
+    "failures": []
+  },
+  {
+    "turn": 3,
+    "sender": "mia",
+    "text": "@tripbot also drop south pointe park",
+    "tool_calls": [
+      {
+        "name": "remove_activity",
+        "input": {
+          "activity_id": "beach",
+          "trip_id": "miami"
+        },
+        "result": {
+          "removed": true,
+          "activity_id": "beach",
+          "name": "South Pointe Park",
+          "back_on_ideas": false,
+          "expense_still_logged": null
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Dropped \u2705 South Pointe Park is off Mar 16. That clears the itinerary \u2014 the trip's now open. Want me to start a fresh plan for Mar 14\u201318?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Dropped \u2705 South Pointe Park is off Mar 16. That clears the itinerary \u2014 the trip's now open. Want me to start a fresh plan for Mar 14\u201318?"
+      }
+    ],
+    "stray_text": [
+      "Removed the last activity and offered to rebuild the plan."
+    ],
+    "stop_reason": "stop",
+    "seconds": 5.03,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 36629,
+      "completion_tokens": 149,
+      "total_tokens": 36778
+    },
+    "failures": []
+  }
+]

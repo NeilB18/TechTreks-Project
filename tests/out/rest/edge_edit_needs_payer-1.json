@@ -1,0 +1,162 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot the dinner was actually $150 not $120",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Got it \u2014 that's a change to the dinner Aarav paid for, so I need @Aarav to confirm: update the dinner from $120 to $150? That'd make it $50 each instead of $40."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Got it \u2014 that's a change to the dinner Aarav paid for, so I need @Aarav to confirm: update the dinner from $120 to $150? That'd make it $50 each instead of $40."
+      }
+    ],
+    "stray_text": [
+      "Asked Aarav to confirm the edit before I change it."
+    ],
+    "stop_reason": "stop",
+    "seconds": 8.1,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23181,
+      "completion_tokens": 304,
+      "total_tokens": 23485
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "aarav",
+    "text": "@tripbot yep that's right",
+    "tool_calls": [
+      {
+        "name": "edit_expense",
+        "input": {
+          "expense_id": "e1",
+          "requested_by": "aarav",
+          "changes": {
+            "amount": 15000,
+            "split_with": [
+              "aarav",
+              "jake",
+              "mia"
+            ]
+          }
+        },
+        "result": {
+          "updated": true,
+          "payer": "aarav",
+          "expense": {
+            "expense_id": "e1",
+            "description": "Dinner",
+            "category": "FOOD",
+            "paid_by": "aarav",
+            "amount_cents": 15000,
+            "original_amount": 15000,
+            "original_currency": "USD",
+            "fx_rate": 1.0,
+            "shares": {
+              "aarav": 5000,
+              "jake": 5000,
+              "mia": 5000
+            },
+            "splits": {
+              "aarav": 10000,
+              "jake": -5000,
+              "mia": -5000
+            },
+            "created_at": "2027-03-01T12:00",
+            "refunded_cents": 0
+          },
+          "budget_warnings": {},
+          "next_step": "Budgets were checked automatically: no warnings, so don't mention budgets."
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "aarav"
+        },
+        "result": {
+          "person_id": "aarav",
+          "budget_set": false,
+          "spent_cents": 5000,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "jake"
+        },
+        "result": {
+          "person_id": "jake",
+          "budget_set": false,
+          "spent_cents": 5000,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia"
+        },
+        "result": {
+          "person_id": "mia",
+          "budget_set": false,
+          "spent_cents": 5000,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Updated \u2014 the dinner is now $150 total, so $50 each for @Aarav, @Jake and @Mia. Jake and Mia still owe Aarav $50 apiece."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Updated \u2014 the dinner is now $150 total, so $50 each for @Aarav, @Jake and @Mia. Jake and Mia still owe Aarav $50 apiece."
+      }
+    ],
+    "stray_text": [
+      "Done \u2014 dinner is now $150 total, $50 each for you, Jake and Mia. Jake and Mia still owe you $50 apiece.",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 8.61,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 48025,
+      "completion_tokens": 270,
+      "total_tokens": 48295
+    },
+    "failures": []
+  }
+]

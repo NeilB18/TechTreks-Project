@@ -1,0 +1,183 @@
+[
+  {
+    "turn": 1,
+    "sender": "aarav",
+    "text": "@tripbot concert got moved, got $150 back on the tickets",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Heads up @Aarav \u2014 logging a $150 refund on the concert tickets ($300 total)? Since it was split in thirds, that's $50 back each for you, Jake and Mia. Reply \"confirm\" and I'll record it."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Heads up @Aarav \u2014 logging a $150 refund on the concert tickets ($300 total)? Since it was split in thirds, that's $50 back each for you, Jake and Mia. Reply \"confirm\" and I'll record it."
+      }
+    ],
+    "stray_text": [
+      "Posted the refund confirmation request. Once Aarav confirms, I'll record it and share the new settle-up."
+    ],
+    "stop_reason": "stop",
+    "seconds": 10.44,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23275,
+      "completion_tokens": 400,
+      "total_tokens": 23675
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "aarav",
+    "text": "@tripbot yep",
+    "tool_calls": [
+      {
+        "name": "record_refund",
+        "input": {
+          "expense_id": "e5",
+          "amount": 15000,
+          "currency": "USD",
+          "note": "Concert moved, partial refund on tickets"
+        },
+        "result": {
+          "refund_id": "r1",
+          "expense_id": "e5",
+          "payer": "aarav",
+          "base_amount": 15000,
+          "per_person": {
+            "aarav": 5000,
+            "jake": 5000,
+            "mia": 5000
+          },
+          "display": {
+            "amount": "$150",
+            "per_person": {
+              "aarav": "$50",
+              "jake": "$50",
+              "mia": "$50"
+            }
+          },
+          "budget_warnings": {},
+          "next_step": "Jake already paid Aarav back, so their money changes now: after get_balances, tell each of them in the group (@mention them) who will pay them (or who they pay) and how much, from the settle-up lines.",
+          "already_paid_back": [
+            "jake"
+          ]
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "aarav"
+        },
+        "result": {
+          "person_id": "aarav",
+          "budget_set": false,
+          "spent_cents": 5000,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "jake"
+        },
+        "result": {
+          "person_id": "jake",
+          "budget_set": false,
+          "spent_cents": 5000,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia"
+        },
+        "result": {
+          "person_id": "mia",
+          "budget_set": false,
+          "spent_cents": 5000,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_balances",
+        "input": {
+          "trip_id": "miami"
+        },
+        "result": {
+          "net_balances": {
+            "jake": 5000,
+            "mia": -5000
+          },
+          "suggested_payments": [
+            {
+              "from": "mia",
+              "to": "jake",
+              "amount_cents": 5000,
+              "handle": "@jake-venmo"
+            }
+          ],
+          "currency": "USD",
+          "lines": [
+            "Mia pays Jake $50, @jake-venmo"
+          ],
+          "display": {
+            "net_balances": {
+              "jake": "+$50",
+              "mia": "-$50"
+            }
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Recorded \u2705 $150 refund on the concert tickets \u2014 $50 back each for @Aarav, @Jake and @Mia.\n\nSince Jake already paid Aarav back $100, that money now comes from Mia instead:\n\u2022 @Jake: you're owed $50\n\u2022 @Mia: pay Jake $50, Venmo @jake-venmo\n\u2022 @Aarav: all settled up \ud83d\udc4d"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Recorded \u2705 $150 refund on the concert tickets \u2014 $50 back each for @Aarav, @Jake and @Mia.\n\nSince Jake already paid Aarav back $100, that money now comes from Mia instead:\n\u2022 @Jake: you're owed $50\n\u2022 @Mia: pay Jake $50, Venmo @jake-venmo\n\u2022 @Aarav: all settled up \ud83d\udc4d"
+      }
+    ],
+    "stray_text": [
+      "Recorded \u2705\n\n$150 refund on the concert tickets \u2014 $50 back each for @Aarav, @Jake and @Mia.\n\nSince Jake already paid Aarav back $100, that money now comes from Mia instead:\n- @Jake: you're owed $50\n- @Mia: pay Jake $50, Venmo @jake-venmo\n- @Aarav: all settled up \ud83d\udc4d",
+      "Sent to the group."
+    ],
+    "stop_reason": "stop",
+    "seconds": 15.44,
+    "model_calls": 5,
+    "tokens": {
+      "prompt_tokens": 60843,
+      "completion_tokens": 561,
+      "total_tokens": 61404
+    },
+    "failures": []
+  }
+]

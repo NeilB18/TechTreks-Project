@@ -1,0 +1,60 @@
+[
+  {
+    "turn": 1,
+    "sender": "mia",
+    "text": "@tripbot add La Mar for Sunday",
+    "tool_calls": [
+      {
+        "name": "add_activity",
+        "input": {
+          "trip_id": "miami",
+          "name": "La Mar",
+          "kind": "food",
+          "day": "2027-03-14"
+        },
+        "result": {
+          "created": false,
+          "day_full": true,
+          "closed_then": false,
+          "day": "2027-03-14",
+          "plans_that_day": [
+            "Versailles Restaurant",
+            "Joe's Stone Crab"
+          ],
+          "opening_hours": null,
+          "next_step": "Ask for a specific time, another day, or the ideas list."
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "@Mia Sunday (Mar 14) is already full \u2014 Versailles Restaurant for lunch and Joe's Stone Crab for dinner, so there's no free food slot. Want me to put La Mar on a different day, give it a specific time Sunday, or just save it to the ideas list for now?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "@Mia Sunday (Mar 14) is already full \u2014 Versailles Restaurant for lunch and Joe's Stone Crab for dinner, so there's no free food slot. Want me to put La Mar on a different day, give it a specific time Sunday, or just save it to the ideas list for now?"
+      }
+    ],
+    "stray_text": [
+      "@Mia Sunday (Mar 14) is already full \u2014 Versailles Restaurant for lunch and Joe's Stone Crab for dinner, so there's no free food slot left. Want me to put La Mar on a different day, give it a specific time Sunday (like an early happy-hour slot), or just drop it on the ideas list for now?",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 11.39,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47914,
+      "completion_tokens": 467,
+      "total_tokens": 48381
+    },
+    "failures": []
+  }
+]

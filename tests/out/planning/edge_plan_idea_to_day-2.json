@@ -1,0 +1,63 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot let's do Wynwood on Monday",
+    "tool_calls": [
+      {
+        "name": "add_activity",
+        "input": {
+          "trip_id": "miami",
+          "idea_id": "i1",
+          "day": "2027-03-15"
+        },
+        "result": {
+          "activity_id": "a1",
+          "created": true,
+          "start": "2027-03-15T10:00",
+          "end": "2027-03-15T12:00",
+          "outside_trip_dates": false,
+          "slot": "morning",
+          "location": "Miami",
+          "verified": true,
+          "not_found": false,
+          "map_check_failed": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami",
+          "opening_hours": null,
+          "from_ideas": true,
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Wynwood Walls is on for Monday, Mar 15 \ud83c\udfa8 \u2014 morning slot, 10am\u201312pm. [Maps](https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami) (\u00a9 OpenStreetMap contributors)"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Wynwood Walls is on for Monday, Mar 15 \ud83c\udfa8 \u2014 morning slot, 10am\u201312pm. [Maps](https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami) (\u00a9 OpenStreetMap contributors)"
+      }
+    ],
+    "stray_text": [
+      "Wynwood Walls is on for Monday, Mar 15 \ud83c\udfa8 \u2014 morning slot, 10am\u201312pm. [Maps](https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami) (\u00a9 OpenStreetMap contributors)",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 12.55,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47013,
+      "completion_tokens": 505,
+      "total_tokens": 47518
+    },
+    "failures": []
+  }
+]

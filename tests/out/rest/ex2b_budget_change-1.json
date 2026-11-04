@@ -1,0 +1,103 @@
+[
+  {
+    "turn": 1,
+    "sender": "mia",
+    "text": "can you lower my budget to $500",
+    "tool_calls": [
+      {
+        "name": "set_budget",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia",
+          "total": 50000
+        },
+        "result": {
+          "saved": true,
+          "person_id": "mia",
+          "total_cents": 50000,
+          "limits": {},
+          "display": {
+            "total": "$500"
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia"
+        },
+        "result": {
+          "person_id": "mia",
+          "budget_set": true,
+          "total_cents": 50000,
+          "spent_cents": 30000,
+          "remaining_cents": 20000,
+          "planned_cents": 21300,
+          "remaining_after_planned_cents": -1300,
+          "by_category": {
+            "ACTIVITIES": {
+              "limit_cents": null,
+              "spent_cents": 0,
+              "planned_cents": 21300
+            },
+            "LODGING": {
+              "limit_cents": null,
+              "spent_cents": 30000,
+              "planned_cents": 0
+            }
+          },
+          "warnings": [],
+          "display": {
+            "total": "$500",
+            "spent": "$300",
+            "remaining": "$200",
+            "planned": "$213",
+            "remaining_after_planned": "-$13",
+            "by_category": {
+              "ACTIVITIES": {
+                "spent": "$0",
+                "planned": "$213"
+              },
+              "LODGING": {
+                "spent": "$300",
+                "planned": "$0"
+              }
+            }
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Done @Mia \u2014 your budget is now $500 for Miami \ud83c\udfdd\ufe0f\n\nQuick math: $300 spent on the Airbnb leaves $200, but the boat tour + club night are planned at ~$213, so you'd be about $13 over. Dropping the boat tour (~$133) is the easy fix if you want to stay under \u2014 or tell me and I can bump the number instead."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Done @Mia \u2014 your budget is now $500 for Miami \ud83c\udfdd\ufe0f\n\nQuick math: $300 spent on the Airbnb leaves $200, but the boat tour + club night are planned at ~$213, so you'd be about $13 over. Dropping the boat tour (~$133) is the easy fix if you want to stay under \u2014 or tell me and I can bump the number instead."
+      }
+    ],
+    "stray_text": [
+      "Done \u2014 your budget is now **$500** for Miami \ud83c\udfdd\ufe0f\n\nQuick math: $300 spent on the Airbnb leaves **$200**, but the boat tour + club night are planned at ~$213, so you'd be about **$13 over**. If you want to stay under, dropping the boat tour (~$133) is the easy fix \u2014 or tell me and I'll just bump you to a higher number instead.",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 28.69,
+    "model_calls": 5,
+    "tokens": {
+      "prompt_tokens": 60967,
+      "completion_tokens": 572,
+      "total_tokens": 61539
+    },
+    "failures": []
+  }
+]

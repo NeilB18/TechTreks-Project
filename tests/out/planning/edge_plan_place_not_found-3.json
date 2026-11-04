@@ -1,0 +1,64 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot add Zzqx Imaginary Taco Palace on Monday",
+    "tool_calls": [
+      {
+        "name": "add_activity",
+        "input": {
+          "trip_id": "miami",
+          "name": "Zzqx Imaginary Taco Palace",
+          "kind": "food",
+          "day": "2027-03-15"
+        },
+        "result": {
+          "activity_id": "a1",
+          "created": true,
+          "start": "2027-03-15T12:30",
+          "end": "2027-03-15T14:00",
+          "outside_trip_dates": false,
+          "slot": "lunch",
+          "location": "Miami",
+          "verified": false,
+          "not_found": true,
+          "map_check_failed": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=Zzqx+Imaginary+Taco+Palace%2C+Miami",
+          "opening_hours": null,
+          "from_ideas": false,
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Added to Monday (Mar 15) lunch, @Jake \u2014 but the map couldn't find \"Zzqx Imaginary Taco Palace\" in Miami, so it's saved unverified. Is the name right? If it's actually a different spot, tell me the real name and I'll fix it. \ud83c\udf2e"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Added to Monday (Mar 15) lunch, @Jake \u2014 but the map couldn't find \"Zzqx Imaginary Taco Palace\" in Miami, so it's saved unverified. Is the name right? If it's actually a different spot, tell me the real name and I'll fix it. \ud83c\udf2e"
+      }
+    ],
+    "stray_text": [
+      "Added to Monday (Mar 15) lunch, @Jake \u2014 but the map couldn't find \"Zzqx Imaginary Taco Palace\" in Miami, so it's saved unverified. Is the name right? If it's a different spot, tell me the real name and I'll fix it. \ud83c\udf2e",
+      "Posted in the chat."
+    ],
+    "stop_reason": "stop",
+    "seconds": 18.43,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47012,
+      "completion_tokens": 786,
+      "total_tokens": 47798
+    },
+    "failures": []
+  }
+]

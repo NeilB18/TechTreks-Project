@@ -1,0 +1,151 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot we're staying at the Freehand Miami",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "trip_id": "miami",
+          "changes": {
+            "lodging": "Freehand Miami"
+          }
+        },
+        "result": {
+          "updated": true,
+          "trip": {
+            "id": "miami",
+            "name": "Miami Spring Break",
+            "status": "PLANNING",
+            "destination": "Miami",
+            "start_date": "2027-03-14",
+            "end_date": "2027-03-18",
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": null,
+            "leader_id": "aarav",
+            "leader_approval": [
+              "member_changes",
+              "trip_changes"
+            ],
+            "auto_log_mode": "mention_only",
+            "planning_notes": null,
+            "lodging": {
+              "name": "Freehand Miami",
+              "address": "Miami",
+              "lat": 25.70078431372549,
+              "lon": -80.29372549019608,
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=Freehand+Miami%2C+Miami"
+            }
+          },
+          "next_step": "Tell the group the address you saved, with the Maps link, so someone can correct it if it's the wrong place."
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Saved \ud83c\udfe8 Freehand Miami \u2014 https://www.google.com/maps/search/?api=1&query=Freehand+Miami%2C+Miami \u2014 shout if that's the wrong spot. Now I can look up what's nearby whenever you want."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Saved \ud83c\udfe8 Freehand Miami \u2014 https://www.google.com/maps/search/?api=1&query=Freehand+Miami%2C+Miami \u2014 shout if that's the wrong spot. Now I can look up what's nearby whenever you want."
+      }
+    ],
+    "stray_text": [
+      "Saved \ud83c\udfe8 **Freehand Miami** \u2014 https://www.google.com/maps/search/?api=1&query=Freehand+Miami%2C+Miami \u2014 shout if that's the wrong spot. Now I can check what's nearby whenever you want.",
+      "Posted the lodging confirmation with the Maps link."
+    ],
+    "stop_reason": "stop",
+    "seconds": 11.01,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47152,
+      "completion_tokens": 312,
+      "total_tokens": 47464
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "mia",
+    "text": "@tripbot wrong one, our airbnb is 2727 Indian Creek Dr",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "changes": {
+            "lodging": "2727 Indian Creek Dr"
+          },
+          "trip_id": "miami"
+        },
+        "result": {
+          "updated": true,
+          "trip": {
+            "id": "miami",
+            "name": "Miami Spring Break",
+            "status": "PLANNING",
+            "destination": "Miami",
+            "start_date": "2027-03-14",
+            "end_date": "2027-03-18",
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": null,
+            "leader_id": "aarav",
+            "leader_approval": [
+              "member_changes",
+              "trip_changes"
+            ],
+            "auto_log_mode": "mention_only",
+            "planning_notes": null,
+            "lodging": {
+              "name": "2727 Indian Creek Dr",
+              "address": "Miami",
+              "lat": 25.725490196078432,
+              "lon": -80.2478431372549,
+              "maps_url": "https://www.google.com/maps/search/?api=1&query=2727+Indian+Creek+Dr%2C+Miami"
+            }
+          },
+          "next_step": "Tell the group the address you saved, with the Maps link, so someone can correct it if it's the wrong place."
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Updated \u2705 you're at 2727 Indian Creek Dr, Miami \u2014 https://www.google.com/maps/search/?api=1&query=2727+Indian+Creek+Dr%2C+Miami \u2014 let me know if that's the right pin."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Updated \u2705 you're at 2727 Indian Creek Dr, Miami \u2014 https://www.google.com/maps/search/?api=1&query=2727+Indian+Creek+Dr%2C+Miami \u2014 let me know if that's the right pin."
+      }
+    ],
+    "stray_text": [
+      "Corrected the lodging to 2727 Indian Creek Dr and posted it with a Maps link for verification."
+    ],
+    "stop_reason": "stop",
+    "seconds": 6.04,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 37184,
+      "completion_tokens": 247,
+      "total_tokens": 37431
+    },
+    "failures": []
+  }
+]

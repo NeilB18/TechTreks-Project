@@ -1,0 +1,64 @@
+[
+  {
+    "turn": 1,
+    "sender": "mia",
+    "text": "@tripbot add La Mar for Sunday",
+    "tool_calls": [
+      {
+        "name": "add_activity",
+        "input": {
+          "trip_id": "miami",
+          "name": "La Mar",
+          "kind": "food",
+          "day": "2027-03-14",
+          "attendees": [
+            "aarav",
+            "jake",
+            "mia"
+          ]
+        },
+        "result": {
+          "created": false,
+          "day_full": true,
+          "closed_then": false,
+          "day": "2027-03-14",
+          "plans_that_day": [
+            "Versailles Restaurant",
+            "Joe's Stone Crab"
+          ],
+          "opening_hours": null,
+          "next_step": "Ask for a specific time, another day, or the ideas list."
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "@Mia Sunday (Mar 14) is already full for food \u2014 Versailles Restaurant at lunch and Joe's Stone Crab at dinner are both booked. Want a specific time for La Mar that day, a different day, or should I just put it on the ideas list for now?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "@Mia Sunday (Mar 14) is already full for food \u2014 Versailles Restaurant at lunch and Joe's Stone Crab at dinner are both booked. Want a specific time for La Mar that day, a different day, or should I just put it on the ideas list for now?"
+      }
+    ],
+    "stray_text": [
+      "Sunday's food slots are full, so I asked Mia whether she wants a time, another day, or the ideas list."
+    ],
+    "stop_reason": "stop",
+    "seconds": 13.45,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 35759,
+      "completion_tokens": 740,
+      "total_tokens": 36499
+    },
+    "failures": []
+  }
+]

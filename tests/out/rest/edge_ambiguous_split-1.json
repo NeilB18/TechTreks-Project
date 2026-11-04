@@ -1,0 +1,37 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot paid $40 for gas",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Got the $40 gas, Jake \u2014 who's it split with? Just you, or me/Mia/Aarav too? \ud83d\udc40"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Got the $40 gas, Jake \u2014 who's it split with? Just you, or me/Mia/Aarav too? \ud83d\udc40"
+      }
+    ],
+    "stray_text": [
+      "Asked in the chat who the gas split covers \u2014 I'll log it once Jake says."
+    ],
+    "stop_reason": "stop",
+    "seconds": 6.33,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 22996,
+      "completion_tokens": 161,
+      "total_tokens": 23157
+    },
+    "failures": []
+  }
+]
