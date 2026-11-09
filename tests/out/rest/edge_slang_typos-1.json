@@ -1,0 +1,136 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot yo i covered the ubr 2 the club, $45, split w everyone pls \ud83d\ude4f",
+    "tool_calls": [
+      {
+        "name": "log_expense",
+        "input": {
+          "trip_id": "miami",
+          "paid_by": "jake",
+          "amount": 4500,
+          "currency": "USD",
+          "description": "Uber to the club",
+          "category": "TRANSPORT",
+          "split_with": [
+            "aarav",
+            "jake",
+            "mia"
+          ],
+          "source_message": "@tripbot yo i covered the ubr 2 the club, $45, split w everyone pls \ud83d\ude4f"
+        },
+        "result": {
+          "expense_id": "e1",
+          "base_amount": 4500,
+          "base_currency": "USD",
+          "original_amount": 4500,
+          "original_currency": "USD",
+          "fx_rate": 1.0,
+          "shares": {
+            "aarav": 1500,
+            "jake": 1500,
+            "mia": 1500
+          },
+          "splits": {
+            "aarav": -1500,
+            "jake": 3000,
+            "mia": -1500
+          },
+          "auto_excluded": [],
+          "display": {
+            "amount": "$45",
+            "shares": {
+              "aarav": "$15",
+              "jake": "$15",
+              "mia": "$15"
+            },
+            "splits": {
+              "aarav": "-$15",
+              "jake": "+$30",
+              "mia": "-$15"
+            },
+            "pay_to": "Jake (@jake-venmo)"
+          },
+          "budget_warnings": {},
+          "next_step": "Budgets were checked automatically: no warnings, so don't mention budgets."
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "aarav"
+        },
+        "result": {
+          "person_id": "aarav",
+          "budget_set": false,
+          "spent_cents": 1500,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "jake"
+        },
+        "result": {
+          "person_id": "jake",
+          "budget_set": false,
+          "spent_cents": 1500,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia"
+        },
+        "result": {
+          "person_id": "mia",
+          "budget_set": false,
+          "spent_cents": 1500,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Logged the Uber to the club \ud83d\ude97 $45 total, paid by @Jake \u2192 $15 each for you, Aarav and Mia. Venmo Jake @jake-venmo for your $15."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Logged the Uber to the club \ud83d\ude97 $45 total, paid by @Jake \u2192 $15 each for you, Aarav and Mia. Venmo Jake @jake-venmo for your $15."
+      }
+    ],
+    "stray_text": [
+      "Logged the Uber to the club \ud83d\ude97 $45 total, paid by @Jake \u2192 $15 each for you, Aarav and Mia. Venmo him @jake-venmo for your $15.",
+      "Posted \u2705"
+    ],
+    "stop_reason": "stop",
+    "seconds": 13.03,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47455,
+      "completion_tokens": 561,
+      "total_tokens": 48016
+    },
+    "failures": []
+  }
+]

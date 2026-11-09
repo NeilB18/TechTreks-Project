@@ -1,0 +1,184 @@
+[
+  {
+    "turn": 1,
+    "sender": "mia",
+    "text": "I'm over on food aren't I? what should I do",
+    "tool_calls": [
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia"
+        },
+        "result": {
+          "person_id": "mia",
+          "budget_set": true,
+          "total_cents": 90000,
+          "spent_cents": 16000,
+          "remaining_cents": 74000,
+          "planned_cents": 0,
+          "remaining_after_planned_cents": 74000,
+          "by_category": {
+            "FOOD": {
+              "limit_cents": 15000,
+              "spent_cents": 16000,
+              "planned_cents": 0
+            }
+          },
+          "warnings": [
+            "FOOD over limit by $10 including planned activities"
+          ],
+          "display": {
+            "total": "$900",
+            "spent": "$160",
+            "remaining": "$740",
+            "planned": "$0",
+            "remaining_after_planned": "$740",
+            "by_category": {
+              "FOOD": {
+                "limit": "$150",
+                "spent": "$160",
+                "planned": "$0"
+              }
+            }
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "get_travel_tips",
+        "input": {
+          "trip_id": "miami",
+          "destination": "Miami",
+          "multipliers": [
+            0.5
+          ],
+          "interests": [
+            "cheap eats",
+            "food budget"
+          ]
+        },
+        "result": {
+          "destination": "Miami",
+          "average_cents": 90000,
+          "budgets_counted": 1,
+          "budgets": {
+            "mia": 90000
+          },
+          "missing_budgets": [
+            "aarav",
+            "jake"
+          ],
+          "tiers": [
+            {
+              "multiplier": 0.5,
+              "budget_cents": 45000,
+              "lodging": "Hostel or a shared room a bit outside the center",
+              "food": "Street food, food trucks and grocery-store breakfasts",
+              "activities": "Free beach days, walking tours and public parks",
+              "saving_tips": "Use public transit or bikes instead of rideshares",
+              "source": "fake"
+            }
+          ],
+          "interests": [
+            "cheap eats",
+            "food budget"
+          ],
+          "display": {
+            "average": "$900",
+            "tiers": {
+              "0.5": "$450"
+            }
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "@Mia slightly \u2014 your food splits are $160 against a $150 limit, so $10 over. Your overall budget is fine though: $160 spent of $900, $740 left \ud83d\ude42\n\nTwo easy fixes: keep the rest of the trip cheap-eats mode (food trucks/street tacos, grocery breakfasts, and the $16 each already logged is nothing you can undo), or bump the FOOD limit to ~$180 so it stops nagging you. Want me to do either? Your budget, your call \u2014 I won't change it 'til you say."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "@Mia slightly \u2014 your food splits are $160 against a $150 limit, so $10 over. Your overall budget is fine though: $160 spent of $900, $740 left \ud83d\ude42\n\nTwo easy fixes: keep the rest of the trip cheap-eats mode (food trucks/street tacos, grocery breakfasts, and the $16 each already logged is nothing you can undo), or bump the FOOD limit to ~$180 so it stops nagging you. Want me to do either? Your budget, your call \u2014 I won't change it 'til you say."
+      }
+    ],
+    "stray_text": [
+      "Checked her numbers and gave Mia the options in chat: $10 over her food limit but plenty of room overall ($740 left of $900), with either cheap-eats mode or raising the FOOD limit \u2014 no changes made until she picks."
+    ],
+    "stop_reason": "stop",
+    "seconds": 18.24,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 48584,
+      "completion_tokens": 841,
+      "total_tokens": 49425
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "mia",
+    "text": "yeah make it $200",
+    "tool_calls": [
+      {
+        "name": "set_budget",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia",
+          "total": 90000,
+          "limits": {
+            "FOOD": 20000
+          }
+        },
+        "result": {
+          "saved": true,
+          "person_id": "mia",
+          "total_cents": 90000,
+          "limits": {
+            "FOOD": 20000
+          },
+          "display": {
+            "total": "$900"
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Done @Mia \u2014 FOOD limit is now $200 (total budget still $900). You've spent $160 on food, so ~$40 left there, no more warnings."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Done @Mia \u2014 FOOD limit is now $200 (total budget still $900). You've spent $160 on food, so ~$40 left there, no more warnings."
+      }
+    ],
+    "stray_text": [
+      "Raised Mia's FOOD limit to $200 and confirmed in chat \u2014 she now has about $40 of food room left and no warnings."
+    ],
+    "stop_reason": "stop",
+    "seconds": 7.89,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 38115,
+      "completion_tokens": 357,
+      "total_tokens": 38472
+    },
+    "failures": []
+  }
+]

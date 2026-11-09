@@ -1,0 +1,55 @@
+[
+  {
+    "turn": 1,
+    "sender": "aarav",
+    "text": "@tripbot remind everyone to pay me for the Airbnb by Friday",
+    "tool_calls": [
+      {
+        "name": "create_reminder",
+        "input": {
+          "audience": [
+            "all"
+          ],
+          "due_at": "2027-03-12T09:00",
+          "message": "Hey everyone \u2014 Aarav fronted the Airbnb. Please pay him back today (Venmo: @aarav-venmo) so we're square before the trip.",
+          "trip_id": "miami"
+        },
+        "result": {
+          "reminder_id": "m1",
+          "due_at": "2027-03-12T09:00",
+          "audience": "all"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Reminder set \u23f0 Friday morning (Mar 12) I'll nudge everyone to pay @Aarav back on Venmo (@aarav-venmo).\n\nHeads up @Aarav \u2014 the only expense I have logged is the $120 dinner, not the Airbnb. Want me to add it? Just tell me the total and who's splitting it."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Reminder set \u23f0 Friday morning (Mar 12) I'll nudge everyone to pay @Aarav back on Venmo (@aarav-venmo).\n\nHeads up @Aarav \u2014 the only expense I have logged is the $120 dinner, not the Airbnb. Want me to add it? Just tell me the total and who's splitting it."
+      }
+    ],
+    "stray_text": [
+      "Reminder set \u2705 \u2014 @all will get nudged Friday morning (Mar 12) to Venmo you at @aarav-venmo.\n\nHeads up: I only see the $120 dinner logged, not the Airbnb. Want me to add it? Just tell me the total and who's splitting it.",
+      "Done \u2014 reminder scheduled and the group's been told."
+    ],
+    "stop_reason": "stop",
+    "seconds": 14.39,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47607,
+      "completion_tokens": 595,
+      "total_tokens": 48202
+    },
+    "failures": []
+  }
+]

@@ -1,0 +1,250 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot give us some tips for Miami",
+    "tool_calls": [
+      {
+        "name": "get_travel_tips",
+        "input": {
+          "trip_id": "miami",
+          "destination": "Miami",
+          "multipliers": [
+            0.5,
+            0.75,
+            1,
+            1.25,
+            1.5,
+            2
+          ],
+          "prices_only": true
+        },
+        "result": {
+          "destination": "Miami",
+          "average_cents": 83333,
+          "budgets_counted": 3,
+          "budgets": {
+            "aarav": 120000,
+            "jake": 80000,
+            "mia": 50000
+          },
+          "missing_budgets": [],
+          "tiers": [
+            {
+              "multiplier": 0.5,
+              "budget_cents": 41700
+            },
+            {
+              "multiplier": 0.75,
+              "budget_cents": 62500
+            },
+            {
+              "multiplier": 1,
+              "budget_cents": 83300
+            },
+            {
+              "multiplier": 1.25,
+              "budget_cents": 104200
+            },
+            {
+              "multiplier": 1.5,
+              "budget_cents": 125000
+            },
+            {
+              "multiplier": 2,
+              "budget_cents": 166700
+            }
+          ],
+          "interests": [],
+          "display": {
+            "average": "$833.33",
+            "tiers": {
+              "0.5": "$417",
+              "0.75": "$625",
+              "1": "$833",
+              "1.25": "$1,042",
+              "1.5": "$1,250",
+              "2": "$1,667"
+            }
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "\ud83c\udf34 Miami tips incoming \u2014 first, pick a budget tier. Group average is $833.33/person, so the presets are:\n\n\u2022 0.5\u00d7 \u2014 $417 (shoestring)\n\u2022 0.75\u00d7 \u2014 $625\n\u2022 1\u00d7 \u2014 $833\n\u2022 1.25\u00d7 \u2014 $1,042\n\u2022 1.5\u00d7 \u2014 $1,250\n\u2022 2\u00d7 \u2014 $1,667 (splurge)\n\nAnyone can pick a tier or name a custom multiplier (like 1.1\u00d7), and @Aarav locks in the final pick. Which one? \ud83c\udfdd\ufe0f"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "\ud83c\udf34 Miami tips incoming \u2014 first, pick a budget tier. Group average is $833.33/person, so the presets are:\n\n\u2022 0.5\u00d7 \u2014 $417 (shoestring)\n\u2022 0.75\u00d7 \u2014 $625\n\u2022 1\u00d7 \u2014 $833\n\u2022 1.25\u00d7 \u2014 $1,042\n\u2022 1.5\u00d7 \u2014 $1,250\n\u2022 2\u00d7 \u2014 $1,667 (splurge)\n\nAnyone can pick a tier or name a custom multiplier (like 1.1\u00d7), and @Aarav locks in the final pick. Which one? \ud83c\udfdd\ufe0f"
+      }
+    ],
+    "stray_text": [
+      "Posted the tier options in the group \u2014 just need someone to pick one and I'll pull the full lodging/food/activities tips for it."
+    ],
+    "stop_reason": "stop",
+    "seconds": 14.58,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 35438,
+      "completion_tokens": 641,
+      "total_tokens": 36079
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "jake",
+    "text": "@tripbot show us 1.1x",
+    "tool_calls": [
+      {
+        "name": "get_travel_tips",
+        "input": {
+          "destination": "Miami",
+          "multipliers": [
+            1.1
+          ],
+          "trip_id": "miami"
+        },
+        "result": {
+          "destination": "Miami",
+          "average_cents": 83333,
+          "budgets_counted": 3,
+          "budgets": {
+            "aarav": 120000,
+            "jake": 80000,
+            "mia": 50000
+          },
+          "missing_budgets": [],
+          "tiers": [
+            {
+              "multiplier": 1.1,
+              "budget_cents": 91700,
+              "lodging": "Shared Airbnb in a central neighborhood",
+              "food": "Casual local spots plus one nice group dinner",
+              "activities": "One paid group activity (boat tour, museum) plus free days",
+              "saving_tips": "Book the big activity early and split groceries",
+              "source": "fake"
+            }
+          ],
+          "interests": [],
+          "display": {
+            "average": "$833.33",
+            "tiers": {
+              "1.1": "$917"
+            }
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "1.1\u00d7 = ~$917/person. Here's what that looks like in Miami \ud83c\udf34\n\n\u2022 \ud83c\udfe0 Lodging: shared Airbnb in a central neighborhood\n\u2022 \ud83c\udf7d\ufe0f Food: casual local spots plus one nice group dinner\n\u2022 \ud83c\udf9f\ufe0f Activities: one paid group activity (boat tour, museum) plus free days\n\u2022 \ud83d\udcb0 Money-saver: book the big activity early and split groceries\n\nHeads up: @Mia your budget is $500, so 1.1\u00d7 would be well over it \u2014 the 0.5\u00d7 ($417) or 0.75\u00d7 ($625) tiers fit you better. @Aarav, want to lock in a tier as the group budget?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "1.1\u00d7 = ~$917/person. Here's what that looks like in Miami \ud83c\udf34\n\n\u2022 \ud83c\udfe0 Lodging: shared Airbnb in a central neighborhood\n\u2022 \ud83c\udf7d\ufe0f Food: casual local spots plus one nice group dinner\n\u2022 \ud83c\udf9f\ufe0f Activities: one paid group activity (boat tour, museum) plus free days\n\u2022 \ud83d\udcb0 Money-saver: book the big activity early and split groceries\n\nHeads up: @Mia your budget is $500, so 1.1\u00d7 would be well over it \u2014 the 0.5\u00d7 ($417) or 0.75\u00d7 ($625) tiers fit you better. @Aarav, want to lock in a tier as the group budget?"
+      }
+    ],
+    "stray_text": [
+      "Shared the 1.1\u00d7 breakdown and flagged that it's over Mia's budget \u2014 waiting on @Aarav to lock in the final tier."
+    ],
+    "stop_reason": "stop",
+    "seconds": 8.59,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 37209,
+      "completion_tokens": 425,
+      "total_tokens": 37634
+    },
+    "failures": []
+  },
+  {
+    "turn": 3,
+    "sender": "aarav",
+    "text": "@tripbot yeah lock it in",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "trip_id": "miami",
+          "changes": {
+            "group_budget": 91700
+          }
+        },
+        "result": {
+          "updated": true,
+          "trip": {
+            "id": "miami",
+            "name": "Miami Spring Break",
+            "status": "PLANNING",
+            "destination": "Miami",
+            "start_date": "2027-03-16",
+            "end_date": "2027-03-20",
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": 91700,
+            "leader_id": "aarav",
+            "leader_approval": [
+              "member_changes",
+              "trip_changes"
+            ],
+            "auto_log_mode": null,
+            "planning_notes": null,
+            "lodging": null
+          },
+          "members_below_group_budget": [
+            "jake",
+            "mia"
+          ],
+          "members_without_budget": []
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "\u2705 Locked in: group budget is $917/person (1.1\u00d7 Miami tier) \u2014 lodging in a central shared Airbnb, casual eats + one nice group dinner, one paid group activity.\n\nHeads up @Jake ($800) and @Mia ($500), that tier is above your budgets \u2014 no pressure though: you can bump your budget, or we plan to the 0.5\u00d7\u20130.75\u00d7 style ($417\u2013$625) for the big-ticket stuff and let you opt into extras. @Aarav just say the word if you'd rather set it lower.\n\nOne last setup thing: want me to auto-log expenses I spot in chat, or only when someone @mentions me?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "\u2705 Locked in: group budget is $917/person (1.1\u00d7 Miami tier) \u2014 lodging in a central shared Airbnb, casual eats + one nice group dinner, one paid group activity.\n\nHeads up @Jake ($800) and @Mia ($500), that tier is above your budgets \u2014 no pressure though: you can bump your budget, or we plan to the 0.5\u00d7\u20130.75\u00d7 style ($417\u2013$625) for the big-ticket stuff and let you opt into extras. @Aarav just say the word if you'd rather set it lower.\n\nOne last setup thing: want me to auto-log expenses I spot in chat, or only when someone @mentions me?"
+      }
+    ],
+    "stray_text": [
+      "Group budget is set at $917/person, and I nudged Jake and Mia about the gap plus asked the group how they want expense logging to work."
+    ],
+    "stop_reason": "stop",
+    "seconds": 13.2,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 38775,
+      "completion_tokens": 646,
+      "total_tokens": 39421
+    },
+    "failures": []
+  }
+]

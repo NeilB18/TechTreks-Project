@@ -1,0 +1,522 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot can you make us an itinerary for the whole trip?",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Happy to build it for Mar 14\u201318 \ud83c\udf34 Two quick things before I start: any must-dos you're dreaming about (beach clubs, art districts, a specific restaurant...?), and what's the vibe \u2014 chill mornings with one big thing a day, or packed? Also @Aarav as leader I'll run the draft by you before saving it."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Happy to build it for Mar 14\u201318 \ud83c\udf34 Two quick things before I start: any must-dos you're dreaming about (beach clubs, art districts, a specific restaurant...?), and what's the vibe \u2014 chill mornings with one big thing a day, or packed? Also @Aarav as leader I'll run the draft by you before saving it."
+      }
+    ],
+    "stray_text": [
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 9.4,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23068,
+      "completion_tokens": 162,
+      "total_tokens": 23230
+    },
+    "failures": [
+      "missing call generate_itinerary with {}; got none"
+    ]
+  },
+  {
+    "turn": 2,
+    "sender": "jake",
+    "text": "@tripbot looks good, save it",
+    "tool_calls": [
+      {
+        "name": "get_trip",
+        "input": {
+          "trip_id": "miami"
+        },
+        "result": {
+          "trip": {
+            "id": "miami",
+            "name": "Miami Spring Break",
+            "status": "PLANNING",
+            "destination": "Miami",
+            "start_date": "2027-03-14",
+            "end_date": "2027-03-18",
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": null,
+            "leader_id": "aarav",
+            "leader_approval": [
+              "itinerary_saves",
+              "member_changes",
+              "trip_changes"
+            ],
+            "auto_log_mode": "mention_only",
+            "planning_notes": null,
+            "lodging": null
+          },
+          "members": [
+            {
+              "id": "aarav",
+              "name": "Aarav",
+              "handle": "@aarav-venmo",
+              "active": true,
+              "budget_set": false,
+              "budget_cents": null
+            },
+            {
+              "id": "jake",
+              "name": "Jake",
+              "handle": "@jake-venmo",
+              "active": true,
+              "budget_set": false,
+              "budget_cents": null
+            },
+            {
+              "id": "mia",
+              "name": "Mia",
+              "handle": "@mia-venmo",
+              "active": true,
+              "budget_set": false,
+              "budget_cents": null
+            }
+          ],
+          "category_opt_outs": [],
+          "recent_expenses": [],
+          "activities": [],
+          "ideas": [],
+          "open_polls": [],
+          "expenses": [],
+          "refunds": [],
+          "polls": [],
+          "reminders": [],
+          "itinerary_drafts": [],
+          "budgets": {}
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Hmm, heads up @Jake \u2014 I don't actually have a draft saved to commit yet, so there's nothing to put on the calendar. I still need your must-dos and vibe (chill one-big-thing-a-day vs. packed) before I build it. Drop those and I'll draft all 5 days \u2014 then @Aarav gives the OK and it goes in."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Hmm, heads up @Jake \u2014 I don't actually have a draft saved to commit yet, so there's nothing to put on the calendar. I still need your must-dos and vibe (chill one-big-thing-a-day vs. packed) before I build it. Drop those and I'll draft all 5 days \u2014 then @Aarav gives the OK and it goes in."
+      }
+    ],
+    "stray_text": [
+      "Sent \u2014 waiting on Jake's must-dos and pace before I generate the draft."
+    ],
+    "stop_reason": "stop",
+    "seconds": 16.7,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 35802,
+      "completion_tokens": 675,
+      "total_tokens": 36477
+    },
+    "failures": []
+  },
+  {
+    "turn": 3,
+    "sender": "aarav",
+    "text": "@tripbot approved, save it",
+    "tool_calls": [
+      {
+        "name": "generate_itinerary",
+        "input": {
+          "trip_id": "miami",
+          "days": [
+            "2027-03-14",
+            "2027-03-15",
+            "2027-03-16",
+            "2027-03-17",
+            "2027-03-18"
+          ],
+          "places": [
+            {
+              "name": "South Pointe Park",
+              "kind": "activity",
+              "est_cost_cents": 0
+            },
+            {
+              "name": "Joe's Stone Crab",
+              "kind": "food",
+              "est_cost_cents": 4500
+            },
+            {
+              "name": "Wynwood Walls",
+              "kind": "activity",
+              "est_cost_cents": 1200
+            },
+            {
+              "name": "Versailles Restaurant",
+              "kind": "food",
+              "est_cost_cents": 2000
+            },
+            {
+              "name": "Ball & Chain",
+              "kind": "night",
+              "est_cost_cents": 2000
+            },
+            {
+              "name": "Vizcaya Museum and Gardens",
+              "kind": "activity",
+              "est_cost_cents": 2500
+            },
+            {
+              "name": "La Carreta",
+              "kind": "food",
+              "est_cost_cents": 1800
+            },
+            {
+              "name": "P\u00e9rez Art Museum Miami",
+              "kind": "activity",
+              "est_cost_cents": 1600
+            },
+            {
+              "name": "Venetian Pool",
+              "kind": "activity",
+              "est_cost_cents": 1700
+            },
+            {
+              "name": "Caf\u00e9 La Trova",
+              "kind": "food",
+              "est_cost_cents": 2200
+            },
+            {
+              "name": "Lummus Park",
+              "kind": "activity",
+              "est_cost_cents": 0
+            },
+            {
+              "name": "Panther Coffee",
+              "kind": "food",
+              "est_cost_cents": 700
+            }
+          ],
+          "constraints": "College group, no budgets set yet \u2014 keep it cheap: free beaches/parks, Cuban food over steakhouse prices, at most one splurge dinner and one night out. Light first and last day since they overlap travel."
+        },
+        "result": {
+          "draft_id": "d1",
+          "days": [
+            {
+              "date": "2027-03-14",
+              "items": [
+                {
+                  "name": "Venetian Pool",
+                  "kind": "activity",
+                  "slot": "morning",
+                  "location": "Miami",
+                  "start": "2027-03-14T10:00",
+                  "end": "2027-03-14T12:00",
+                  "est_cost_cents": 1700,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.71450980392157,
+                  "lon": -80.20941176470588,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Venetian+Pool%2C+Miami"
+                },
+                {
+                  "name": "Joe's Stone Crab",
+                  "kind": "food",
+                  "slot": "lunch",
+                  "location": "Miami",
+                  "start": "2027-03-14T12:30",
+                  "end": "2027-03-14T14:00",
+                  "est_cost_cents": 4500,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.710980392156863,
+                  "lon": -80.23098039215687,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami"
+                },
+                {
+                  "name": "P\u00e9rez Art Museum Miami",
+                  "kind": "activity",
+                  "slot": "afternoon",
+                  "location": "Miami",
+                  "start": "2027-03-14T14:30",
+                  "end": "2027-03-14T17:30",
+                  "est_cost_cents": 1600,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.763529411764704,
+                  "lon": -80.22078431372549,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=P%C3%A9rez+Art+Museum+Miami%2C+Miami"
+                },
+                {
+                  "name": "Ball & Chain",
+                  "kind": "night",
+                  "slot": "night",
+                  "location": "Miami",
+                  "start": "2027-03-14T21:30",
+                  "end": "2027-03-14T23:30",
+                  "est_cost_cents": 2000,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.72313725490196,
+                  "lon": -80.20901960784313,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Ball+%26+Chain%2C+Miami"
+                }
+              ]
+            },
+            {
+              "date": "2027-03-15",
+              "items": [
+                {
+                  "name": "Lummus Park",
+                  "kind": "activity",
+                  "slot": "morning",
+                  "location": "Miami",
+                  "start": "2027-03-15T10:00",
+                  "end": "2027-03-15T12:00",
+                  "est_cost_cents": 0,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.78235294117647,
+                  "lon": -80.23098039215687,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Lummus+Park%2C+Miami"
+                },
+                {
+                  "name": "La Carreta",
+                  "kind": "food",
+                  "slot": "lunch",
+                  "location": "Miami",
+                  "start": "2027-03-15T12:30",
+                  "end": "2027-03-15T14:00",
+                  "est_cost_cents": 1800,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.798431372549018,
+                  "lon": -80.28941176470587,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=La+Carreta%2C+Miami"
+                },
+                {
+                  "name": "Wynwood Walls",
+                  "kind": "activity",
+                  "slot": "afternoon",
+                  "location": "Miami",
+                  "start": "2027-03-15T14:30",
+                  "end": "2027-03-15T17:30",
+                  "est_cost_cents": 1200,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.797254901960784,
+                  "lon": -80.24627450980392,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami"
+                }
+              ]
+            },
+            {
+              "date": "2027-03-16",
+              "items": [
+                {
+                  "name": "South Pointe Park",
+                  "kind": "activity",
+                  "slot": "morning",
+                  "location": "Miami",
+                  "start": "2027-03-16T10:00",
+                  "end": "2027-03-16T12:00",
+                  "est_cost_cents": 0,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.789019607843137,
+                  "lon": -80.26941176470588,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=South+Pointe+Park%2C+Miami"
+                },
+                {
+                  "name": "Versailles Restaurant",
+                  "kind": "food",
+                  "slot": "lunch",
+                  "location": "Miami",
+                  "start": "2027-03-16T12:30",
+                  "end": "2027-03-16T14:00",
+                  "est_cost_cents": 2000,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.71254901960784,
+                  "lon": -80.26745098039216,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Versailles+Restaurant%2C+Miami"
+                },
+                {
+                  "name": "Vizcaya Museum and Gardens",
+                  "kind": "activity",
+                  "slot": "afternoon",
+                  "location": "Miami",
+                  "start": "2027-03-16T14:30",
+                  "end": "2027-03-16T17:30",
+                  "est_cost_cents": 2500,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.782745098039214,
+                  "lon": -80.29882352941176,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Vizcaya+Museum+and+Gardens%2C+Miami"
+                }
+              ]
+            },
+            {
+              "date": "2027-03-17",
+              "items": [
+                {
+                  "name": "Caf\u00e9 La Trova",
+                  "kind": "food",
+                  "slot": "lunch",
+                  "location": "Miami",
+                  "start": "2027-03-17T12:30",
+                  "end": "2027-03-17T14:00",
+                  "est_cost_cents": 2200,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.785882352941176,
+                  "lon": -80.25960784313725,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Caf%C3%A9+La+Trova%2C+Miami"
+                }
+              ]
+            },
+            {
+              "date": "2027-03-18",
+              "items": [
+                {
+                  "name": "Panther Coffee",
+                  "kind": "food",
+                  "slot": "lunch",
+                  "location": "Miami",
+                  "start": "2027-03-18T12:30",
+                  "end": "2027-03-18T14:00",
+                  "est_cost_cents": 700,
+                  "cost_is_per_person": true,
+                  "verified": true,
+                  "lat": 25.79686274509804,
+                  "lon": -80.25686274509803,
+                  "opening_hours": null,
+                  "hours_conflict": false,
+                  "maps_url": "https://www.google.com/maps/search/?api=1&query=Panther+Coffee%2C+Miami"
+                }
+              ]
+            }
+          ],
+          "constraints": "College group, no budgets set yet \u2014 keep it cheap: free beaches/parks, Cuban food over steakhouse prices, at most one splurge dinner and one night out. Light first and last day since they overlap travel.",
+          "source": "fake",
+          "saved": false,
+          "replaced_drafts": [],
+          "not_found": [],
+          "map_check_failed": [],
+          "already_on_trip": [],
+          "ideas_used": [],
+          "ideas_left": [],
+          "skipped": [],
+          "note": "Hours and prices are estimates; check before you go.",
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "generate_itinerary",
+        "input": {
+          "trip_id": "miami",
+          "save_draft_id": "d1",
+          "days": [
+            "2027-03-14",
+            "2027-03-15",
+            "2027-03-16",
+            "2027-03-17",
+            "2027-03-18"
+          ]
+        },
+        "result": {
+          "saved": true,
+          "activity_ids": [
+            "a1",
+            "a2",
+            "a3",
+            "a4",
+            "a5",
+            "a6",
+            "a7",
+            "a8",
+            "a9",
+            "a10",
+            "a11",
+            "a12"
+          ],
+          "already_on_trip": [],
+          "ideas_scheduled": []
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Saved \u2014 12 stops on the calendar \ud83c\udf34 No must-dos were on the list so I filled it with Miami classics; anything you'd swap, just say. Prices/hours are estimates. \u00a9 OpenStreetMap contributors\n\nMar 14: Venetian Pool (~$17) \u2192 Joe's Stone Crab (~$45) \u2192 P\u00e9rez Art Museum (~$16) \u2192 Ball & Chain (~$20)\nMar 15: Lummus Park beach (free) \u2192 La Carreta lunch (~$18) \u2192 Wynwood Walls (~$12)\nMar 16: South Pointe Park (free) \u2192 Versailles lunch (~$20) \u2192 Vizcaya (~$25)\nMar 17: Caf\u00e9 La Trova (~$22) \u2014 left open for the beach\nMar 18: Panther Coffee (~$7) then head home\n\nThat's ~$200/person in planned spending. @Aarav @Jake @Mia none of you have budgets set yet \u2014 tell me your number and I'll flag anything on this list that doesn't fit."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Saved \u2014 12 stops on the calendar \ud83c\udf34 No must-dos were on the list so I filled it with Miami classics; anything you'd swap, just say. Prices/hours are estimates. \u00a9 OpenStreetMap contributors\n\nMar 14: Venetian Pool (~$17) \u2192 Joe's Stone Crab (~$45) \u2192 P\u00e9rez Art Museum (~$16) \u2192 Ball & Chain (~$20)\nMar 15: Lummus Park beach (free) \u2192 La Carreta lunch (~$18) \u2192 Wynwood Walls (~$12)\nMar 16: South Pointe Park (free) \u2192 Versailles lunch (~$20) \u2192 Vizcaya (~$25)\nMar 17: Caf\u00e9 La Trova (~$22) \u2014 left open for the beach\nMar 18: Panther Coffee (~$7) then head home\n\nThat's ~$200/person in planned spending. @Aarav @Jake @Mia none of you have budgets set yet \u2014 tell me your number and I'll flag anything on this list that doesn't fit."
+      }
+    ],
+    "stray_text": [
+      "Saved and posted."
+    ],
+    "stop_reason": "stop",
+    "seconds": 66.75,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 58391,
+      "completion_tokens": 3840,
+      "total_tokens": 62231
+    },
+    "failures": [
+      "expected 10 activities, have 12"
+    ]
+  }
+]

@@ -1,0 +1,109 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot can we push the trip to Mar 16\u201320? I have a midterm on the 15th",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Heads-up before we move anything to Mar 16\u201320: the boat tour (Mar 15, 10am) would fall outside the trip, and the Airbnb is booked Mar 14\u201318 (Aarav paid $1,200, $400 each) so the dates won't line up. Beach day on Mar 17 still fits.\n\n@Aarav as leader \u2014 want me to push the dates, and do you/anyone want to handle rebooking the Airbnb and moving the boat tour?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Heads-up before we move anything to Mar 16\u201320: the boat tour (Mar 15, 10am) would fall outside the trip, and the Airbnb is booked Mar 14\u201318 (Aarav paid $1,200, $400 each) so the dates won't line up. Beach day on Mar 17 still fits.\n\n@Aarav as leader \u2014 want me to push the dates, and do you/anyone want to handle rebooking the Airbnb and moving the boat tour?"
+      }
+    ],
+    "stray_text": [
+      "Posted the conflict check and asked Aarav to confirm before I change anything."
+    ],
+    "stop_reason": "stop",
+    "seconds": 10.87,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23833,
+      "completion_tokens": 459,
+      "total_tokens": 24292
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "aarav",
+    "text": "@tripbot yeah approved, I'll sort the Airbnb",
+    "tool_calls": [
+      {
+        "name": "update_trip",
+        "input": {
+          "trip_id": "miami",
+          "changes": {
+            "start_date": "2027-03-16",
+            "end_date": "2027-03-20"
+          }
+        },
+        "result": {
+          "updated": true,
+          "trip": {
+            "id": "miami",
+            "name": "Miami Spring Break",
+            "status": "BOOKED",
+            "destination": "Miami",
+            "start_date": "2027-03-16",
+            "end_date": "2027-03-20",
+            "target_break": null,
+            "base_currency": "USD",
+            "group_budget_cents": null,
+            "leader_id": "aarav",
+            "leader_approval": [
+              "member_changes",
+              "trip_changes"
+            ],
+            "auto_log_mode": null,
+            "planning_notes": null,
+            "lodging": null
+          },
+          "activities_outside_dates": [
+            "boat_tour"
+          ]
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Dates pushed to Mar 16\u201320 \u2705 Thanks @Aarav for sorting the Airbnb.\n\n@Jake @Mia \u2014 the boat tour (Mar 15, ~$133/person) no longer fits the trip. Want me to move it into the new window (Mar 17 or 18 look open), or drop it?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Dates pushed to Mar 16\u201320 \u2705 Thanks @Aarav for sorting the Airbnb.\n\n@Jake @Mia \u2014 the boat tour (Mar 15, ~$133/person) no longer fits the trip. Want me to move it into the new window (Mar 17 or 18 look open), or drop it?"
+      }
+    ],
+    "stray_text": [
+      "Dates are now Mar 16\u201320 \u2705\n\n@Jake @Mia \u2014 the **boat tour (Mar 15, ~$133/person)** no longer fits. Want me to move it to a day within the new window (Mar 17 or 18 look open), or drop it?",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 9.82,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 49353,
+      "completion_tokens": 464,
+      "total_tokens": 49817
+    },
+    "failures": []
+  }
+]

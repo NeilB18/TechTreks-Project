@@ -1,0 +1,64 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot add Zzqx Imaginary Taco Palace on Monday",
+    "tool_calls": [
+      {
+        "name": "add_activity",
+        "input": {
+          "trip_id": "miami",
+          "name": "Zzqx Imaginary Taco Palace",
+          "kind": "food",
+          "day": "2027-03-15"
+        },
+        "result": {
+          "activity_id": "a1",
+          "created": true,
+          "start": "2027-03-15T12:30",
+          "end": "2027-03-15T14:00",
+          "outside_trip_dates": false,
+          "slot": "lunch",
+          "location": "Miami",
+          "verified": false,
+          "not_found": true,
+          "map_check_failed": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=Zzqx+Imaginary+Taco+Palace%2C+Miami",
+          "opening_hours": null,
+          "from_ideas": false,
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Tacos added to Monday Mar 15 (lunch slot, 12:30) \ud83c\udf2e \u2014 but heads up @Jake, the map couldn't find \"Zzqx Imaginary Taco Palace,\" so the pin isn't verified: https://www.google.com/maps/search/?api=1&query=Zzqx+Imaginary+Taco+Palace%2C+Miami\n\nIs the name right? Give me the real spot and I'll fix it."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Tacos added to Monday Mar 15 (lunch slot, 12:30) \ud83c\udf2e \u2014 but heads up @Jake, the map couldn't find \"Zzqx Imaginary Taco Palace,\" so the pin isn't verified: https://www.google.com/maps/search/?api=1&query=Zzqx+Imaginary+Taco+Palace%2C+Miami\n\nIs the name right? Give me the real spot and I'll fix it."
+      }
+    ],
+    "stray_text": [
+      "Added tacos to Monday Mar 15 (lunch slot, 12:30) \u2014 but heads up @Jake, the map couldn't find \"Zzqx Imaginary Taco Palace\" in Miami, so the pin isn't verified: https://www.google.com/maps/search/?api=1&query=Zzqx+Imaginary+Taco+Palace%2C+Miami\n\nIs the name right? If it's a different spot (or a different city), tell me the real name and I'll fix it.",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 16.0,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47141,
+      "completion_tokens": 784,
+      "total_tokens": 47925
+    },
+    "failures": []
+  }
+]

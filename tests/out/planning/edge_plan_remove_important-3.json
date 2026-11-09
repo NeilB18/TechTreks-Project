@@ -1,0 +1,137 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot drop the boat tour",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Heads up @Jake \u2014 the boat tour (Mar 15, 2:30pm) is flagged as important, so I don't drop it without a group OK. Anyone want to keep it? Say the word and I'll remove it. \ud83d\udea4"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Heads up @Jake \u2014 the boat tour (Mar 15, 2:30pm) is flagged as important, so I don't drop it without a group OK. Anyone want to keep it? Say the word and I'll remove it. \ud83d\udea4"
+      }
+    ],
+    "stray_text": [
+      "Asked the group before dropping it, since that activity is marked important."
+    ],
+    "stop_reason": "stop",
+    "seconds": 7.19,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23613,
+      "completion_tokens": 140,
+      "total_tokens": 23753
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "aarav",
+    "text": "@tripbot yes drop it",
+    "tool_calls": [
+      {
+        "name": "remove_activity",
+        "input": {
+          "trip_id": "miami",
+          "activity_id": "boat_tour"
+        },
+        "result": {
+          "removed": true,
+          "activity_id": "boat_tour",
+          "name": "Boat tour",
+          "back_on_ideas": false,
+          "expense_still_logged": null
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Done \u2014 boat tour dropped from Mar 15. Nothing was paid, so no expense to clean up. Mar 15 is wide open if you want to fill it. \ud83c\udf34"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Done \u2014 boat tour dropped from Mar 15. Nothing was paid, so no expense to clean up. Mar 15 is wide open if you want to fill it. \ud83c\udf34"
+      }
+    ],
+    "stray_text": [
+      "Removed it after the leader confirmed."
+    ],
+    "stop_reason": "stop",
+    "seconds": 7.68,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 36050,
+      "completion_tokens": 285,
+      "total_tokens": 36335
+    },
+    "failures": []
+  },
+  {
+    "turn": 3,
+    "sender": "mia",
+    "text": "@tripbot also drop south pointe park",
+    "tool_calls": [
+      {
+        "name": "remove_activity",
+        "input": {
+          "trip_id": "miami",
+          "activity_id": "beach"
+        },
+        "result": {
+          "removed": true,
+          "activity_id": "beach",
+          "name": "South Pointe Park",
+          "back_on_ideas": false,
+          "expense_still_logged": null
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Dropped South Pointe Park from Mar 16 \u2014 it wasn't linked to any expense. \ud83d\uddd1\ufe0f That clears the whole itinerary, so it's a blank slate. Want me to draft some days, or add must-dos to the ideas list first?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Dropped South Pointe Park from Mar 16 \u2014 it wasn't linked to any expense. \ud83d\uddd1\ufe0f That clears the whole itinerary, so it's a blank slate. Want me to draft some days, or add must-dos to the ideas list first?"
+      }
+    ],
+    "stray_text": [
+      "Both activities are gone now; offered to start planning fresh."
+    ],
+    "stop_reason": "stop",
+    "seconds": 6.29,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 36322,
+      "completion_tokens": 211,
+      "total_tokens": 36533
+    },
+    "failures": []
+  }
+]

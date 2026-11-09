@@ -1,0 +1,189 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot add Wynwood Walls on Monday",
+    "tool_calls": [
+      {
+        "name": "add_activity",
+        "input": {
+          "trip_id": "miami",
+          "name": "Wynwood Walls",
+          "kind": "activity",
+          "day": "2027-03-15",
+          "attendees": [
+            "aarav",
+            "jake",
+            "mia"
+          ]
+        },
+        "result": {
+          "activity_id": "a1",
+          "created": true,
+          "start": "2027-03-15T10:00",
+          "end": "2027-03-15T12:00",
+          "outside_trip_dates": false,
+          "slot": "morning",
+          "location": "Miami",
+          "verified": true,
+          "not_found": false,
+          "map_check_failed": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami",
+          "opening_hours": null,
+          "from_ideas": false,
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Added Wynwood Walls to Monday, Mar 15 \u2014 morning slot, 10am\u201312pm \ud83c\udfa8 [Maps](https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami). Want me to plan the rest of that day around it?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Added Wynwood Walls to Monday, Mar 15 \u2014 morning slot, 10am\u201312pm \ud83c\udfa8 [Maps](https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami). Want me to plan the rest of that day around it?"
+      }
+    ],
+    "stray_text": [
+      "Added Wynwood Walls to Monday, Mar 15 \u2014 morning slot, 10am\u201312pm \ud83c\udfa8 [Maps](https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami). Want me to plan the rest of that day around it?",
+      "Sent."
+    ],
+    "stop_reason": "stop",
+    "seconds": 12.77,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47028,
+      "completion_tokens": 547,
+      "total_tokens": 47575
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "mia",
+    "text": "@tripbot add Joe's Stone Crab",
+    "tool_calls": [
+      {
+        "name": "save_idea",
+        "input": {
+          "trip_id": "miami",
+          "name": "Joe's Stone Crab",
+          "kind": "food",
+          "suggested_by": "mia"
+        },
+        "result": {
+          "saved": true,
+          "idea": {
+            "idea_id": "i1",
+            "name": "Joe's Stone Crab",
+            "kind": "food",
+            "location": "Miami",
+            "verified": true,
+            "lat": 25.710980392156863,
+            "lon": -80.23098039215687,
+            "opening_hours": null,
+            "maps_url": "https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami",
+            "est_cost_cents": null,
+            "suggested_by": "mia"
+          },
+          "not_found": false,
+          "map_check_failed": false,
+          "ideas_count": 1,
+          "credit": "\u00a9 OpenStreetMap contributors"
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Joe's Stone Crab is on the ideas list \ud83e\udd80 [Maps](https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami). Want it on a specific day \u2014 and as lunch or dinner?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Joe's Stone Crab is on the ideas list \ud83e\udd80 [Maps](https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami). Want it on a specific day \u2014 and as lunch or dinner?"
+      }
+    ],
+    "stray_text": [
+      "Saved as an idea and asked Mia which day she wants it."
+    ],
+    "stop_reason": "stop",
+    "seconds": 6.95,
+    "model_calls": 3,
+    "tokens": {
+      "prompt_tokens": 37218,
+      "completion_tokens": 252,
+      "total_tokens": 37470
+    },
+    "failures": []
+  },
+  {
+    "turn": 3,
+    "sender": "aarav",
+    "text": "@tripbot what's on our ideas list?",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Just one thing so far: Joe's Stone Crab (food), from @mia [Maps](https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami) \u2014 still needs a day. Anything else you all want on the list?"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Just one thing so far: Joe's Stone Crab (food), from @mia [Maps](https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami) \u2014 still needs a day. Anything else you all want on the list?"
+      }
+    ],
+    "stray_text": [
+      "Posted the ideas list."
+    ],
+    "stop_reason": "stop",
+    "seconds": 4.35,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 25395,
+      "completion_tokens": 120,
+      "total_tokens": 25515
+    },
+    "failures": []
+  },
+  {
+    "turn": 4,
+    "sender": "jake",
+    "text": "we should also hit south beach at some point",
+    "tool_calls": [],
+    "outbox": [],
+    "stray_text": [
+      "No reply \u2014 Jake's message is casual group chatter with no @mention and nothing that needs a budget, date, or debt flag, so I'll stay quiet (South Beach can be saved as an idea if anyone asks me to).",
+      "No message to send \u2014 staying quiet."
+    ],
+    "stop_reason": "stop",
+    "seconds": 12.91,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 25748,
+      "completion_tokens": 647,
+      "total_tokens": 26395
+    },
+    "failures": []
+  }
+]

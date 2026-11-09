@@ -1,0 +1,137 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot \u20ac90 for museum tickets, I paid, split with everyone",
+    "tool_calls": [
+      {
+        "name": "log_expense",
+        "input": {
+          "trip_id": "miami",
+          "paid_by": "jake",
+          "amount": 9000,
+          "currency": "EUR",
+          "description": "Museum tickets",
+          "category": "ACTIVITIES",
+          "split_with": [
+            "aarav",
+            "jake",
+            "mia"
+          ],
+          "source_message": "@tripbot \u20ac90 for museum tickets, I paid, split with everyone"
+        },
+        "result": {
+          "expense_id": "e1",
+          "base_amount": 9720,
+          "base_currency": "USD",
+          "original_amount": 9000,
+          "original_currency": "EUR",
+          "fx_rate": 1.08,
+          "shares": {
+            "aarav": 3240,
+            "jake": 3240,
+            "mia": 3240
+          },
+          "splits": {
+            "aarav": -3240,
+            "jake": 6480,
+            "mia": -3240
+          },
+          "auto_excluded": [],
+          "display": {
+            "amount": "$97.20",
+            "original_amount": "\u20ac90",
+            "shares": {
+              "aarav": "$32.40",
+              "jake": "$32.40",
+              "mia": "$32.40"
+            },
+            "splits": {
+              "aarav": "-$32.40",
+              "jake": "+$64.80",
+              "mia": "-$32.40"
+            },
+            "pay_to": "Jake (@jake-venmo)"
+          },
+          "budget_warnings": {},
+          "next_step": "Budgets were checked automatically: no warnings, so don't mention budgets."
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "aarav"
+        },
+        "result": {
+          "person_id": "aarav",
+          "budget_set": false,
+          "spent_cents": 3240,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "jake"
+        },
+        "result": {
+          "person_id": "jake",
+          "budget_set": false,
+          "spent_cents": 3240,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "get_budget_status",
+        "input": {
+          "trip_id": "miami",
+          "person_id": "mia"
+        },
+        "result": {
+          "person_id": "mia",
+          "budget_set": false,
+          "spent_cents": 3240,
+          "planned_cents": 0,
+          "warnings": []
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Logged \u20ac90 (\u2248$97.20) for museum tickets \u2014 paid by @Jake, split 3 ways at $32.40 each. @Aarav @Mia you each owe Jake $32.40 (Venmo: @jake-venmo) \ud83c\udfa8"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Logged \u20ac90 (\u2248$97.20) for museum tickets \u2014 paid by @Jake, split 3 ways at $32.40 each. @Aarav @Mia you each owe Jake $32.40 (Venmo: @jake-venmo) \ud83c\udfa8"
+      }
+    ],
+    "stray_text": [
+      "Logged \u20ac90 (\u2248$97.20) for museum tickets \u2014 paid by @Jake, split 3 ways at $32.40 each. @Aarav @Mia you each owe Jake $32.40 (Venmo: @jake-venmo) \ud83c\udfa8",
+      "Sent \u2705"
+    ],
+    "stop_reason": "stop",
+    "seconds": 13.55,
+    "model_calls": 4,
+    "tokens": {
+      "prompt_tokens": 47559,
+      "completion_tokens": 570,
+      "total_tokens": 48129
+    },
+    "failures": []
+  }
+]

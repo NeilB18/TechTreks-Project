@@ -1,0 +1,126 @@
+[
+  {
+    "turn": 1,
+    "sender": "jake",
+    "text": "@tripbot delete the uber, it got logged by mistake",
+    "tool_calls": [
+      {
+        "name": "send_message",
+        "input": {
+          "text": "@Mia the $30 Uber (e2) was logged under you as payer \u2014 @Jake says it went in by mistake. Want me to delete it? Confirm and I'll pull it."
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "@Mia the $30 Uber (e2) was logged under you as payer \u2014 @Jake says it went in by mistake. Want me to delete it? Confirm and I'll pull it."
+      }
+    ],
+    "stray_text": [
+      "Asked Mia (the payer) to confirm before deleting the $30 Uber."
+    ],
+    "stop_reason": "stop",
+    "seconds": 6.01,
+    "model_calls": 2,
+    "tokens": {
+      "prompt_tokens": 23300,
+      "completion_tokens": 185,
+      "total_tokens": 23485
+    },
+    "failures": []
+  },
+  {
+    "turn": 2,
+    "sender": "mia",
+    "text": "@tripbot yeah delete it",
+    "tool_calls": [
+      {
+        "name": "delete_expense",
+        "input": {
+          "expense_id": "e2",
+          "requested_by": "mia"
+        },
+        "result": {
+          "deleted": true,
+          "expense_id": "e2",
+          "payer": "mia"
+        },
+        "error": null
+      },
+      {
+        "name": "get_balances",
+        "input": {
+          "trip_id": "miami"
+        },
+        "result": {
+          "net_balances": {
+            "aarav": 8000,
+            "jake": -4000,
+            "mia": -4000
+          },
+          "suggested_payments": [
+            {
+              "from": "jake",
+              "to": "aarav",
+              "amount_cents": 4000,
+              "handle": "@aarav-venmo"
+            },
+            {
+              "from": "mia",
+              "to": "aarav",
+              "amount_cents": 4000,
+              "handle": "@aarav-venmo"
+            }
+          ],
+          "currency": "USD",
+          "lines": [
+            "Jake pays Aarav $40, @aarav-venmo",
+            "Mia pays Aarav $40, @aarav-venmo"
+          ],
+          "display": {
+            "net_balances": {
+              "aarav": "+$80",
+              "jake": "-$40",
+              "mia": "-$40"
+            }
+          }
+        },
+        "error": null
+      },
+      {
+        "name": "send_message",
+        "input": {
+          "text": "Deleted the $30 Uber \u2705 That leaves just dinner ($120, $40 each). Updated settle-up:\n- Jake pays Aarav $40, @aarav-venmo\n- Mia pays Aarav $40, @aarav-venmo"
+        },
+        "result": {
+          "sent": true
+        },
+        "error": null
+      }
+    ],
+    "outbox": [
+      {
+        "to": "group",
+        "text": "Deleted the $30 Uber \u2705 That leaves just dinner ($120, $40 each). Updated settle-up:\n- Jake pays Aarav $40, @aarav-venmo\n- Mia pays Aarav $40, @aarav-venmo"
+      }
+    ],
+    "stray_text": [
+      "Deleted the $30 Uber \u2705 That leaves just dinner ($120, split three ways). Updated settle-up:\n- Jake pays Aarav $40, @aarav-venmo\n- Mia pays Aarav $40, @aarav-venmo",
+      "Posted the deletion confirmation and updated settle-up in the group."
+    ],
+    "stop_reason": "stop",
+    "seconds": 17.89,
+    "model_calls": 5,
+    "tokens": {
+      "prompt_tokens": 60167,
+      "completion_tokens": 803,
+      "total_tokens": 60970
+    },
+    "failures": []
+  }
+]
