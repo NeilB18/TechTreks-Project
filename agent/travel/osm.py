@@ -65,7 +65,7 @@ def lookup(name: str, city: str, timeout: float = 10) -> Place | None:
         return _cache[key]
     _wait_turn()
     resp = requests.get(URL, timeout=timeout, headers={"User-Agent": USER_AGENT}, params={
-        "q": f"{name}, {city}", "format": "jsonv2", "limit": 1, "extratags": 1})
+        "q": f"{name}, {city}" if city.strip() else name, "format": "jsonv2", "limit": 1, "extratags": 1})
     resp.raise_for_status()
     results = resp.json()
     place = _place(results[0], name, city) if results else None

@@ -56,3 +56,4 @@ Then tell Roger the branch is up. Don't fix anything: the failures are what we n
 | `edge_lodging_not_found` | Not save a lodging the map can't find; ask for the street address |
 | `edge_nearby` | Give the closest places with distances, from the lodging or a named place |
 | `edge_nearby_no_lodging` | Ask where the group is staying, save it, then search |
+| `edge_pick_destination` | Ask where the group flies from, compare places against budgets with flight links, then poll |

@@ -26,6 +26,7 @@ export type TripInfo = {
   auto_log_mode: string | null;
   planning_notes?: string | null; // interests and pace, for itinerary drafts
   lodging?: Lodging | null; // not shown on the page yet: an address belongs behind sign-in
+  home_city?: string | null; // where the group flies from
 };
 
 export type Lodging = { name: string; address: string; lat: number; lon: number; maps_url: string };

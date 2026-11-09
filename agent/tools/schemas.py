@@ -1,4 +1,4 @@
-"""Qwen function-calling tool definitions (OpenAI format): the 25 backend tools
+"""Qwen function-calling tool definitions (OpenAI format): the 26 backend tools
 from specs.md plus send_message.
 
 Schemas stick to plain JSON Schema (type, properties, required, items, enum,
@@ -103,6 +103,8 @@ BACKEND_TOOL_SCHEMAS = [
               "lodging": {"type": "string", "description": "Where the group is staying: a hotel name or street address. "
                           "It's looked up on the map; if it can't be found nothing is saved, so ask for the address. "
                           "Empty string clears it. No confirmation needed."},
+              "home_city": {"type": "string", "description": "Where the group flies from (a city), for flight links "
+                            "when picking a destination. Ask once if it's missing. No confirmation needed."},
               "planning_notes": {"type": "string", "description": "The group's interests and pace for planning, "
                                  "e.g. \"chill mornings, big on food, one night out\". No confirmation needed."}}}},
           ["trip_id", "changes"]),
@@ -174,6 +176,18 @@ BACKEND_TOOL_SCHEMAS = [
                                     "est_cost_cents": {**CENTS, "description": "Your estimate per person"}}},
            "day": {**ISO_DATE, "description": "The day to move it to (move) or put it on (add)"}},
           ["trip_id", "draft_id", "action"]),
+    _tool("compare_destinations",
+          "Compare 2 to 5 destinations you suggest for the trip. Each is checked on the map and against everyone's budget, "
+          "with a Google Flights link from home_city (ask where they fly from first if it's missing). est_cost_cents is your "
+          "estimate per person for the whole trip WITHOUT flights (lodging, food, activities); est_flight_cents is a separate "
+          "round-trip estimate per person, which varies a lot. Returns who each one is a stretch for. Then offer a poll.",
+          {"trip_id": TRIP_ID,
+           "places": {"type": "array", "minItems": 2, "maxItems": 5,
+                      "items": {"type": "object", "additionalProperties": False, "required": ["name", "est_cost_cents"],
+                                "properties": {"name": {"type": "string", "description": "A real city or area, e.g. \"Cancún\""},
+                                               "est_cost_cents": {**CENTS, "description": "Per person for the trip, without flights"},
+                                               "est_flight_cents": {**CENTS, "description": "Round-trip flight per person from home_city"}}}}},
+          ["trip_id", "places"]),
     _tool("find_nearby",
           "The closest places of a kind to where the group is staying (lodging in trip_state), or to `near`. Returns up to 5, "
           "closest first, each with distance, walk time, listed hours and a Maps link: use those as given. OpenStreetMap has no "
