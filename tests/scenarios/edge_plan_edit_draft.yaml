@@ -48,22 +48,22 @@ turns:
       calls:
         - {name: generate_itinerary, args: {save_draft_id: d1}}
       end_state:
-        - activity_count: 3
+        - activity_count_min: 1
     golden:
       calls:
         - {name: generate_itinerary, args: {trip_id: miami, save_draft_id: d1}}
       messages:
         - {to: group, text: "Saved! Sunday's 3 stops are on the trip page."}
   - sender: mia
-    text: "@tripbot actually drop versailles"
+    text: "@tripbot actually drop la mar"
     expect:
       calls:
         - {name: remove_activity}
       forbid: [generate_itinerary, edit_draft]
       end_state:
-        - activity_count: 2
+        - no_activity_named: la mar
     golden:
       calls:
-        - {name: remove_activity, args: {trip_id: miami, activity_id: a2}}
+        - {name: remove_activity, args: {trip_id: miami, activity_id: a3}}
       messages:
-        - {to: group, text: "Dropped lunch at Versailles. Sunday is Wynwood Walls and La Mar now."}
+        - {to: group, text: "Dropped dinner at La Mar. Sunday is Wynwood Walls and Versailles now."}

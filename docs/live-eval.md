@@ -6,7 +6,7 @@ Nothing here changes code. The scenarios use made-up map data, so the only outsi
 
 ## 1. Setup
 
-1. Check out the top of the planning stack: `git fetch && git checkout live-eval/roger && git pull`.
+1. Check out the latest code: `git fetch && git checkout main && git pull` (the planning PRs #29–#35 are merged).
 2. Python env: `python -m venv .venv`, then install with `.venv/bin/pip install -r requirements.txt` (Windows: `.venv\Scripts\pip install -r requirements.txt`).
 3. `.env` in the repo root (copy `.env.example`) needs `DASHSCOPE_API_KEY` and `QWEN_BASE_URL`, from the same Alibaba region. Nothing else is needed for this.
 4. On Windows, set `PYTHONUTF8=1` first, or reading the scenario files fails with a `charmap` error.
