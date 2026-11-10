@@ -34,6 +34,7 @@ def nominatim(monkeypatch):
     monkeypatch.setattr(osm.requests, "get", get)
     monkeypatch.setattr(osm, "_cache", {})
     monkeypatch.setattr(osm, "MIN_INTERVAL_S", 0)
+    monkeypatch.setattr(osm, "ENABLED", True)  # the live server is off; these replay recorded answers
     return calls
 
 
@@ -69,6 +70,7 @@ def test_requests_are_spaced_a_second_apart(monkeypatch):
     monkeypatch.setattr(osm.time, "monotonic", lambda: clock["now"])
     monkeypatch.setattr(osm.time, "sleep", lambda s: sleeps.append(s) or clock.update(now=clock["now"] + s))
     monkeypatch.setattr(osm, "_last_request", 0.0)
+    monkeypatch.setattr(osm, "ENABLED", True)
     osm._wait_turn()
     clock["now"] += 0.25
     osm._wait_turn()

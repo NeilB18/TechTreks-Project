@@ -1,11 +1,16 @@
 """Where travel tips, itinerary ideas and place checks come from.
 
-FakeTravel is canned text (tests, demos, no keys). OsmTravel is the default: canned
-tips, but places are checked on OpenStreetMap (free; agent/travel/osm.py). LiveTravel
-uses Google Places (places, ratings, price levels) and SerpAPI Google Hotels (lodging
-prices). It's picked automatically when GOOGLE_PLACES_API_KEY is set; SERPAPI_KEY is
-optional. Any API error falls back to the fake data for that piece, with a note, so
-the agent never stalls on a bad response.
+FakeTravel is canned text and made-up places (tests, demos, no keys). NoMapTravel is the
+default: canned tips, and no map, so place checks and nearby searches raise osm.MapOff
+(the engine saves stops unchecked and says nearby search is off). LiveTravel uses Google
+Places for tips and itinerary ideas (places, ratings, price levels) and SerpAPI Google
+Hotels (lodging prices). It's picked automatically when GOOGLE_PLACES_API_KEY is set;
+SERPAPI_KEY is optional. Any API error falls back to the fake data for that piece, with
+a note, so the agent never stalls on a bad response.
+
+The map (place checks and nearby search) used the public Nominatim server until Nov 10,
+2026. It's off while a hosted map service is chosen; agent/travel/osm.py and nearby.py
+keep the parsing for that.
 """
 
 import hashlib
@@ -14,6 +19,7 @@ import os
 from datetime import date
 
 from agent.travel import nearby, osm, places, serp
+from agent.travel.osm import MapOff
 
 log = logging.getLogger(__name__)
 
@@ -82,15 +88,15 @@ class FakeTravel:
                  "street": f"{100 * i} Collins Avenue", "website": None} for i in range(7, 0, -1)]
 
 
-class OsmTravel(FakeTravel):
-    """Canned tips; real place checks on OpenStreetMap."""
-    source = "osm"
+class NoMapTravel(FakeTravel):
+    """Canned tips, and the map is off: nothing is looked up."""
+    source = "nomap"
 
     def find_place(self, name: str, city: str) -> osm.Place | None:
-        return osm.lookup(name, city)
+        raise MapOff("The map is off")
 
     def find_nearby(self, what: str, lat: float, lon: float, radius_m: int) -> list[dict]:
-        return nearby.search(what, lat, lon, radius_m)
+        raise MapOff("The map is off")
 
 
 class LiveTravel:
@@ -145,10 +151,10 @@ class LiveTravel:
         return items
 
     def find_place(self, name: str, city: str) -> osm.Place | None:
-        return osm.lookup(name, city)
+        raise MapOff("The map is off")  # Google is used for tips and ideas only; place checks wait for the new map
 
     def find_nearby(self, what: str, lat: float, lon: float, radius_m: int) -> list[dict]:
-        return nearby.search(what, lat, lon, radius_m)  # free OpenStreetMap search, even with Google keys set
+        raise MapOff("The map is off")
 
 
 def _place_line(p: dict) -> str:
@@ -160,4 +166,4 @@ def _place_line(p: dict) -> str:
 
 def get_provider():
     key = os.environ.get("GOOGLE_PLACES_API_KEY")
-    return LiveTravel(key, os.environ.get("SERPAPI_KEY")) if key else OsmTravel()
+    return LiveTravel(key, os.environ.get("SERPAPI_KEY")) if key else NoMapTravel()
