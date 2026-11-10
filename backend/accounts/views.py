@@ -55,6 +55,26 @@ def link_code(request):
 
 @require_GET
 @login_required_json
+def my_trip(request, trip_id: str):
+    """The money side of the trip page: the full trip, balances and your own budget.
+
+    Only for a signed-in account linked to a member of this trip. Anyone with the link sees
+    the rest through the public view (trips/public.py).
+    """
+    person = Person.objects.filter(trip_id=trip_id, user=request.user).first()
+    if person is None:
+        return JsonResponse({"error": "You're not linked to a member of this trip"}, status=403)
+    backend = DjangoBackend()
+    return JsonResponse({
+        "person_id": person.person_id,
+        "detail": backend.get_trip(trip_id=trip_id),
+        "balances": backend.get_balances(trip_id=trip_id),
+        "budget": backend.get_budget_status(trip_id=trip_id, person_id=person.person_id),
+    })
+
+
+@require_GET
+@login_required_json
 def my_budget(request, trip_id: str):
     person = Person.objects.filter(trip_id=trip_id, user=request.user).first()
     if person is None:

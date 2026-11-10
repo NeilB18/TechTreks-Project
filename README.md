@@ -108,7 +108,8 @@ API (all routes need `Authorization: Bearer $AGENT_API_TOKEN`; the dev default i
 
 - `POST /api/tools/<tool_name>`: any of the 25 tools, with the tool's arguments as the JSON body. Returns 400 `{"error": ...}` on bad input.
 - `GET /api/trips/<id>/summary`: the state injected into each agent turn.
-- `GET /api/trips/<id>` and `GET /api/trips/<id>/balances`: for the trip page. These never include budgets.
+- `GET /api/trips/<id>` and `GET /api/trips/<id>/balances`: the full trip (money and budgets included) and balances.
+- `GET /api/trips/<id>/public`: what the trip page shows anyone with the link: the overview and itinerary, with no expenses, balances, budgets, group budget, payment handles or lodging (`trips/public.py`).
 
 The agent talks to it with `agent/backend/http.py` (`HttpBackend`). See `.env.example` for the settings.
 
@@ -145,7 +146,7 @@ People join the trip the first time they @mention the bot. Anyone can save their
 
 ## Google sign-in (Phase 5)
 
-Google-only sign-in through django-allauth. A signed-in person links themselves to their trip member by posting `@tripbot link <code>` in the group, After that, `GET /api/me/trips/<id>/budget` returns their own budget, which the trip page shows first (everyone's budget is also in the trip data). Setup: [docs/google-signin.md](docs/google-signin.md).
+Google-only sign-in through django-allauth. A signed-in person links themselves to their trip member by posting `@tripbot link <code>` in the group, After that, `GET /api/me/trips/<id>` returns the money side of the trip page (the full trip, balances and their own budget), and `GET /api/me/trips/<id>/budget` just their budget. Anyone else gets 401 (signed out) or 403 (not on the trip). Setup: [docs/google-signin.md](docs/google-signin.md).
 
 ## Trip page (Phase 5)
 

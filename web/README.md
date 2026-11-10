@@ -1,8 +1,8 @@
 # Trip page (Next.js)
 
-The page the bot links to: itinerary by day, who owes whom (with Venmo pay links),
-and expenses. Budgets are shared with everyone on the trip; the "My budget" panel
-gets wired to sign-in later.
+The page the bot links to. Anyone with the link sees the overview and the itinerary by day.
+Signed-in members of the trip also see who owes whom (with Venmo pay links), expenses, the
+group budget and their own budget.
 
 ```bash
 npm install
@@ -46,14 +46,19 @@ trips; use this direct link. Google sign-in requires the separate OAuth setup be
   TRIP_API_URL=http://localhost:8000 TRIP_API_TOKEN=dev-agent-token npm run dev
   ```
 
-## Sign-in and "My budget"
+## Sign-in and the money side
 
-With `TRIP_API_URL` set, the page proxies `/accounts/*` (Google sign-in) and `/api/me/*`
-to Django (see `next.config.ts`), so the session cookie is on this site's domain. The
-"My budget" panel then:
+With `TRIP_API_URL` set, the server renders the overview and itinerary from
+`/api/trips/<id>/public`, which has no money in it. The page proxies `/accounts/*`
+(Google sign-in) and `/api/me/*` to Django (see `proxy.ts`), so the session cookie is on
+this site's domain, and the money section (`components/MoneySection.tsx`) loads
+`/api/me/trips/<id>` in the browser. It:
 
-1. offers "Sign in with Google";
+1. offers "Sign in with Google" when you're signed out;
 2. once you're signed in, gives you a code to post as `@tripbot link <code>` in the group;
-3. once you're linked, shows your own total, spent, planned, what's left and warnings.
+3. once you're linked to a member of the trip, shows settle-up, expenses, the group budget,
+   and your own total, spent, planned, what's left and warnings.
+
+In fixtures mode there's no sign-in, so the fixture's sample money is shown to everyone.
 
 Setup: [../docs/google-signin.md](../docs/google-signin.md).

@@ -1,7 +1,8 @@
 """HTTP API for the agent (tool calls) and the trip page (read-only trip data).
 
-All endpoints require "Authorization: Bearer <AGENT_API_TOKEN>". Budgets are
-shared with everyone on the trip, so the trip data includes them.
+All endpoints require "Authorization: Bearer <AGENT_API_TOKEN>". The full trip and balances
+include money and budgets; the trip page reads only /public (overview and itinerary) with
+this token, and gets the money side through /api/me/trips/<id> as a signed-in member.
 """
 
 import hmac
@@ -12,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from agent.backend.protocol import BACKEND_TOOLS, ToolError, dispatch
+from trips.public import public_trip
 from trips.services import DjangoBackend
 
 
@@ -52,6 +54,17 @@ class TripDetailView(APIView):
     def get(self, request, trip_id: str):
         try:
             return Response(DjangoBackend().get_trip(trip_id=trip_id))
+        except ToolError as e:
+            return Response({"error": str(e)}, status=404)
+
+
+class TripPublicView(APIView):
+    """The share-link view: overview and itinerary, no money (trips/public.py)."""
+    permission_classes = [HasAgentToken]
+
+    def get(self, request, trip_id: str):
+        try:
+            return Response(public_trip(DjangoBackend().get_trip(trip_id=trip_id)))
         except ToolError as e:
             return Response({"error": str(e)}, status=404)
 

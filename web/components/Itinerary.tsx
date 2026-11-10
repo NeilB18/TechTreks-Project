@@ -1,7 +1,13 @@
 import { formatDay, formatMoney, formatTime, groupByDay, isOutsideTrip } from "@/lib/format";
 import type { Activity, TripInfo } from "@/lib/types";
 
-export function Itinerary({ activities, trip }: { activities: Activity[]; trip: TripInfo }) {
+export function Itinerary({
+  activities,
+  trip,
+}: {
+  activities: Activity[];
+  trip: Pick<TripInfo, "start_date" | "end_date" | "base_currency">;
+}) {
   if (activities.length === 0) {
     return <p className="text-sm text-muted">No plans yet. Ask @tripbot for an itinerary in the group chat.</p>;
   }
