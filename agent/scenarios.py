@@ -178,6 +178,12 @@ def _check_state(check: dict, backend, trip_id: str) -> list[str]:
     if kind == "activity_count":
         n = len(trip.activities)
         return [] if n == spec else [f"expected {spec} activities, have {n}"]
+    if kind == "activity_count_min":  # the model picks how many stops a draft has
+        n = len(trip.activities)
+        return [] if n >= spec else [f"expected at least {spec} activities, have {n}"]
+    if kind == "no_activity_named":  # case- and accent-insensitive substring
+        named = [a.name for a in trip.activities if _fold(spec) in _fold(a.name)]
+        return [] if not named else [f"activity {named[0]!r} should be gone"]
     if kind == "idea_count":
         n = len(trip.ideas)
         return [] if n == spec else [f"expected {spec} ideas, have {n}"]

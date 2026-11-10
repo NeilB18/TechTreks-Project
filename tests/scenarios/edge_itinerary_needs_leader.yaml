@@ -4,7 +4,8 @@ seed:
   now: "2027-03-01T12:00:00"
   trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
          start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
-         leader: aarav, leader_approval: [member_changes, trip_changes, itinerary_saves], auto_log_mode: mention_only}
+         leader: aarav, leader_approval: [member_changes, trip_changes, itinerary_saves], auto_log_mode: mention_only,
+         planning_notes: "chill mornings, big on food, one night out"}
   members:
     - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
     - {id: jake, name: Jake, handle: "@jake-venmo"}
@@ -49,7 +50,7 @@ turns:
       calls:
         - {name: generate_itinerary, args: {save_draft_id: d1}}
       end_state:
-        - activity_count: 10
+        - activity_count_min: 1
     golden:
       calls:
         - {name: generate_itinerary, args: {trip_id: miami, save_draft_id: d1}}
