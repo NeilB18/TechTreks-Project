@@ -42,6 +42,7 @@ def nominatim(monkeypatch):
     monkeypatch.setattr(osm.requests, "get", get)
     monkeypatch.setattr(osm, "_area_cache", {})
     monkeypatch.setattr(osm, "MIN_INTERVAL_S", 0)
+    monkeypatch.setattr(osm, "ENABLED", True)  # the live server is off; these replay recorded answers
     return calls
 
 

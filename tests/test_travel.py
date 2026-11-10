@@ -7,7 +7,7 @@ import pytest
 
 from agent.backend.core.engine import TripEngine
 from agent.travel import places, provider, serp
-from agent.travel.provider import FakeTravel, LiveTravel, OsmTravel, get_provider
+from agent.travel.provider import FakeTravel, LiveTravel, NoMapTravel, get_provider
 
 FIXTURES = Path(__file__).parent / "fixtures" / "travel"
 
@@ -94,6 +94,6 @@ def test_itinerary_alternates_activities_and_dinners(api):
 
 
 def test_provider_switch(monkeypatch):
-    assert isinstance(get_provider(), OsmTravel)  # conftest clears the keys: canned tips, places checked on OSM
+    assert isinstance(get_provider(), NoMapTravel)  # conftest clears the keys: canned tips, and the map is off
     monkeypatch.setenv("GOOGLE_PLACES_API_KEY", "k")
     assert isinstance(get_provider(), LiveTravel)

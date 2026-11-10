@@ -5,6 +5,10 @@ place it is, and (with extratags) its opening hours when OpenStreetMap has them.
 usage policy (https://operations.osmfoundation.org/policies/nominatim/): at most 1 request a second for the whole
 app, a User-Agent that names the app, and results cached. Data © OpenStreetMap contributors (ODbL); show that credit
 wherever results appear.
+
+Turned off (Nov 10, 2026): ENABLED is False, so no request ever goes to the public Nominatim server, and the
+providers in agent/travel/provider.py don't call this module's lookups. The code is kept for the move to a hosted
+map service (Geoapify is being pitched); the recorded-answer tests switch it on with no network.
 """
 
 import math
@@ -20,12 +24,17 @@ URL = "https://nominatim.openstreetmap.org/search"
 USER_AGENT = "TechTreks-tripbot/0.1 (+https://github.com/NeilB18/TechTreks-Project)"
 ATTRIBUTION = "© OpenStreetMap contributors"
 MIN_INTERVAL_S = 1.0
+ENABLED = False  # Nominatim is off: every lookup raises MapOff before any request
 CACHE_SIZE = 2000
 
 _lock = threading.Lock()
 _last_request = 0.0
 _cache: dict[tuple[str, str], "Place | None"] = {}
 _area_cache: dict[tuple, list[dict]] = {}
+
+
+class MapOff(RuntimeError):
+    """The map service is turned off, so nothing was looked up."""
 
 
 @dataclass
@@ -106,8 +115,11 @@ def search_area(phrase: str, lat: float, lon: float, radius_m: int, timeout: flo
 
 
 def _wait_turn() -> None:
-    """Space requests at least MIN_INTERVAL_S apart across all threads (the public server's limit)."""
+    """Space requests at least MIN_INTERVAL_S apart across all threads (the public server's limit). Every request
+    goes through here, so this is also where a turned-off map stops it."""
     global _last_request
+    if not ENABLED:
+        raise MapOff("The Nominatim map service is turned off")
     with _lock:
         wait = _last_request + MIN_INTERVAL_S - time.monotonic()
         if wait > 0:

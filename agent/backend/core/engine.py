@@ -21,6 +21,7 @@ from datetime import date, datetime, time, timedelta
 from agent.backend.core import rules
 from agent.backend.protocol import BACKEND_TOOLS, ToolError
 from agent.travel import nearby, osm, planner
+from agent.travel.osm import MapOff
 from agent.travel.planner import KINDS, pick_slot, plan_days, taken
 from agent.travel.provider import get_provider
 from trip_model.activity import Activity, as_datetime
@@ -52,6 +53,11 @@ MAX_RADIUS_M = 5000     # about 3 miles
 MAX_NEARBY = 5
 NEARBY_NOTE = "Closest first (OpenStreetMap has no ratings). Straight-line distances; walking times are rough."
 ESTIMATES_NOTE = "Hours and prices are estimates; check before you go."
+# While the map is off (agent/travel/osm.py), these are what the agent passes on.
+MAP_OFF_NEARBY = ("Nearby search is off for now while we switch to a new map service. Say so politely, and don't "
+                  "suggest places from memory instead.")
+MAP_OFF_LODGING = ("Saving where the group is staying needs the map, which is off for now while we switch to a new "
+                   "map service, so nothing was saved. Say it's coming soon.")
 
 log = logging.getLogger(__name__)
 
@@ -417,6 +423,8 @@ class TripEngine:
             raise ToolError("Set the destination first, so the place can be found on the map")
         try:
             found = self.travel.find_place(name, city)
+        except MapOff as e:
+            raise ToolError(MAP_OFF_LODGING) from e
         except Exception as e:  # noqa: BLE001
             log.warning("Lodging lookup failed for %r in %s: %s", name, city, e)
             raise ToolError("The map lookup failed, so nothing was saved. Try again in a minute.") from e
@@ -573,10 +581,12 @@ class TripEngine:
         return dates
 
     def _check_place(self, trip: Trip, name: str, kind: str) -> tuple[dict, str]:
-        """Look a stop up on the map. Returns the stop and "found", "not_found" or "unchecked" (the lookup failed,
-        so verified is None rather than False)."""
+        """Look a stop up on the map. Returns the stop and "found", "not_found", "unchecked" (the lookup failed, so
+        verified is None rather than False) or "off" (the map is turned off: saved unchecked, nothing flagged)."""
         try:
             found = self.travel.find_place(name, trip.destination)
+        except MapOff:
+            found, status = None, "off"
         except Exception as e:  # noqa: BLE001 - a map outage shouldn't stop planning
             log.warning("Place lookup failed for %r in %s: %s", name, trip.destination, e)
             found, status = None, "unchecked"
@@ -584,7 +594,7 @@ class TripEngine:
             status = "found" if found else "not_found"
         return {"name": name, "kind": kind,
                 "location": osm.short_address(found) if found else trip.destination,
-                "verified": None if status == "unchecked" else found is not None,
+                "verified": None if status in ("unchecked", "off") else found is not None,
                 "lat": found.lat if found else None, "lon": found.lon if found else None,
                 "opening_hours": found.opening_hours if found else None,
                 "maps_url": found.maps_url if found else osm.maps_url(name, trip.destination)}, status
@@ -839,6 +849,8 @@ class TripEngine:
                 raise ToolError("Set the destination first, so the place can be found on the map")
             try:
                 found = self.travel.find_place(str(near).strip(), trip.destination)
+            except MapOff as e:
+                raise ToolError(MAP_OFF_NEARBY) from e
             except Exception as e:  # noqa: BLE001
                 log.warning("Lookup failed for %r in %s: %s", near, trip.destination, e)
                 raise ToolError("The map lookup failed. Say so and suggest trying again in a minute.") from e
@@ -854,6 +866,8 @@ class TripEngine:
                             "offer to save it with update_trip lodging), or pass near.")
         try:
             places = self.travel.find_nearby(what, origin["lat"], origin["lon"], radius)
+        except MapOff as e:
+            raise ToolError(MAP_OFF_NEARBY) from e
         except Exception as e:  # noqa: BLE001 - a busy map server gets a friendly reply, not a crash
             log.warning("Nearby search for %r failed: %s", what, e)
             raise ToolError("The map search is busy right now. Say so and suggest trying again in a minute.") from e
