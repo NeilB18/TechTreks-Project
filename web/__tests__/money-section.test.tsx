@@ -33,17 +33,17 @@ afterEach(() => {
 describe("MoneySection", () => {
   it("without a backend, shows the fixture's sample money and calls nothing", () => {
     const calls = mockFetch({});
-    render(<MoneySection tripId="miami-demo" live={false} sample={fixture("miami-demo")} />);
+    render(<MoneySection tripId="miami-demo" pagePath="/t/k7rm4xq2pa8d" live={false} sample={fixture("miami-demo")} />);
     expect(screen.getByRole("heading", { name: "Settle up" })).toBeTruthy();
     expect(screen.getByText(/paid by Jake · split 5 ways/)).toBeTruthy();
     expect(calls).toEqual([]);
   });
 
-  it("signed out: no money, and Google sign-in that returns to this trip", async () => {
+  it("signed out: no money, and Google sign-in that returns to this trip page", async () => {
     mockFetch({ "GET /api/me/trips/miami": [401, { error: "Sign in first" }] });
-    render(<MoneySection tripId="miami" live sample={null} />);
+    render(<MoneySection tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     const link = await screen.findByRole("link", { name: "Sign in with Google" });
-    expect(link.getAttribute("href")).toBe("/accounts/google/login/?next=/trips/miami");
+    expect(link.getAttribute("href")).toBe("/accounts/google/login/?next=/t/k7rm4xq2pa8d");
     expect(screen.queryByRole("heading", { name: "Settle up" })).toBeNull();
   });
 
@@ -53,7 +53,7 @@ describe("MoneySection", () => {
       "GET /api/me/trips/miami": [403, { error: "not linked" }],
       "POST /api/me/link-code": { code: "AB3DE9", expires_at: "x", instructions: "x" },
     });
-    render(<MoneySection tripId="miami" live sample={null} />);
+    render(<MoneySection tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     fireEvent.click(await screen.findByRole("button", { name: "Get my link code" }));
     expect(await screen.findByText("@tripbot link AB3DE9")).toBeTruthy();
     const post = calls.find((c) => c.init?.method === "POST")!;
@@ -62,7 +62,7 @@ describe("MoneySection", () => {
 
   it("says the link code failed when getting a code fails", async () => {
     mockFetch({ "GET /api/me/trips/miami": [403, { error: "not linked" }] });
-    render(<MoneySection tripId="miami" live sample={null} />);
+    render(<MoneySection tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     fireEvent.click(await screen.findByRole("button", { name: "Get my link code" }));
     expect(await screen.findByText(/Couldn.t get a link code/)).toBeTruthy();
   });
@@ -77,7 +77,7 @@ describe("MoneySection", () => {
                   warnings: ["ACTIVITIES over limit by $13 including planned activities"] },
       },
     });
-    render(<MoneySection tripId="miami-demo" live sample={null} />);
+    render(<MoneySection tripId="miami-demo" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     expect(await screen.findByRole("heading", { name: "Settle up" })).toBeTruthy();
     expect(screen.getByText("$917/person")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "My budget (Mia)" })).toBeTruthy();
@@ -87,7 +87,7 @@ describe("MoneySection", () => {
 
   it("shows an error instead of crashing when the API fails", async () => {
     mockFetch({ "GET /api/me/trips/miami": [500, {}] });
-    render(<MoneySection tripId="miami" live sample={null} />);
+    render(<MoneySection tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     expect(await screen.findByText(/Couldn.t load the money side/)).toBeTruthy();
   });
 });

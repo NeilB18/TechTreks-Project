@@ -1,8 +1,8 @@
 """HTTP API for the agent (tool calls) and the trip page (read-only trip data).
 
 All endpoints require "Authorization: Bearer <AGENT_API_TOKEN>". The full trip and balances
-include money and budgets; the trip page reads only /public (overview and itinerary) with
-this token, and gets the money side through /api/me/trips/<id> as a signed-in member.
+include money and budgets; the trip page reads only /api/share/<token> (overview and itinerary)
+with this token, and gets the money side through /api/me/trips/<id> as a signed-in member.
 """
 
 import hmac
@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from agent.backend.protocol import BACKEND_TOOLS, ToolError, dispatch
+from trips.models import Trip
 from trips.public import public_trip
 from trips.services import DjangoBackend
 
@@ -58,15 +59,16 @@ class TripDetailView(APIView):
             return Response({"error": str(e)}, status=404)
 
 
-class TripPublicView(APIView):
-    """The share-link view: overview and itinerary, no money (trips/public.py)."""
+class SharedTripView(APIView):
+    """The trip page for anyone with its link, /t/<share_token>: overview and itinerary, no money
+    (trips/public.py). Looked up by the token only, so knowing a trip's id isn't enough."""
     permission_classes = [HasAgentToken]
 
-    def get(self, request, trip_id: str):
-        try:
-            return Response(public_trip(DjangoBackend().get_trip(trip_id=trip_id)))
-        except ToolError as e:
-            return Response({"error": str(e)}, status=404)
+    def get(self, request, token: str):
+        trip_id = Trip.objects.filter(share_token=token).values_list("id", flat=True).first()
+        if trip_id is None:
+            return Response({"error": "No trip has that link"}, status=404)
+        return Response(public_trip(DjangoBackend().get_trip(trip_id=trip_id)))
 
 
 class TripBalancesView(APIView):

@@ -11,7 +11,7 @@ from accounts.models import LinkCode
 from accounts.services import find_link_command
 from bot import groupme, services
 from bot.models import GroupChat
-from trips.models import Person
+from trips.models import Person, Trip
 from trips.services import DjangoBackend
 
 SECRET = "s3cret"
@@ -68,7 +68,8 @@ def test_link_flow_then_only_your_own_budget(trip):
     assert r["budget"]["total_cents"] == 50000 and r["budget"]["spent_cents"] == 6000
     assert "notices" not in r  # the bot has no private messages any more
     assert client.get("/api/me/").json()["people"] == [
-        {"trip_id": "miami", "trip_name": "Miami", "person_id": "mia", "name": "Mia"}]
+        {"trip_id": "miami", "trip_name": "Miami", "share_token": Trip.objects.get(id="miami").share_token,
+         "person_id": "mia", "name": "Mia"}]
 
 
 def test_money_side_only_for_linked_members(trip):

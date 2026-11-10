@@ -1,27 +1,29 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { Itinerary } from "@/components/Itinerary";
 import { MoneySection } from "@/components/MoneySection";
-import { getFixtureTrip, getPublicTrip, usingFixtures } from "@/lib/api";
+import { getFixtureTrip, getSharedTrip, usingFixtures } from "@/lib/api";
 import { formatDateRange } from "@/lib/format";
 
-export async function generateMetadata(props: PageProps<"/trips/[id]">): Promise<Metadata> {
-  const { id } = await props.params;
-  const data = await getPublicTrip(id);
+export async function generateMetadata(props: PageProps<"/t/[token]">): Promise<Metadata> {
+  const { token } = await props.params;
+  const data = await getSharedTrip(token);
   return { title: data ? data.trip.name : "Trip not found" };
 }
 
 const STATUS_LABEL = { PLANNING: "Planning", BOOKED: "Booked", ACTIVE: "On the trip", DONE: "Done" } as const;
 
-// The overview and itinerary render on the server from the public view. The money side
-// (MoneySection) loads in the browser, and only for signed-in members of the trip.
-export default async function TripPage(props: PageProps<"/trips/[id]">) {
-  const { id } = await props.params;
-  const data = await getPublicTrip(id);
+// The trip page, at /t/<share_token>: the link the bot posts. The overview and itinerary render on
+// the server from the shared view. The money side (MoneySection) loads in the browser, and only
+// for signed-in members of the trip.
+export default async function TripPage(props: PageProps<"/t/[token]">) {
+  const { token } = await props.params;
+  const data = await getSharedTrip(token);
   if (!data) notFound();
   const { trip, members } = data;
-  const sample = usingFixtures ? await getFixtureTrip(id) : null;
+  const sample = usingFixtures ? await getFixtureTrip(token) : null;
   const active = members.filter((m) => m.active);
   const leader = members.find((m) => m.id === trip.leader_id);
   const dates = formatDateRange(trip.start_date, trip.end_date);
@@ -43,6 +45,9 @@ export default async function TripPage(props: PageProps<"/trips/[id]">) {
           </div>
         </dl>
         <p className="mt-3 text-sm text-muted">{active.map((m) => m.name).join(", ")}</p>
+        <div className="mt-4">
+          <CopyLinkButton />
+        </div>
       </header>
 
       <section className="mt-8" aria-labelledby="itinerary">
@@ -51,7 +56,7 @@ export default async function TripPage(props: PageProps<"/trips/[id]">) {
       </section>
 
       <div className="mt-8">
-        <MoneySection tripId={trip.id} live={!usingFixtures} sample={sample} />
+        <MoneySection tripId={trip.id} pagePath={`/t/${encodeURIComponent(token)}`} live={!usingFixtures} sample={sample} />
       </div>
     </main>
   );

@@ -43,7 +43,7 @@ def load_trip(trip_id: str, lock: bool = False) -> Trip:
                 target_break=row.target_break, base_currency=row.base_currency, group_budget=row.group_budget,
                 leader_id=row.leader_id, leader_approval=list(row.leader_approval),
                 auto_log_mode=row.auto_log_mode, planning_notes=row.planning_notes, lodging=row.lodging,
-                home_city=row.home_city)
+                home_city=row.home_city, share_token=row.share_token)
     trip.ideas = list(row.ideas)
     for p in row.people.all():
         trip.add_member(Person(p.person_id, p.name, p.chat_user_id, p.payment_handle, active=p.active))
@@ -95,7 +95,10 @@ def save_trip(trip: Trip) -> None:
         base_currency=trip.base_currency, group_budget=trip.group_budget, leader_id=trip.leader_id,
         leader_approval=list(trip.leader_approval), auto_log_mode=trip.auto_log_mode,
         planning_notes=trip.planning_notes, ideas=list(trip.ideas), lodging=trip.lodging,
-        home_city=trip.home_city))
+        home_city=trip.home_city,
+        # A new trip gets its share_token from the model's default; a seed may give one.
+        **({"share_token": trip.share_token} if trip.share_token else {})))
+    trip.share_token = row.share_token
 
     people = {}
     for i, p in enumerate(trip.members):

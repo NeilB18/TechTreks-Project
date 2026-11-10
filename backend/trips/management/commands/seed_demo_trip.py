@@ -24,8 +24,9 @@ class Command(BaseCommand):
                 return
             data = demo(DjangoBackend(), trip_id=trip_id)
         detail = data["detail"]
+        token = Trip.objects.get(pk=trip_id).share_token
         self.stdout.write(self.style.SUCCESS(
             f"Created {trip_id}: {len(detail['members'])} members, "
             f"{len(detail['activities'])} activities, {len(detail['expenses'])} expense records. "
-            f"Open /trips/{trip_id}. All data and payment handles are sample values."
+            f"Open /t/{token}. All data and payment handles are sample values."
         ))

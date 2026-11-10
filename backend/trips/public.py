@@ -1,4 +1,4 @@
-"""What anyone with a trip's link may see: the overview and the itinerary.
+"""What anyone with a trip's link (/t/<share_token>) may see: the overview and the itinerary.
 
 No expenses, balances, budgets, group budget, payment handles or lodging: those are for
 signed-in members of the trip (accounts/views.py, my_trip). Fields are listed, not
