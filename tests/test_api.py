@@ -63,6 +63,23 @@ def test_trip_reads_include_budgets(client):
     assert client.get("/api/trips/nowhere", headers=AUTH).status_code == 404
 
 
+def test_public_view_has_the_plan_but_no_money(client):
+    DjangoBackend().update_trip(trip_id="miami", changes={"group_budget": 90000})
+    assert client.get("/api/trips/miami/public").status_code == 403
+    r = client.get("/api/trips/miami/public", headers=AUTH)
+    assert r.status_code == 200
+    body = r.json()
+    assert set(body) == {"trip", "members", "activities", "ideas"}
+    assert body["trip"]["name"] == "Miami" and "group_budget_cents" not in body["trip"]
+    assert "lodging" not in body["trip"]
+    assert body["members"] == [{"id": "aarav", "name": "Aarav", "active": True},
+                               {"id": "mia", "name": "Mia", "active": True}]
+    text = r.content.decode()
+    for private in ("venmo", "Dinner", "50000", "90000", "expense"):
+        assert private not in text, private
+    assert client.get("/api/trips/nowhere/public", headers=AUTH).status_code == 404
+
+
 def test_expense_and_poll_ids_are_unique_across_trips(db):
     b = DjangoBackend()
     for tid in ("a", "b"):

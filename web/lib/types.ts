@@ -101,6 +101,18 @@ export type Balances = {
 
 export type TripPageData = { detail: TripDetail; balances: Balances };
 
+// What anyone with the trip's link sees (GET /api/trips/<id>/public, backend/trips/public.py):
+// the overview and itinerary. No expenses, balances, budgets, group budget, handles or lodging.
+export type PublicTrip = {
+  trip: Pick<TripInfo, "id" | "name" | "status" | "destination" | "start_date" | "end_date" | "target_break" | "base_currency" | "leader_id">;
+  members: Pick<Member, "id" | "name" | "active">[];
+  activities: Activity[];
+  ideas: Pick<Idea, "idea_id" | "name" | "kind" | "location">[];
+};
+
+// The money side, for a signed-in member of the trip (GET /api/me/trips/<id>).
+export type MyTrip = TripPageData & { person_id: string; budget: BudgetStatus | null };
+
 // Signed-in API (/api/me/*, proxied to Django). The caller's own linked trip member.
 export type Me =
   | { signed_in: false; login_url: string }

@@ -71,6 +71,26 @@ def test_link_flow_then_only_your_own_budget(trip):
         {"trip_id": "miami", "trip_name": "Miami", "person_id": "mia", "name": "Mia"}]
 
 
+def test_money_side_only_for_linked_members(trip):
+    assert Client().get("/api/me/trips/miami").status_code == 401
+    client, user = signed_in()
+    assert client.get("/api/me/trips/miami").status_code == 403
+
+    code = client.post("/api/me/link-code").json()["code"]
+    post_in_group(f"@tripbot link {code}")
+    r = client.get("/api/me/trips/miami")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["person_id"] == "mia"
+    assert [e["description"] for e in body["detail"]["expenses"]] == ["Dinner"]
+    assert body["balances"]["net_balances"] == {"aarav": 6000, "mia": -6000}
+    assert body["budget"]["total_cents"] == 50000
+
+    # Linked to Miami doesn't open another trip.
+    DjangoBackend().load_seed({"trip": {"id": "nyc", "name": "NYC"}, "members": [{"id": "zoe", "name": "Zoe"}]})
+    assert client.get("/api/me/trips/nyc").status_code == 403
+
+
 def test_link_survives_later_tool_calls(trip):
     client, user = signed_in()
     code = client.post("/api/me/link-code").json()["code"]

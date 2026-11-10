@@ -6,5 +6,6 @@ from accounts import views
 urlpatterns = [
     path("", views.me),
     path("link-code", views.link_code),
+    path("trips/<str:trip_id>", views.my_trip),
     path("trips/<str:trip_id>/budget", views.my_budget),
 ]

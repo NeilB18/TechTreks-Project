@@ -1,27 +1,27 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { Balances } from "@/components/Balances";
-import { BudgetPanel } from "@/components/BudgetPanel";
-import { Expenses } from "@/components/Expenses";
 import { Itinerary } from "@/components/Itinerary";
-import { getTripPage, usingFixtures } from "@/lib/api";
-import { formatDateRange, formatMoney } from "@/lib/format";
+import { MoneySection } from "@/components/MoneySection";
+import { getFixtureTrip, getPublicTrip, usingFixtures } from "@/lib/api";
+import { formatDateRange } from "@/lib/format";
 
 export async function generateMetadata(props: PageProps<"/trips/[id]">): Promise<Metadata> {
   const { id } = await props.params;
-  const data = await getTripPage(id);
-  return { title: data ? data.detail.trip.name : "Trip not found" };
+  const data = await getPublicTrip(id);
+  return { title: data ? data.trip.name : "Trip not found" };
 }
 
 const STATUS_LABEL = { PLANNING: "Planning", BOOKED: "Booked", ACTIVE: "On the trip", DONE: "Done" } as const;
 
+// The overview and itinerary render on the server from the public view. The money side
+// (MoneySection) loads in the browser, and only for signed-in members of the trip.
 export default async function TripPage(props: PageProps<"/trips/[id]">) {
   const { id } = await props.params;
-  const data = await getTripPage(id);
+  const data = await getPublicTrip(id);
   if (!data) notFound();
-  const { detail, balances } = data;
-  const { trip, members } = detail;
+  const { trip, members } = data;
+  const sample = usingFixtures ? await getFixtureTrip(id) : null;
   const active = members.filter((m) => m.active);
   const leader = members.find((m) => m.id === trip.leader_id);
   const dates = formatDateRange(trip.start_date, trip.end_date);
@@ -32,20 +32,12 @@ export default async function TripPage(props: PageProps<"/trips/[id]">) {
         <p className="text-sm font-medium text-accent">{STATUS_LABEL[trip.status]}</p>
         <h1 className="mt-1 text-2xl font-semibold">{trip.name}</h1>
         <p className="mt-1 text-muted">{[trip.destination, dates].filter(Boolean).join(" · ") || "Destination TBD"}</p>
-        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-line bg-card p-3">
-            <dt className="text-xs text-muted">Group budget</dt>
-            <dd className="font-semibold tabular-nums">
-              {trip.group_budget_cents != null
-                ? `${formatMoney(trip.group_budget_cents, trip.base_currency)}/person`
-                : "Not picked yet"}
-            </dd>
-          </div>
+        <dl className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-line bg-card p-3">
             <dt className="text-xs text-muted">Going</dt>
             <dd className="font-semibold">{active.length} people</dd>
           </div>
-          <div className="col-span-2 rounded-xl border border-line bg-card p-3 sm:col-span-1">
+          <div className="rounded-xl border border-line bg-card p-3">
             <dt className="text-xs text-muted">Trip lead</dt>
             <dd className="font-semibold">{leader?.name ?? "Not set"}</dd>
           </div>
@@ -55,22 +47,12 @@ export default async function TripPage(props: PageProps<"/trips/[id]">) {
 
       <section className="mt-8" aria-labelledby="itinerary">
         <h2 id="itinerary" className="mb-3 text-lg font-semibold">Itinerary</h2>
-        <Itinerary activities={detail.activities} trip={trip} />
+        <Itinerary activities={data.activities} trip={trip} />
       </section>
 
-      <section className="mt-8" aria-labelledby="balances">
-        <h2 id="balances" className="mb-3 text-lg font-semibold">Settle up</h2>
-        <Balances balances={balances} members={members} tripName={trip.name} />
-      </section>
-
-      <section className="mt-8" aria-labelledby="expenses">
-        <h2 id="expenses" className="mb-3 text-lg font-semibold">Expenses</h2>
-        <Expenses expenses={detail.expenses} members={members} currency={trip.base_currency} />
-      </section>
-
-      <section className="mt-8">
-        <BudgetPanel tripId={trip.id} live={!usingFixtures} currency={trip.base_currency} />
-      </section>
+      <div className="mt-8">
+        <MoneySection tripId={trip.id} live={!usingFixtures} sample={sample} />
+      </div>
     </main>
   );
 }
