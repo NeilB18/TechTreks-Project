@@ -8,7 +8,7 @@ Group-trip agent for a GroupMe chat: plans the trip, logs and splits expenses, g
 agent/
   config.py                 model (qwen3.8-flash), thinking, endpoint
   prompts/system_prompt.md  system prompt v1
-  tools/schemas.py          25 backend tools + set_payment_handle and send_message (runner-side)
+  tools/schemas.py          26 backend tools + set_payment_handle and send_message (runner-side)
   backend/protocol.py       the agent <-> backend contract
   backend/core/engine.py    TripEngine: every tool, run on trip_model objects (in memory for tests)
   backend/core/rules.py     placeholders: FX table (post-MVP), tier prices
@@ -106,7 +106,7 @@ cd backend
 
 API (all routes need `Authorization: Bearer $AGENT_API_TOKEN`; the dev default is `dev-agent-token`):
 
-- `POST /api/tools/<tool_name>`: any of the 25 tools, with the tool's arguments as the JSON body. Returns 400 `{"error": ...}` on bad input.
+- `POST /api/tools/<tool_name>`: any of the 26 tools, with the tool's arguments as the JSON body. Returns 400 `{"error": ...}` on bad input.
 - `GET /api/trips/<id>/summary`: the state injected into each agent turn.
 - `GET /api/trips/<id>` and `GET /api/trips/<id>/balances`: for the trip page. These never include budgets.
 
@@ -155,5 +155,5 @@ Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtu
 
 - FX: fixed rate table in `rules.py`. The provider is still TBD.
 - Travel tips and itineraries use built-in sample data until keys are added. With `GOOGLE_PLACES_API_KEY` in `.env`, they come from Google Places: real restaurants and attractions, ratings, and price levels matched to the tier. Adding `SERPAPI_KEY` also brings in real hotel prices from Google Hotels, capped at about 40% of the tier's budget for a shared room. If an API call fails, the tool falls back to sample data with a note. Tests and evals always use the sample data. Note: Places fields like rating and price level bill at Google's Enterprise rate.
-- Place checks: `agent/travel/osm.py` looks places up on OpenStreetMap's free Nominatim server (coordinates, kind of place, opening hours when known, a Google Maps link). It keeps to the server's usage policy: 1 request a second, a User-Agent naming the app, cached answers. Planning happens in steps: `add_activity` with a `kind` checks one place and, with a `day`, puts it in a free slot that day; `save_idea` keeps a place on a short ideas list when no day is given; and `generate_itinerary` drafts only the `days` asked for, using the ideas first, then the agent's suggestions. `edit_draft` changes one stop in an unsaved draft (drop, swap, move, add), and `remove_activity` removes a saved one. Where the group is staying (`lodging` on `update_trip`) is looked up on the map too, and `find_nearby` searches around it on the same Nominatim server (`agent/travel/nearby.py`): the closest places of a kind, with distances and walk times worked out in code. Food types like pizza search nearby restaurants and keep the matching cuisine or name. `agent/travel/planner.py` lays stops out into free slots (grouped by area, opening hours respected when known, plans already on the day kept). Credit "© OpenStreetMap contributors" wherever results show.
+- Place checks: `agent/travel/osm.py` looks places up on OpenStreetMap's free Nominatim server (coordinates, kind of place, opening hours when known, a Google Maps link). It keeps to the server's usage policy: 1 request a second, a User-Agent naming the app, cached answers. Planning happens in steps: `add_activity` with a `kind` checks one place and, with a `day`, puts it in a free slot that day; `save_idea` keeps a place on a short ideas list when no day is given; and `generate_itinerary` drafts only the `days` asked for, using the ideas first, then the agent's suggestions. `edit_draft` changes one stop in an unsaved draft (drop, swap, move, add), and `remove_activity` removes a saved one. Where the group is staying (`lodging` on `update_trip`) is looked up on the map too, and `find_nearby` searches around it on the same Nominatim server (`agent/travel/nearby.py`): the closest places of a kind, with distances and walk times worked out in code. To pick a destination, `compare_destinations` checks the places the agent suggests on the map and against everyone's budget (the trip without flights, plus a separate flight estimate), with a Google Flights link from the group's `home_city`. Food types like pizza search nearby restaurants and keep the matching cuisine or name. `agent/travel/planner.py` lays stops out into free slots (grouped by area, opening hours respected when known, plans already on the day kept). Credit "© OpenStreetMap contributors" wherever results show.
 - Currency: the MVP is USD-only. The FX code keeps working but multi-currency is post-MVP.

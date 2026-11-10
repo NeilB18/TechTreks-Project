@@ -17,6 +17,7 @@ import functools
 import logging
 import re
 from datetime import date, datetime, time, timedelta
+from urllib.parse import quote_plus
 
 from agent.backend.core import rules
 from agent.backend.protocol import BACKEND_TOOLS, ToolError
@@ -40,13 +41,16 @@ STATUSES = [s.name for s in TripStatus]
 APPROVAL_TYPES = ["trip_changes", "member_changes", "itinerary_saves", "refunds_deletes"]
 TRIP_FIELDS = ["destination", "start_date", "end_date", "base_currency", "status",
                "target_break", "group_budget", "leader_id", "leader_approval", "name",
-               "auto_log_mode", "planning_notes", "lodging"]
+               "auto_log_mode", "planning_notes", "lodging", "home_city"]
 
 # Itinerary drafts: each suggested stop is checked on the map (about a second each), so a draft is capped.
 MAX_STOPS_PER_DAY = 3
 MAX_STOPS = 15
 MAX_IDEAS = 20  # the ideas list stays short: places the group asked to keep, not a catalog
 MAX_NOTES = 500
+MAX_DESTINATIONS = 5
+DESTINATION_NOTE = ("Costs are estimates. Flights vary a lot by where and when people book: check the links "
+                    "for real prices.")
 NEARBY_RADIUS_M = 1600  # about a mile, about a 20-minute walk
 MAX_RADIUS_M = 5000     # about 3 miles
 MAX_NEARBY = 5
@@ -442,6 +446,10 @@ class TripEngine:
             bad = set(new["leader_approval"]) - set(APPROVAL_TYPES)
             if bad:
                 raise ToolError(f"Unknown leader_approval types {sorted(bad)}; use {APPROVAL_TYPES}")
+        if "home_city" in new and new["home_city"] is not None:
+            if not isinstance(new["home_city"], str) or len(new["home_city"].strip()) > 100:
+                raise ToolError("home_city must be a city name, e.g. \"Atlanta\"")
+            new["home_city"] = new["home_city"].strip() or None
         if "planning_notes" in new and new["planning_notes"] is not None:
             if not isinstance(new["planning_notes"], str) or len(new["planning_notes"]) > MAX_NOTES:
                 raise ToolError(f"planning_notes must be text, up to {MAX_NOTES} characters")
@@ -825,6 +833,57 @@ class TripEngine:
         return {"draft_id": draft_id, "changed": True, "days": draft, "not_found": status == "not_found",
                 "map_check_failed": status == "unchecked", "note": ESTIMATES_NOTE, "credit": osm.ATTRIBUTION}
 
+    def compare_destinations(self, trip_id: str, places: list[dict]) -> dict:
+        """The destinations the agent suggests, checked on the map and against everyone's budget, each with a Google
+        Flights link from the group's home city. The cost compared with budgets is the trip without flights; the
+        flight estimate is shown on its own because it varies so much."""
+        trip = self._trip(trip_id)
+        if not trip.home_city:
+            raise ToolError("Ask where the group is flying from and save it with update_trip home_city first, so the "
+                            "flight links start there.")
+        if not isinstance(places, list) or not 2 <= len(places) <= MAX_DESTINATIONS:
+            raise ToolError(f"Pass 2 to {MAX_DESTINATIONS} places to compare")
+        for p in places:
+            if not isinstance(p, dict) or not str(p.get("name") or "").strip():
+                raise ToolError("Each place needs a name")
+            for field in ("est_cost_cents", "est_flight_cents"):
+                v = p.get(field)
+                if (v is None and field == "est_cost_cents") or (v is not None and (
+                        isinstance(v, bool) or not isinstance(v, int) or v < 0)):
+                    raise ToolError(f"{field} for {p['name']!r} must be whole cents, 0 or more ($900 -> 90000)")
+        active = [m for m in trip.members if m.active]
+        nights = (trip.end_date - trip.start_date).days if trip.start_date and trip.end_date else None
+        out = []
+        for p in places:
+            name = p["name"].strip()
+            try:
+                found = self.travel.find_place(name, "")
+            except Exception as e:  # noqa: BLE001 - a map outage shouldn't stop the comparison
+                log.warning("Destination lookup failed for %r: %s", name, e)
+                found, checked = None, False
+            else:
+                checked = True
+            cost, flight = p["est_cost_cents"], p.get("est_flight_cents")
+            budgets = {m.id: m.budget.total_cents for m in active if m.budget}
+            query = f"Flights to {name} from {trip.home_city}"
+            if trip.start_date and trip.end_date:
+                query += f" on {trip.start_date.isoformat()} through {trip.end_date.isoformat()}"
+            out.append({
+                "name": name, "found_on_map": bool(found) if checked else None,
+                # A city's full address ends in region and country ("Quintana Roo, Mexico"): those say where it is.
+                "place": ", ".join(x.strip() for x in found.address.split(",")[-2:]) if found else None,
+                "est_cost_cents": cost, "est_flight_cents": flight,
+                "est_total_cents": cost + flight if flight is not None else None,
+                "fits_everyone": all(cost <= b for b in budgets.values()) and len(budgets) == len(active),
+                "stretch_without_flights": sorted(pid for pid, b in budgets.items() if cost > b),
+                "stretch_with_flights": sorted(pid for pid, b in budgets.items()
+                                               if flight is not None and cost + flight > b),
+                "flights_url": f"https://www.google.com/travel/flights?q={quote_plus(query)}"})
+        return {"destinations": out, "from": trip.home_city, "nights": nights,
+                "no_budget_yet": sorted(m.id for m in active if m.budget is None), "note": DESTINATION_NOTE,
+                "next_step": "Post them (costs as estimates; mention kindly who each is a stretch for), then offer a "
+                             "poll with create_poll. Changing the trip's destination still needs the usual confirmation."}
+
     def find_nearby(self, trip_id: str, what: str, near: str | None = None, radius_m: int | None = None) -> dict:
         """The closest places of a kind ("pizza", "coffee", "pharmacy") to where the group is staying, or to `near`
         (a place someone names). Distances are worked out here, so the agent never does the math."""
@@ -1067,7 +1126,7 @@ class TripEngine:
                      "base_currency": trip.base_currency, "group_budget_cents": trip.group_budget,
                      "leader_id": trip.leader_id, "leader_approval": sorted(trip.leader_approval),
                      "auto_log_mode": trip.auto_log_mode, "planning_notes": trip.planning_notes,
-                     "lodging": trip.lodging},
+                     "lodging": trip.lodging, "home_city": trip.home_city},
             "members": [{"id": p.id, "name": p.name, "handle": p.payment_handle,
                          "active": p.active, "budget_set": p.budget is not None,
                          "budget_cents": p.budget.total_cents if p.budget else None}

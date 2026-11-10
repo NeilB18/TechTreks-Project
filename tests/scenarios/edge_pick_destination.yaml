@@ -1,0 +1,59 @@
+kind: edge
+title: Picking a destination asks where the group flies from, compares places against budgets, then offers a poll
+seed:
+  now: "2027-01-10T12:00:00"
+  trip: {id: sb27, name: Spring Break 2027, status: PLANNING, target_break: spring break,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only,
+         planning_notes: "beach, cheap eats, one night out"}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  budgets:
+    aarav: {total: 120000}
+    jake: {total: 80000}
+    mia: {total: 100000}
+turns:
+  - sender: jake
+    text: "@tripbot where should we go for spring break?"
+    expect:
+      forbid: [compare_destinations, create_poll]
+      forbid_mutations: true
+      messages:
+        - {to: group, contains_any: [flying from, fly from, flying out, fly out, leaving from, airport]}
+    golden:
+      messages:
+        - {to: group, text: "Fun! Where are you all flying from? Then I'll pull together a few beach spots that fit everyone's budget."}
+  - sender: jake
+    text: "@tripbot atlanta"
+    expect:
+      calls:
+        - {name: compare_destinations}
+      forbid: [create_poll]
+      messages:
+        - {to: group, contains: [estimate, google.com/travel/flights]}
+      end_state:
+        - trip_contains: {home_city: atlanta}
+        - trip: {destination: null}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: sb27, changes: {home_city: Atlanta}}}
+        - {name: compare_destinations, args: {trip_id: sb27, places: [
+            {name: Cancún, est_cost_cents: 60000, est_flight_cents: 40000},
+            {name: Miami, est_cost_cents: 70000, est_flight_cents: 25000},
+            {name: Tampa, est_cost_cents: 50000, est_flight_cents: 20000}]}}
+      messages:
+        - {to: group, text: "From Atlanta, all estimates per person for Mar 14–18:\n• Cancún: ~$600 without flights, flights ~$400 (https://www.google.com/travel/flights?q=Flights+to+Canc%C3%BAn+from+Atlanta+on+2027-03-14+through+2027-03-18). With flights it's a stretch for Jake.\n• Miami: ~$700, flights ~$250. With flights, a stretch for Jake.\n• Tampa: ~$500, flights ~$200. Fits everyone.\nFlights vary a lot, so check the links. Want me to start a poll?"}
+  - sender: mia
+    text: "@tripbot yes poll it"
+    expect:
+      calls:
+        - {name: create_poll}
+      end_state:
+        - trip: {destination: null}
+    golden:
+      calls:
+        - {name: create_poll, args: {trip_id: sb27, question: "Where should we go for spring break?", options: [Cancún, Miami, Tampa]}}
+      messages:
+        - {to: group, text: "Poll's up: Cancún, Miami or Tampa? Reply with your pick 🗳️"}

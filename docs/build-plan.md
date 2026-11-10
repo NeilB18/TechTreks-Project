@@ -18,7 +18,7 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 
 | Piece | Where | What it does |
 |---|---|---|
-| Agent | `agent/` | System prompt, 27 tools (25 backend + 2 runner-side), Qwen tool-calling loop, CLI for a fake group chat |
+| Agent | `agent/` | System prompt, 28 tools (26 backend + 2 runner-side), Qwen tool-calling loop, CLI for a fake group chat |
 | Data model | `trip_model/` | The trip's data and rules: splits, refunds, balances, settle-up, opt-outs, dropouts, polls, reminders, budgets |
 | Engine | `agent/backend/core/` | `TripEngine`: every tool, run on `trip_model` objects; in memory for tests, and inside the Django backend |
 | Backend | `backend/trips/` | Django models and `DjangoBackend`, which runs the same rules over the database; tool API |
@@ -70,6 +70,7 @@ Trip page (Next.js) ──/api/trips, /api/me (proxied)──> Django API
 | Nov 3 | Editing: `edit_draft` makes one change to an unsaved draft (drop, swap, move, add) and keeps its id; a swap keeps the slot when it fits, otherwise a free slot of the new kind that day. `remove_activity` removes a saved stop right away, unless it's linked to an expense or marked important (the runner waits for a confirmation); one from the ideas list goes back on it. Saved activities keep their kind, so moving one to another day keeps its slot |
 | Nov 3 | Planning happens in steps: one place added with a day goes in a free slot that day (nothing saved if the day is full or it's closed then), one without a day goes on a short ideas list (up to 20, anyone can drop one), and drafts cover only the days asked for (`days` is required), use ideas first and keep the slots of plans already on those days. Planning tools only run on @tripbot messages. Interests and pace are saved once as `planning_notes` |
 | Nov 3 | One itinerary draft at a time: a rebuilt draft replaces the old one, and saving skips stops already on the trip. Meals spread across days before staying close, and a stop closed on its day moves to a day it's open |
+| Nov 9 | Picking a destination: the bot suggests 2 to 5 places and `compare_destinations` checks each on the map and against everyone's budget. Two estimates per person, both the model's: the trip without flights (compared with budgets) and a round-trip flight, shown separately because it varies so much. Each gets a plain Google Flights link from the group's `home_city` (asked once, saved on the trip, no confirmation). Places that are a stretch for someone stay in the list, flagged kindly; the group polls, and setting the destination keeps its usual confirmation. No date-finding feature: a trip only happens if everyone can go, breaks mostly fix the dates, and polls cover "which weekend?" |
 
 ## Pull requests (stacked, merge in order)
 
