@@ -3,7 +3,15 @@
 import { useState } from "react";
 
 // `text` can be a function, for text only known in the browser (like the page's own address).
-export function CopyButton({ text, label }: { text: string | (() => string); label: string }) {
+export function CopyButton({
+  text,
+  label,
+  className = "rounded-full border border-line px-3 py-1.5 text-sm hover:bg-line/40",
+}: {
+  text: string | (() => string);
+  label: string;
+  className?: string;
+}) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -17,7 +25,7 @@ export function CopyButton({ text, label }: { text: string | (() => string); lab
           // Clipboard can be blocked; the handle (or the address bar) still shows the text.
         }
       }}
-      className="rounded-full border border-line px-3 py-1.5 text-sm hover:bg-line/40"
+      className={className}
     >
       {copied ? "Copied" : label}
     </button>

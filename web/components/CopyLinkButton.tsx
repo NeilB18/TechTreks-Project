@@ -8,6 +8,7 @@ export function CopyLinkButton() {
     <CopyButton
       label="Copy trip link"
       text={() => `${window.location.origin}${window.location.pathname}`}
+      className="btn btn-pop min-h-12 flex-1 sm:flex-none"
     />
   );
 }

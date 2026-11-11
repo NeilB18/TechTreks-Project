@@ -38,6 +38,58 @@ export function formatDateRange(start: string | null, end: string | null): strin
   return `${formatDate(start)}, ${a.y} – ${formatDate(end)}, ${b.y}`;
 }
 
+/** "Sun, Mar 14 to Thu, Mar 18"; one date alone if there's no end. */
+export function formatDayRange(start: string | null, end: string | null): string | null {
+  if (!start) return null;
+  if (!end || end === start) return formatDay(start);
+  return `${formatDay(start)} to ${formatDay(end)}`;
+}
+
+function dayNumber(iso: string): number {
+  const { y, m, d } = parts(iso);
+  return Date.UTC(y, m - 1, d) / 86_400_000;
+}
+
+/**
+ * How far off the trip is, from `today` (an ISO date): "124 days to go", "Tomorrow",
+ * "Happening now", or null once it's over or without dates.
+ */
+export function countdown(start: string | null, end: string | null, today: string): string | null {
+  if (!start) return null;
+  const until = dayNumber(start) - dayNumber(today);
+  if (until > 1) return `${until} days to go`;
+  if (until === 1) return "Tomorrow";
+  if (dayNumber(end ?? start) >= dayNumber(today)) return "Happening now";
+  return null;
+}
+
+/** "Day 3" for a date inside the trip; "" outside it or without trip dates. */
+export function tripDayLabel(date: string, start: string | null, end: string | null): string {
+  if (!start) return "";
+  const n = dayNumber(date) - dayNumber(start) + 1;
+  if (n < 1 || (end && dayNumber(date) > dayNumber(end))) return "";
+  return `Day ${n}`;
+}
+
+/** The stop's own Maps link, or a Google Maps search for its name near the trip (free, no API). */
+export function mapsUrl(a: Activity, destination: string | null): string {
+  if (a.maps_url) return a.maps_url;
+  const near = a.location || destination;
+  const query = near && !a.name.includes(near) ? `${a.name}, ${near}` : a.name;
+  return `https://www.google.com/maps/search/?api=1&${new URLSearchParams({ query })}`;
+}
+
+const KIND_LABEL = { food: "Food", activity: "Activity", night: "Night" } as const;
+
+/** "Activity · about $20 each": what kind of stop, and its estimated cost. */
+export function stopDetails(a: Activity, currency: string): string {
+  const bits: string[] = [];
+  if (a.kind) bits.push(KIND_LABEL[a.kind]);
+  else if (a.location) bits.push(a.location);
+  if (a.est_per_person_cents) bits.push(`about ${formatMoney(a.est_per_person_cents, currency)} each`);
+  return bits.join(" · ");
+}
+
 export function formatTime(iso: string | null): string | null {
   if (!iso || iso.length <= 10) return null;
   const [h, min] = iso.slice(11, 16).split(":").map(Number);

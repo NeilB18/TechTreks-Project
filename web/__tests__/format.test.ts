@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  formatDateRange, formatDay, formatMoney, formatTime, groupByDay, isOutsideTrip, payLink, warningText,
+  countdown, formatDateRange, formatDay, formatDayRange, formatMoney, formatTime, groupByDay, isOutsideTrip, mapsUrl,
+  payLink, stopDetails, tripDayLabel, warningText,
 } from "@/lib/format";
 import type { Activity } from "@/lib/types";
 
@@ -78,5 +79,43 @@ describe("warningText", () => {
   it("accepts objects in case the format changes", () => {
     expect(warningText({ category: "DRINKS", message: "under 10% remaining" })).toBe("Drinks: under 10% left");
     expect(warningText({ text: "Almost out of USD cash" })).toBe("Almost out of USD cash");
+  });
+});
+
+describe("trip page header and stops", () => {
+  it("writes the date range with weekdays", () => {
+    expect(formatDayRange("2027-03-14", "2027-03-18")).toBe("Sun, Mar 14 to Thu, Mar 18");
+    expect(formatDayRange("2027-03-14", null)).toBe("Sun, Mar 14");
+    expect(formatDayRange(null, null)).toBeNull();
+  });
+
+  it("counts down to the trip, then says it's happening, then nothing", () => {
+    expect(countdown("2027-03-14", "2027-03-18", "2026-11-10")).toBe("124 days to go");
+    expect(countdown("2027-03-14", "2027-03-18", "2027-03-13")).toBe("Tomorrow");
+    expect(countdown("2027-03-14", "2027-03-18", "2027-03-14")).toBe("Happening now");
+    expect(countdown("2027-03-14", "2027-03-18", "2027-03-18")).toBe("Happening now");
+    expect(countdown("2027-03-14", "2027-03-18", "2027-03-19")).toBeNull();
+    expect(countdown(null, null, "2027-03-19")).toBeNull();
+  });
+
+  it("numbers days from the trip's start, and leaves days outside it unnumbered", () => {
+    expect(tripDayLabel("2027-03-14", "2027-03-14", "2027-03-18")).toBe("Day 1");
+    expect(tripDayLabel("2027-03-16", "2027-03-14", "2027-03-18")).toBe("Day 3");
+    expect(tripDayLabel("2027-03-20", "2027-03-14", "2027-03-18")).toBe("");
+    expect(tripDayLabel("2027-03-16", null, null)).toBe("");
+  });
+
+  it("links every stop to Google Maps, by search when it has no link of its own", () => {
+    const a = { ...activity("x", null), name: "Joe's Stone Crab" };
+    expect(mapsUrl(a, "Miami")).toBe("https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami");
+    expect(mapsUrl({ ...a, location: "Miami Beach Marina" }, "Miami")).toContain("Miami+Beach+Marina");
+    expect(mapsUrl({ ...a, maps_url: "https://maps.example/x" }, "Miami")).toBe("https://maps.example/x");
+  });
+
+  it("describes a stop by kind and cost", () => {
+    const a = { ...activity("x", null), kind: "food" as const, est_per_person_cents: 7000 };
+    expect(stopDetails(a, "USD")).toBe("Food · about $70 each");
+    expect(stopDetails({ ...a, kind: null, location: "Miami Beach Marina", est_per_person_cents: 0 }, "USD"))
+      .toBe("Miami Beach Marina");
   });
 });
