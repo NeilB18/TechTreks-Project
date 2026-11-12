@@ -6,7 +6,8 @@ export function avatarColor(index: number): string {
   return COLORS[index % COLORS.length];
 }
 
-export function Avatars({ names, max = 6 }: { names: string[]; max?: number }) {
+/** `colorIndexes`: each person's position on the trip, so they keep the same colour everywhere. */
+export function Avatars({ names, colorIndexes, max = 6 }: { names: string[]; colorIndexes?: number[]; max?: number }) {
   const shown = names.slice(0, max);
   const more = names.length - shown.length;
   return (
@@ -14,7 +15,7 @@ export function Avatars({ names, max = 6 }: { names: string[]; max?: number }) {
       {shown.map((name, i) => (
         <span
           key={`${name}-${i}`}
-          style={{ background: avatarColor(i) }}
+          style={{ background: avatarColor(colorIndexes?.[i] ?? i) }}
           className={`inline-flex size-9 items-center justify-center rounded-full border-2 border-ground text-sm font-bold text-ground ${i ? "-ml-2.5" : ""}`}
         >
           {name.trim()[0]?.toUpperCase() ?? "?"}

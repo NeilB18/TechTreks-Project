@@ -163,5 +163,28 @@
       }
     ],
     "currency": "USD"
+  },
+  "budgets": {
+    "aarav": {
+      "person_id": "aarav",
+      "budget_set": false,
+      "spent_cents": 40000,
+      "planned_cents": 13300,
+      "warnings": []
+    },
+    "jake": {
+      "person_id": "jake",
+      "budget_set": false,
+      "spent_cents": 40000,
+      "planned_cents": 13300,
+      "warnings": []
+    },
+    "mia": {
+      "person_id": "mia",
+      "budget_set": false,
+      "spent_cents": 40000,
+      "planned_cents": 13300,
+      "warnings": []
+    }
   }
 }

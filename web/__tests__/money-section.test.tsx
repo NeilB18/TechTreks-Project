@@ -31,12 +31,22 @@ afterEach(() => {
 });
 
 describe("MoneySection", () => {
-  it("without a backend, shows the fixture's sample money and calls nothing", () => {
+  it("without a backend, previews the fixture as its first payer and calls nothing", () => {
     const calls = mockFetch({});
-    render(<MoneySection tripId="miami-demo" pagePath="/t/k7rm4xq2pa8d" live={false} sample={fixture("miami-demo")} />);
-    expect(screen.getByRole("heading", { name: "Settle up" })).toBeTruthy();
-    expect(screen.getByText(/paid by Jake · split 5 ways/)).toBeTruthy();
+    render(<MoneySection tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} />);
+    expect(screen.getByRole("heading", { name: /^You owe/ }).textContent).toBe("You owe $353.36"); // Leo
+    expect(screen.getByText(/Jake paid \$350 · 5 people/)).toBeTruthy();
     expect(calls).toEqual([]);
+  });
+
+  it("previews as signed out or not on the trip without a backend", () => {
+    render(<MoneySection tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} previewAs="signed-out" />);
+    // No Google sign-in in sample mode: the button previews as a member instead.
+    expect(screen.getByRole("link", { name: "Sign in with Google" }).getAttribute("href")).toBe("/t/miami-demo?as=leo");
+    cleanup();
+    render(<MoneySection tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} previewAs="not-linked" />);
+    fireEvent.click(screen.getByRole("button", { name: "Get my link code" }));
+    expect(screen.getByText("@tripbot link K7RM4X")).toBeTruthy();
   });
 
   it("signed out: no money, and Google sign-in that returns to this trip page", async () => {
@@ -79,9 +89,11 @@ describe("MoneySection", () => {
     });
     render(<MoneySection tripId="miami-demo" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     expect(await screen.findByRole("heading", { name: "Settle up" })).toBeTruthy();
-    expect(screen.getByText("$917/person")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "My budget (Mia)" })).toBeTruthy();
-    expect(screen.getByText("-$13")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /^You owe/ }).textContent).toBe("You owe $257.36");
+    expect(screen.getByText("to Aarav and Jake")).toBeTruthy();
+    expect(screen.getByText("$917 each")).toBeTruthy();
+    expect(screen.getByText("$13")).toBeTruthy();
+    expect(screen.getByText("over of $500")).toBeTruthy();
     expect(screen.getByText(/Activities: over limit by \$13/)).toBeTruthy();
   });
 

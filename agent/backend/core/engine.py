@@ -1131,6 +1131,11 @@ class TripEngine:
         return s
 
     # ------------------------------------------------------------- not a tool
+    def budget_overview(self, trip_id: str) -> dict:
+        """Everyone's budget status, by person id: for the trip page's Budgets card."""
+        trip = self._trip(trip_id)
+        return {p.id: self.get_budget_status(trip_id=trip_id, person_id=p.id) for p in trip.members if p.active}
+
     def summary(self, trip_id: str) -> dict:
         trip = self._trip(trip_id)
         now = self._now()

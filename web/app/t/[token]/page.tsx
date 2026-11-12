@@ -7,6 +7,7 @@ import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { Ideas } from "@/components/Ideas";
 import { Itinerary } from "@/components/Itinerary";
 import { MoneySection } from "@/components/MoneySection";
+import { PreviewBar } from "@/components/PreviewBar";
 import { TripArt } from "@/components/TripArt";
 import { getFixtureTrip, getSharedTrip, usingFixtures } from "@/lib/api";
 import { countdown, formatDayRange } from "@/lib/format";
@@ -24,6 +25,7 @@ const STATUS_LABEL = { PLANNING: "Planning", BOOKED: "Booked", ACTIVE: "On the t
 // for signed-in members of the trip. Look: the "Sunset" artboard on the design canvas.
 export default async function TripPage(props: PageProps<"/t/[token]">) {
   const { token } = await props.params;
+  const { as } = await props.searchParams;
   const data = await getSharedTrip(token);
   if (!data) notFound();
   const { trip, members } = data;
@@ -32,10 +34,13 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
   const leader = members.find((m) => m.id === trip.leader_id);
   const dates = formatDayRange(trip.start_date, trip.end_date);
   const soon = countdown(trip.start_date, trip.end_date, new Date().toISOString().slice(0, 10));
+  const pagePath = `/t/${encodeURIComponent(token)}`;
+  const previewAs = sample && typeof as === "string" ? as : undefined;
   const where = [trip.destination ?? "Destination not picked yet", soon].filter(Boolean).join(" · ");
 
   return (
     <main className="mx-auto w-full max-w-2xl">
+      {sample && <PreviewBar sample={sample} pagePath={pagePath} as={previewAs} />}
       <nav className="flex items-center justify-between px-5 py-3.5">
         <Link href="/" className="display text-xl tracking-tight text-ink no-underline">
           techtreks
@@ -55,7 +60,7 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
         </div>
         {active.length > 0 && (
           <div className="mt-1.5 flex items-center gap-3">
-            <Avatars names={active.map((m) => m.name)} />
+            <Avatars names={active.map((m) => m.name)} colorIndexes={active.map((m) => members.indexOf(m))} />
             <p className="flex flex-col">
               <span className="text-[15px] font-bold">{active.length} going</span>
               <span className="text-sm text-muted">{leader ? `${leader.name} is leading` : "No trip lead yet"}</span>
@@ -81,7 +86,7 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
       )}
 
       <div className="px-5 pt-8">
-        <MoneySection tripId={trip.id} pagePath={`/t/${encodeURIComponent(token)}`} live={!usingFixtures} sample={sample} />
+        <MoneySection tripId={trip.id} pagePath={pagePath} live={!usingFixtures} sample={sample} previewAs={previewAs} />
       </div>
     </main>
   );

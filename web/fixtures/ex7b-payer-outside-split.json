@@ -209,5 +209,63 @@
       }
     ],
     "currency": "USD"
+  },
+  "budgets": {
+    "aarav": {
+      "person_id": "aarav",
+      "budget_set": false,
+      "spent_cents": 5000,
+      "planned_cents": 0,
+      "warnings": []
+    },
+    "priya": {
+      "person_id": "priya",
+      "budget_set": false,
+      "spent_cents": 5000,
+      "planned_cents": 0,
+      "warnings": []
+    },
+    "jake": {
+      "person_id": "jake",
+      "budget_set": false,
+      "spent_cents": 0,
+      "planned_cents": 0,
+      "warnings": []
+    },
+    "mia": {
+      "person_id": "mia",
+      "budget_set": false,
+      "spent_cents": 5000,
+      "planned_cents": 0,
+      "warnings": []
+    },
+    "sam": {
+      "person_id": "sam",
+      "budget_set": false,
+      "spent_cents": 5000,
+      "planned_cents": 0,
+      "warnings": []
+    },
+    "leo": {
+      "person_id": "leo",
+      "budget_set": false,
+      "spent_cents": 5000,
+      "planned_cents": 0,
+      "warnings": []
+    },
+    "nina": {
+      "person_id": "nina",
+      "budget_set": false,
+      "spent_cents": 5000,
+      "planned_cents": 0,
+      "warnings": []
+    },
+    "zoe": {
+      "person_id": "zoe",
+      "budget_set": false,
+      "spent_cents": 5000,
+      "planned_cents": 0,
+      "warnings": []
+    }
   }
 }

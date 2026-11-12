@@ -2,17 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import { Balances } from "@/components/Balances";
-import { Expenses } from "@/components/Expenses";
-import { formatMoney, warningText } from "@/lib/format";
-import type { BudgetStatus, LinkCode, MyTrip, TripPageData } from "@/lib/types";
-
-type State =
-  | { step: "loading" }
-  | { step: "error"; message: string }
-  | { step: "signed-out" }
-  | { step: "not-linked"; code: LinkCode | null }
-  | { step: "ready"; data: MyTrip };
+import { Money } from "@/components/Money";
+import { previewMember, previewState, type State } from "@/lib/preview";
+import type { LinkCode, MyTrip, TripPageData } from "@/lib/types";
 
 // Live, per-person data: never serve it from the browser cache.
 const NO_STORE: RequestInit = { cache: "no-store" };
@@ -25,24 +17,24 @@ function csrfToken(): string {
  * Expenses, settle-up and budgets. Only signed-in members of the trip get them, from
  * /api/me/trips/<id> (proxied to Django with the session cookie): 401 means signed out,
  * 403 means signed in but not linked to anyone on this trip.
- * Without a backend (fixtures), `sample` is shown to everyone: it's sample data.
+ * Without a backend (sample mode), `sample` is the fixture and `previewAs` picks what to show
+ * (the "Preview as" bar): "signed-out", "not-linked", or a member's id.
  */
 export function MoneySection({
   tripId,
   pagePath,
   live,
   sample,
+  previewAs,
 }: {
   tripId: string;
   pagePath: string; // where sign-in comes back to: this trip page, /t/<share_token>
   live: boolean;
   sample: TripPageData | null;
+  previewAs?: string;
 }) {
-  const [state, setState] = useState<State>(
-    live ? { step: "loading" }
-      : sample ? { step: "ready", data: { ...sample, person_id: "", budget: null } }
-      : { step: "error", message: "No money data here." },
-  );
+  const [state, setState] = useState<State>(live ? { step: "loading" } : previewState(sample, previewAs));
+  const preview = !live;
 
   useEffect(() => {
     if (!live) return;
@@ -66,6 +58,10 @@ export function MoneySection({
   }, [live, tripId]);
 
   async function getCode() {
+    if (preview) {
+      setState({ step: "not-linked", code: { code: "K7RM4X", expires_at: "", instructions: "" } });
+      return;
+    }
     try {
       const res = await fetch("/api/me/link-code", {
         ...NO_STORE, method: "POST", headers: { "X-CSRFToken": csrfToken() },
@@ -90,7 +86,11 @@ export function MoneySection({
         {state.step === "signed-out" && (
           <>
             <p>Sign in to see what&rsquo;s been spent, who owes who, and everyone&rsquo;s budget. Only people on this trip can see it.</p>
-            <a href={`/accounts/google/login/?next=${pagePath}`} className="btn btn-paper mt-1.5 min-h-[50px] text-base">
+            {/* In sample mode there's no Google sign-in: the button previews the page as a member instead. */}
+            <a
+              href={preview ? `${pagePath}?as=${previewMember(sample)}` : `/accounts/google/login/?next=${pagePath}`}
+              className="btn btn-paper mt-1.5 min-h-[50px] text-base"
+            >
               Sign in with Google
             </a>
           </>
@@ -113,70 +113,5 @@ export function MoneySection({
         )}
       </div>
     </section>
-  );
-}
-
-function Money({ data }: { data: MyTrip }) {
-  const { detail, balances, budget } = data;
-  const { trip, members } = detail;
-  const me = members.find((m) => m.id === data.person_id);
-  return (
-    <>
-      {trip.group_budget_cents != null && (
-        <p className="mt-8 text-sm text-muted">
-          Group budget:{" "}
-          <span className="font-semibold text-foreground tabular-nums">
-            {formatMoney(trip.group_budget_cents, trip.base_currency)}/person
-          </span>
-        </p>
-      )}
-      <section className="mt-8" aria-labelledby="balances">
-        <h2 id="balances" className="mb-3 text-lg font-semibold">Settle up</h2>
-        <Balances balances={balances} members={members} tripName={trip.name} />
-      </section>
-      <section className="mt-8" aria-labelledby="expenses">
-        <h2 id="expenses" className="mb-3 text-lg font-semibold">Expenses</h2>
-        <Expenses expenses={detail.expenses} members={members} currency={trip.base_currency} />
-      </section>
-      {budget && (
-        <section className="mt-8 rounded-xl border border-dashed border-line p-4" aria-labelledby="my-budget">
-          <h2 id="my-budget" className="font-medium">My budget{me ? ` (${me.name})` : ""}</h2>
-          <div className="mt-1 text-sm">
-            <BudgetDetails budget={budget} currency={trip.base_currency} />
-          </div>
-        </section>
-      )}
-    </>
-  );
-}
-
-export function BudgetDetails({ budget: b, currency }: { budget: BudgetStatus; currency: string }) {
-  if (!b.budget_set) {
-    return <p className="text-muted">No budget set yet. Tell @tripbot in the group chat (e.g. &ldquo;my budget is $800&rdquo;).</p>;
-  }
-  const rows: [string, number | undefined][] = [
-    ["Total", b.total_cents],
-    ["Spent (your share)", b.spent_cents],
-    ["Planned activities", b.planned_cents],
-    ["Left after plans", b.remaining_after_planned_cents],
-  ];
-  return (
-    <div>
-      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
-        {rows.map(([label, cents]) => (
-          <div key={label} className="contents">
-            <dt className="text-muted">{label}</dt>
-            <dd className="text-right font-medium tabular-nums">{formatMoney(cents ?? 0, currency)}</dd>
-          </div>
-        ))}
-      </dl>
-      {b.warnings.length > 0 && (
-        <ul className="mt-3 space-y-1">
-          {b.warnings.map((w, i) => (
-            <li key={i} className="font-medium text-warn">⚠️ {warningText(w)}</li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }

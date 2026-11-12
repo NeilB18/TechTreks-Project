@@ -168,5 +168,43 @@
       }
     ],
     "currency": "USD"
+  },
+  "budgets": {
+    "aarav": {
+      "person_id": "aarav",
+      "budget_set": false,
+      "spent_cents": 30000,
+      "planned_cents": 21300,
+      "warnings": []
+    },
+    "jake": {
+      "person_id": "jake",
+      "budget_set": false,
+      "spent_cents": 30000,
+      "planned_cents": 21300,
+      "warnings": []
+    },
+    "mia": {
+      "person_id": "mia",
+      "budget_set": true,
+      "total_cents": 50000,
+      "spent_cents": 30000,
+      "remaining_cents": 20000,
+      "planned_cents": 21300,
+      "remaining_after_planned_cents": -1300,
+      "by_category": {
+        "ACTIVITIES": {
+          "limit_cents": null,
+          "spent_cents": 0,
+          "planned_cents": 21300
+        },
+        "LODGING": {
+          "limit_cents": null,
+          "spent_cents": 30000,
+          "planned_cents": 0
+        }
+      },
+      "warnings": []
+    }
   }
 }

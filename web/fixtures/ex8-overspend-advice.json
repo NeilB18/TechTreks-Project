@@ -225,5 +225,38 @@
       }
     ],
     "currency": "USD"
+  },
+  "budgets": {
+    "aarav": {
+      "person_id": "aarav",
+      "budget_set": false,
+      "spent_cents": 16000,
+      "planned_cents": 0,
+      "warnings": []
+    },
+    "jake": {
+      "person_id": "jake",
+      "budget_set": false,
+      "spent_cents": 16000,
+      "planned_cents": 0,
+      "warnings": []
+    },
+    "mia": {
+      "person_id": "mia",
+      "budget_set": true,
+      "total_cents": 90000,
+      "spent_cents": 16000,
+      "remaining_cents": 74000,
+      "planned_cents": 0,
+      "remaining_after_planned_cents": 74000,
+      "by_category": {
+        "FOOD": {
+          "limit_cents": 20000,
+          "spent_cents": 16000,
+          "planned_cents": 0
+        }
+      },
+      "warnings": []
+    }
   }
 }

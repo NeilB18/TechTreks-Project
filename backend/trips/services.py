@@ -220,6 +220,12 @@ class DjangoBackend:
         return result
 
     # Not tools ------------------------------------------------------------
+    def budget_overview(self, trip_id: str) -> dict:
+        """Everyone's budget status, loading the trip once (not once per person)."""
+        engine = self._engine()
+        engine.trips[trip_id] = load_trip(trip_id)
+        return engine.budget_overview(trip_id)
+
     def summary(self, trip_id: str) -> dict:
         engine = self._engine()
         engine.trips[trip_id] = load_trip(trip_id)

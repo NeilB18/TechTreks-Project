@@ -57,7 +57,8 @@ def link_code(request):
 @require_GET
 @login_required_json
 def my_trip(request, trip_id: str):
-    """The money side of the trip page: the full trip, balances and your own budget.
+    """The money side of the trip page: the full trip, balances, your own budget, and everyone's
+    (budgets are shared with the trip; the page shows yours first).
 
     Only for a signed-in account linked to a member of this trip. Anyone with the link sees
     the rest through the public view (trips/public.py).
@@ -71,6 +72,7 @@ def my_trip(request, trip_id: str):
         "detail": backend.get_trip(trip_id=trip_id),
         "balances": backend.get_balances(trip_id=trip_id),
         "budget": backend.get_budget_status(trip_id=trip_id, person_id=person.person_id),
+        "budgets": backend.budget_overview(trip_id=trip_id),
     })
 
 
