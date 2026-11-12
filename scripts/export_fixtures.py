@@ -23,7 +23,8 @@ PEOPLE = ["aarav", "priya", "jake", "mia", "sam", "leo"]
 
 
 def page_data(backend: TripEngine, trip_id: str) -> dict:
-    return {"detail": backend.get_trip(trip_id), "balances": backend.get_balances(trip_id)}
+    return {"detail": backend.get_trip(trip_id), "balances": backend.get_balances(trip_id),
+            "budgets": backend.budget_overview(trip_id)}
 
 
 def demo(backend=None, trip_id: str = "miami-demo") -> dict:

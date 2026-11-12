@@ -86,6 +86,9 @@ def test_money_side_only_for_linked_members(trip):
     assert [e["description"] for e in body["detail"]["expenses"]] == ["Dinner"]
     assert body["balances"]["net_balances"] == {"aarav": 6000, "mia": -6000}
     assert body["budget"]["total_cents"] == 50000
+    # Everyone's budget, for the Budgets card: totals and what each person has spent.
+    assert {pid: (b.get("total_cents"), b["spent_cents"]) for pid, b in body["budgets"].items()} == {
+        "aarav": (120000, 6000), "mia": (50000, 6000)}
 
     # Linked to Miami doesn't open another trip.
     DjangoBackend().load_seed({"trip": {"id": "nyc", "name": "NYC"}, "members": [{"id": "zoe", "name": "Zoe"}]})

@@ -173,5 +173,75 @@
       }
     ],
     "currency": "USD"
+  },
+  "budgets": {
+    "aarav": {
+      "person_id": "aarav",
+      "budget_set": true,
+      "total_cents": 150000,
+      "spent_cents": 30000,
+      "remaining_cents": 120000,
+      "planned_cents": 13333,
+      "remaining_after_planned_cents": 106667,
+      "by_category": {
+        "ACTIVITIES": {
+          "limit_cents": null,
+          "spent_cents": 0,
+          "planned_cents": 13333
+        },
+        "LODGING": {
+          "limit_cents": null,
+          "spent_cents": 30000,
+          "planned_cents": 0
+        }
+      },
+      "warnings": []
+    },
+    "jake": {
+      "person_id": "jake",
+      "budget_set": true,
+      "total_cents": 110000,
+      "spent_cents": 30000,
+      "remaining_cents": 80000,
+      "planned_cents": 13333,
+      "remaining_after_planned_cents": 66667,
+      "by_category": {
+        "ACTIVITIES": {
+          "limit_cents": null,
+          "spent_cents": 0,
+          "planned_cents": 13333
+        },
+        "LODGING": {
+          "limit_cents": null,
+          "spent_cents": 30000,
+          "planned_cents": 0
+        }
+      },
+      "warnings": []
+    },
+    "mia": {
+      "person_id": "mia",
+      "budget_set": true,
+      "total_cents": 95000,
+      "spent_cents": 30000,
+      "remaining_cents": 65000,
+      "planned_cents": 13333,
+      "remaining_after_planned_cents": 51667,
+      "by_category": {
+        "ACTIVITIES": {
+          "limit_cents": 14000,
+          "spent_cents": 0,
+          "planned_cents": 13333
+        },
+        "LODGING": {
+          "limit_cents": null,
+          "spent_cents": 30000,
+          "planned_cents": 0
+        }
+      },
+      "warnings": [
+        "ACTIVITIES under 10% remaining"
+      ]
+    }
   }
 }

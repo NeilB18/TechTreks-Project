@@ -76,5 +76,40 @@
     "net_balances": {},
     "suggested_payments": [],
     "currency": "USD"
+  },
+  "budgets": {
+    "aarav": {
+      "person_id": "aarav",
+      "budget_set": true,
+      "total_cents": 120000,
+      "spent_cents": 0,
+      "remaining_cents": 120000,
+      "planned_cents": 0,
+      "remaining_after_planned_cents": 120000,
+      "by_category": {},
+      "warnings": []
+    },
+    "jake": {
+      "person_id": "jake",
+      "budget_set": true,
+      "total_cents": 80000,
+      "spent_cents": 0,
+      "remaining_cents": 80000,
+      "planned_cents": 0,
+      "remaining_after_planned_cents": 80000,
+      "by_category": {},
+      "warnings": []
+    },
+    "mia": {
+      "person_id": "mia",
+      "budget_set": true,
+      "total_cents": 50000,
+      "spent_cents": 0,
+      "remaining_cents": 50000,
+      "planned_cents": 0,
+      "remaining_after_planned_cents": 50000,
+      "by_category": {},
+      "warnings": []
+    }
   }
 }

@@ -100,7 +100,8 @@ export type Balances = {
   currency: string;
 };
 
-export type TripPageData = { detail: TripDetail; balances: Balances };
+// budgets: everyone's budget status by person id (active members), for the Budgets card.
+export type TripPageData = { detail: TripDetail; balances: Balances; budgets?: Record<string, BudgetStatus> };
 
 // What anyone with the trip's link sees (GET /api/share/<share_token>, backend/trips/public.py):
 // the overview and itinerary. No expenses, balances, budgets, group budget, handles or lodging.

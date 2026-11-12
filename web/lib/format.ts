@@ -38,6 +38,19 @@ export function formatDateRange(start: string | null, end: string | null): strin
   return `${formatDate(start)}, ${a.y} – ${formatDate(end)}, ${b.y}`;
 }
 
+/** "Aarav", "Aarav and Jake", "Leo, Priya and Sam". */
+export function listNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/** What to call a non-Venmo handle on its copy button. */
+export function handleKind(handle: string): string {
+  if (/^\S+@\S+\.\S+$/.test(handle)) return "email";
+  if (/^[\d\s()+-]{7,}$/.test(handle)) return "number";
+  return "handle";
+}
+
 /** "Sun, Mar 14 to Thu, Mar 18"; one date alone if there's no end. */
 export function formatDayRange(start: string | null, end: string | null): string | null {
   if (!start) return null;
