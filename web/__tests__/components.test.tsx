@@ -62,3 +62,21 @@ describe("fixtures carry everyone's budget (budgets are shared with the trip)", 
       { aarav: 120000, jake: 80000, mia: 50000 });
   });
 });
+
+describe("Itinerary folding", () => {
+  it("opens the first two days and folds the rest, with their stops listed", () => {
+    const { detail } = fixture("miami-demo");
+    const { container } = render(<Itinerary activities={detail.activities} trip={detail.trip} />);
+    const days = [...container.querySelectorAll("details")];
+    expect(days.map((d) => d.open)).toEqual([true, true, false, false, false]);
+    expect(screen.getByText("Day 3")).toBeTruthy();
+    expect(screen.getByText("South Pointe Park, La Mar by Gastón Acurio")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: /on Google Maps/ })).toHaveLength(detail.activities.length);
+    expect(screen.getByText("Must do")).toBeTruthy();
+  });
+
+  it("says nothing's planned and how to ask, when there are no stops", () => {
+    render(<Itinerary activities={[]} trip={fixture("miami-demo").detail.trip} />);
+    expect(screen.getByRole("heading", { name: "Nothing planned yet" })).toBeTruthy();
+  });
+});

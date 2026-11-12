@@ -1,44 +1,145 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f7f7f5;
-  --foreground: #1c1c1a;
-  --card: #ffffff;
-  --muted: #6b6b66;
-  --line: #e4e4df;
-  --accent: #0f766e;
-  --warn: #b45309;
-  --good: #15803d;
+/*
+ * Trip themes (design canvas: "Trip page themes"). Dark-first, Partiful-inspired.
+ * Each theme sets the same names; a page picks one with data-theme on its wrapper.
+ * Only Sunset for now; Night Swim and Campfire come with the theme picker.
+ *
+ *   ground   page background          surface  cards on the ground     line    dividers inside cards
+ *   ink      text on ground/surface   muted    secondary text (4.5:1+ on ground and surface)
+ *   pop      primary buttons, labels  hot      stickers, owes          outline secondary button borders
+ *   paper    light cards (members-only, receipts)  paper-ink / paper-muted: text on paper
+ */
+:root,
+[data-theme="sunset"] {
+  --ground: #2b0f2e;
+  --surface: #43204a;
+  --line: #5a3361;
+  --ink: #fff4ec;
+  --muted: #e3cdd8;
+  --pop: #ffc94a;
+  --hot: #ff6b4a;
+  --outline: #8a5a8f;
+  --paper: #fff4ec;
+  --paper-ink: #2b0f2e;
+  --paper-muted: #5b3a5e;
+  --paper-hot: #b8402a;
+  --warn: #ffb27a;
+  --good: #8ef0b0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #121211;
-    --foreground: #ededea;
-    --card: #1b1b1a;
-    --muted: #a3a39c;
-    --line: #2e2e2b;
-    --accent: #2dd4bf;
-    --warn: #f59e0b;
-    --good: #4ade80;
-  }
-}
-
+/* Tailwind colours from the theme. background/foreground/card/accent are the older names the money
+   section still uses (it's restyled in the next PR). Fonts come from next/font in app/layout.tsx:
+   --font-display (Bricolage Grotesque) and --font-body (Figtree). */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-muted: var(--muted);
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
   --color-line: var(--line);
-  --color-accent: var(--accent);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-pop: var(--pop);
+  --color-hot: var(--hot);
+  --color-outline: var(--outline);
+  --color-paper: var(--paper);
+  --color-paper-ink: var(--paper-ink);
+  --color-paper-muted: var(--paper-muted);
+  --color-paper-hot: var(--paper-hot);
   --color-warn: var(--warn);
   --color-good: var(--good);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--ground);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-accent: var(--pop);
+  --font-sans: var(--font-body);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+@layer components {
+  /* Big, tight headings: trip titles and section names. */
+  .display {
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+  }
+
+  /* Small all-caps labels: DAY 1, YOU PAY. */
+  .label-caps {
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-weight: 800;
+    font-size: 0.8125rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--pop);
+  }
+
+  /* A tilted sticker: status, MEMBERS ONLY. */
+  .sticker {
+    display: inline-block;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    background: var(--hot);
+    color: var(--ground);
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-weight: 800;
+    font-size: 0.875rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* Pill buttons, at least 44px tall. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.875rem;
+    padding: 0 1.125rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .btn-pop {
+    background: var(--pop);
+    color: var(--ground);
+  }
+  .btn-outline {
+    border: 2px solid var(--outline);
+    color: var(--ink);
+  }
+  .btn-paper {
+    background: var(--paper-ink);
+    color: var(--paper);
+  }
+  .btn:focus-visible,
+  .map-btn:focus-visible,
+  summary:focus-visible {
+    outline: 3px solid var(--pop);
+    outline-offset: 2px;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: 22px;
+  }
+
+  /* Round 44px button with a map pin. */
+  .map-btn {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    background: var(--ground);
+    color: var(--pop);
+  }
 }
