@@ -14,6 +14,7 @@
 #     lodging | None                 # where the group is staying: {name, address, lat, lon, maps_url}, found on the map
 #     home_city | None               # where the group flies from, for flight links when picking a destination
 #     share_token | None             # the trip page's address, /t/<share_token>; set by the database
+#     theme | None; theme_set_by     # the trip page's look (sunset, night_swim, campfire), and who picked it (bot, member)
 #
 #     get_member(person_id, active_only=False); active_member_ids()
 #     add_member(); remove_member(person_id) -> ids of activities they left
@@ -46,7 +47,7 @@ class Trip:
                  end_date: date | None = None, target_break=None, base_currency="USD",
                  group_budget=None, leader_id=None, leader_approval: list[str] | None = None,
                  auto_log_mode=None, planning_notes=None, lodging: dict | None = None, home_city=None,
-                 share_token: str | None = None):
+                 share_token: str | None = None, theme: str | None = None, theme_set_by: str | None = None):
         self.id = id
         self.name = name
         self.status = status
@@ -63,6 +64,8 @@ class Trip:
         self.lodging = lodging
         self.home_city = home_city
         self.share_token = share_token
+        self.theme = theme
+        self.theme_set_by = theme_set_by
         self.members: list[Person] = []
         self.activities: list[Activity] = []
         self.expenses: list[Expense] = []

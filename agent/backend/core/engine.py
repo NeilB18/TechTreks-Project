@@ -43,7 +43,9 @@ STATUSES = [s.name for s in TripStatus]
 APPROVAL_TYPES = ["trip_changes", "member_changes", "itinerary_saves", "refunds_deletes"]
 TRIP_FIELDS = ["destination", "start_date", "end_date", "base_currency", "status",
                "target_break", "group_budget", "leader_id", "leader_approval", "name",
-               "auto_log_mode", "planning_notes", "lodging", "home_city"]
+               "auto_log_mode", "planning_notes", "lodging", "home_city", "theme"]
+# The trip page's looks: a beach or coast, a city, mountains or outdoors.
+THEMES = ["sunset", "night_swim", "campfire"]
 
 # Itinerary drafts: each suggested stop is checked on the map (about a second each), so a draft is capped.
 MAX_STOPS_PER_DAY = 3
@@ -474,6 +476,15 @@ class TripEngine:
         new_end = new.get("end_date", trip.end_date)
         if new_start and new_end and new_start > new_end:
             raise ToolError("start_date is after end_date")
+        theme_kept = None
+        if "theme" in new:
+            if new["theme"] not in THEMES:
+                raise ToolError(f"theme must be one of {THEMES}")
+            if trip.theme_set_by == "member":  # picked on the trip page: the bot doesn't change it
+                theme_kept = trip.theme
+                del new["theme"]
+            else:
+                new["theme_set_by"] = "bot"
         if "lodging" in new:  # last, so a lodging the map can't find leaves the whole change unsaved
             new["lodging"] = self._find_lodging(new["lodging"], new.get("destination", trip.destination))
         for k, v in new.items():
@@ -482,6 +493,8 @@ class TripEngine:
         if new.get("lodging"):
             out["next_step"] = ("Tell the group the address you saved, with the Maps link, so someone can correct it "
                                 "if it's the wrong place.")
+        if theme_kept:
+            out["theme_kept"] = f"Someone picked the {theme_kept} theme on the trip page, so it stays. No need to mention it."
         if "start_date" in changes or "end_date" in changes:
             out["activities_outside_dates"] = self._activities_outside(trip)
         if "group_budget" in changes and changes["group_budget"] is not None:
@@ -1131,6 +1144,15 @@ class TripEngine:
         return s
 
     # ------------------------------------------------------------- not a tool
+    def set_theme(self, trip_id: str, theme: str) -> dict:
+        """A member picked the trip page's look on the page. Not a tool: the bot sets it through update_trip,
+        and only until a member picks one."""
+        if theme not in THEMES:
+            raise ToolError(f"theme must be one of {THEMES}")
+        trip = self._trip(trip_id)
+        trip.theme, trip.theme_set_by = theme, "member"
+        return {"theme": theme}
+
     def budget_overview(self, trip_id: str) -> dict:
         """Everyone's budget status, by person id: for the trip page's Budgets card."""
         trip = self._trip(trip_id)
@@ -1146,7 +1168,7 @@ class TripEngine:
                      "base_currency": trip.base_currency, "group_budget_cents": trip.group_budget,
                      "leader_id": trip.leader_id, "leader_approval": sorted(trip.leader_approval),
                      "auto_log_mode": trip.auto_log_mode, "planning_notes": trip.planning_notes,
-                     "lodging": trip.lodging, "home_city": trip.home_city,
+                     "lodging": trip.lodging, "home_city": trip.home_city, "theme": trip.theme,
                      # The trip page, for "what's the link?". None until the database gives the trip a token.
                      "page_url": f"{config.TRIP_PAGE_URL}/t/{trip.share_token}" if trip.share_token else None},
             "members": [{"id": p.id, "name": p.name, "handle": p.payment_handle,

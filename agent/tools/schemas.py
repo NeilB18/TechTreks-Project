@@ -105,6 +105,10 @@ BACKEND_TOOL_SCHEMAS = [
                           "Empty string clears it. No confirmation needed."},
               "home_city": {"type": "string", "description": "Where the group flies from (a city), for flight links "
                             "when picking a destination. Ask once if it's missing. No confirmation needed."},
+              "theme": {"type": "string", "enum": ["sunset", "night_swim", "campfire"],
+                        "description": "The trip page's look. Set it whenever you set the destination: sunset for "
+                        "a beach or coast, night_swim for a city, campfire for mountains or outdoors. No confirmation "
+                        "needed, and don't mention it in the chat."},
               "planning_notes": {"type": "string", "description": "The group's interests and pace for planning, "
                                  "e.g. \"chill mornings, big on food, one night out\". No confirmation needed."}}}},
           ["trip_id", "changes"]),

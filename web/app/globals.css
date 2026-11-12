@@ -3,7 +3,7 @@
 /*
  * Trip themes (design canvas: "Trip page themes"). Dark-first, Partiful-inspired.
  * Each theme sets the same names; a page picks one with data-theme on its wrapper.
- * Only Sunset for now; Night Swim and Campfire come with the theme picker.
+ * The trip page uses the trip's theme (the bot picks it with the destination; members can change it).
  *
  *   ground   page background          surface  cards on the ground     line    dividers inside cards
  *   ink      text on ground/surface   muted    secondary text (4.5:1+ on ground and surface)
@@ -26,6 +26,42 @@
   --paper-hot: #b8402a;
   --warn: #ffb27a;
   --good: #8ef0b0;
+}
+
+/* Night Swim: a city at night. Moon and waves. */
+[data-theme="night_swim"] {
+  --ground: #071a2b;
+  --surface: #10304a;
+  --line: #1f4562;
+  --ink: #eaf6ff;
+  --muted: #a9c3d6;
+  --pop: #4fe3c1;
+  --hot: #8fb8ff;
+  --outline: #3e6a8c;
+  --paper: #eaf6ff;
+  --paper-ink: #071a2b;
+  --paper-muted: #34506a;
+  --paper-hot: #1d6b58;
+  --warn: #ffc48a;
+  --good: #b9f27c;
+}
+
+/* Campfire: mountains and the outdoors. */
+[data-theme="campfire"] {
+  --ground: #14231a;
+  --surface: #213827;
+  --line: #34503a;
+  --ink: #f5f1e6;
+  --muted: #c9c3ae;
+  --pop: #ff9f3d;
+  --hot: #e9e2c8;
+  --outline: #4e6b54;
+  --paper: #f5f1e6;
+  --paper-ink: #14231a;
+  --paper-muted: #3c4a3f;
+  --paper-hot: #9a4a00;
+  --warn: #ffc48a;
+  --good: #9ed39a;
 }
 
 /* Tailwind colours from the theme. background/foreground/card/accent are the older names the money

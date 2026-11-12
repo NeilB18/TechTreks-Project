@@ -25,10 +25,13 @@ export type TripInfo = {
   leader_approval: string[];
   auto_log_mode: string | null;
   planning_notes?: string | null; // interests and pace, for itinerary drafts
+  theme?: Theme | null; // the trip page's look; null: Sunset
   page_url?: string | null; // the trip page, <TRIP_PAGE_URL>/t/<share_token> (full trip only)
   lodging?: Lodging | null; // not shown on the page yet: an address belongs behind sign-in
   home_city?: string | null; // where the group flies from
 };
+
+export type Theme = "sunset" | "night_swim" | "campfire";
 
 export type Lodging = { name: string; address: string; lat: number; lon: number; maps_url: string };
 
@@ -106,7 +109,7 @@ export type TripPageData = { detail: TripDetail; balances: Balances; budgets?: R
 // What anyone with the trip's link sees (GET /api/share/<share_token>, backend/trips/public.py):
 // the overview and itinerary. No expenses, balances, budgets, group budget, handles or lodging.
 export type PublicTrip = {
-  trip: Pick<TripInfo, "id" | "name" | "status" | "destination" | "start_date" | "end_date" | "target_break" | "base_currency" | "leader_id">;
+  trip: Pick<TripInfo, "id" | "name" | "status" | "destination" | "start_date" | "end_date" | "target_break" | "base_currency" | "leader_id" | "theme">;
   members: Pick<Member, "id" | "name" | "active">[];
   activities: Activity[];
   ideas: Pick<Idea, "idea_id" | "name" | "kind" | "location">[];
