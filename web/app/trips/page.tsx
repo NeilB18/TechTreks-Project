@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 
 import { Footer } from "@/components/Footer";
 import { MyTripsList } from "@/components/MyTripsList";
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: "Your trips" };
 // My trips (design canvas: "My trips"). Live, the list loads in the browser for the signed-in
 // account; in sample mode it shows every fixture.
 export default async function MyTripsPage() {
+  await connection(); // per request: "today" decides what's past and the countdowns
   const sample = usingFixtures ? await listFixtureCards() : null;
   return (
     <>
