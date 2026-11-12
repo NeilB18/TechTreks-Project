@@ -3,15 +3,12 @@
 import { useEffect, useState } from "react";
 
 import { Money } from "@/components/Money";
+import { csrfToken } from "@/lib/post";
 import { previewMember, previewState, type State } from "@/lib/preview";
 import type { LinkCode, MyTrip, TripPageData } from "@/lib/types";
 
 // Live, per-person data: never serve it from the browser cache.
 const NO_STORE: RequestInit = { cache: "no-store" };
-
-function csrfToken(): string {
-  return document.cookie.match(/(?:^|; )csrftoken=([^;]+)/)?.[1] ?? "";
-}
 
 /**
  * Expenses, settle-up and budgets. Only signed-in members of the trip get them, from
@@ -35,6 +32,8 @@ export function MoneySection({
 }) {
   const [state, setState] = useState<State>(live ? { step: "loading" } : previewState(sample, previewAs));
   const preview = !live;
+  // Bumped after a save (a payment marked as sent, a new budget) to load the money side again.
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!live) return;
@@ -55,7 +54,7 @@ export function MoneySection({
     return () => {
       cancelled = true;
     };
-  }, [live, tripId]);
+  }, [live, tripId, version]);
 
   async function getCode() {
     if (preview) {
@@ -73,7 +72,9 @@ export function MoneySection({
     }
   }
 
-  if (state.step === "ready") return <Money data={state.data} />;
+  if (state.step === "ready") {
+    return <Money data={state.data} actions={{ tripId, preview, reload: () => setVersion((v) => v + 1) }} />;
+  }
 
   return (
     // The "members only" card from the design canvas: cream paper with a sticker.

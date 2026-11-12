@@ -3,12 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { postJson } from "@/lib/post";
 import { THEMES } from "@/lib/themes";
 import type { Me, Theme } from "@/lib/types";
-
-function csrfToken(): string {
-  return document.cookie.match(/(?:^|; )csrftoken=([^;]+)/)?.[1] ?? "";
-}
 
 /**
  * "Change theme", next to Copy trip link. Only members of the trip see it: live, it asks /api/me/;
@@ -65,12 +62,7 @@ export function ThemePicker({
       return;
     }
     try {
-      const res = await fetch(`/api/me/trips/${encodeURIComponent(tripId)}/theme`, {
-        method: "POST", cache: "no-store",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
-        body: JSON.stringify({ theme: picked }),
-      });
-      if (!res.ok) throw new Error(String(res.status));
+      await postJson(`/api/me/trips/${encodeURIComponent(tripId)}/theme`, { theme: picked });
       close();
       router.refresh(); // the server renders the page again in the new theme
     } catch {
