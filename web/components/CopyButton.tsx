@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 
-export function CopyButton({ text, label }: { text: string; label: string }) {
+// `text` can be a function, for text only known in the browser (like the page's own address).
+export function CopyButton({ text, label }: { text: string | (() => string); label: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
       onClick={async () => {
         try {
-          await navigator.clipboard.writeText(text);
+          await navigator.clipboard.writeText(typeof text === "function" ? text() : text);
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         } catch {
-          // Clipboard can be blocked; the handle is still visible in the label.
+          // Clipboard can be blocked; the handle (or the address bar) still shows the text.
         }
       }}
       className="rounded-full border border-line px-3 py-1.5 text-sm hover:bg-line/40"

@@ -15,7 +15,7 @@ export default async function Home() {
           <ul className="mt-6 divide-y divide-line rounded-xl border border-line bg-card">
             {trips.map((t) => (
               <li key={t.id}>
-                <Link href={`/trips/${t.id}`} className="flex justify-between gap-3 p-3 hover:bg-line/30">
+                <Link href={`/t/${t.id}`} className="flex justify-between gap-3 p-3 hover:bg-line/30">
                   <span className="font-medium">{t.name}</span>
                   <span className="text-sm text-muted">{t.id}</span>
                 </Link>

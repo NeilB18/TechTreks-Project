@@ -6,7 +6,7 @@ group budget and their own budget.
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000/trips/miami-demo
+npm run dev        # http://localhost:3000/t/miami-demo (in fixtures mode the link is the fixture name)
 npm test           # Vitest
 npm run lint && npm run build
 ```
@@ -32,7 +32,7 @@ handles are sample values. It does not create signed-in accounts or link a Group
 In `web/.env.local`, set `TRIP_API_URL=http://127.0.0.1:8000` and
 `TRIP_API_TOKEN` to the same private token as Django. Both environment files are
 gitignored. Start the frontend from `web/` with `npm run dev -- --webpack`, then
-open `http://127.0.0.1:3000/trips/supabase-demo`. The live home page does not list
+open the `/t/<share_token>` link that `seed_demo_trip` prints. The live home page does not list
 trips; use this direct link. Google sign-in requires the separate OAuth setup below.
 
 - **Default: fixtures.** `fixtures/*.json` are generated from the real backend logic
@@ -49,7 +49,7 @@ trips; use this direct link. Google sign-in requires the separate OAuth setup be
 ## Sign-in and the money side
 
 With `TRIP_API_URL` set, the server renders the overview and itinerary from
-`/api/trips/<id>/public`, which has no money in it. The page proxies `/accounts/*`
+`/api/share/<share_token>` (the page is `/t/<share_token>`), which has no money in it. The page proxies `/accounts/*`
 (Google sign-in) and `/api/me/*` to Django (see `proxy.ts`), so the session cookie is on
 this site's domain, and the money section (`components/MoneySection.tsx`) loads
 `/api/me/trips/<id>` in the browser. It:

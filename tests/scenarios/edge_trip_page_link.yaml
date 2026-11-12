@@ -1,0 +1,22 @@
+kind: edge
+title: Asking for the trip page gets its share link, and nothing changes
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only,
+         share_token: k7rm4xq2pa8d}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: mia
+    text: "@tripbot whats the link to the trip page again"
+    expect:
+      forbid_mutations: true
+      messages:
+        - {to: group, contains: [/t/k7rm4xq2pa8d]}
+    golden:
+      messages:
+        - {to: group, text: "Here's the trip page: http://localhost:3000/t/k7rm4xq2pa8d. Anyone with the link sees the plan; sign in there to see expenses, who owes who, and budgets."}

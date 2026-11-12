@@ -19,6 +19,7 @@ import re
 from datetime import date, datetime, time, timedelta
 from urllib.parse import quote_plus
 
+from agent import config
 from agent.backend.core import rules
 from agent.backend.protocol import BACKEND_TOOLS, ToolError
 from agent.travel import nearby, osm, planner
@@ -280,7 +281,7 @@ class TripEngine:
         for k in ("start_date", "end_date"):
             if k in fields:
                 fields[k] = parse_day(str(fields[k]), k)
-        trip = Trip(id=t["id"], name=t.get("name", t["id"]), **fields)
+        trip = Trip(id=t["id"], name=t.get("name", t["id"]), share_token=t.get("share_token"), **fields)
         if "leader" in t:
             trip.leader_id = t["leader"]
         self.trips[trip.id] = trip
@@ -1140,7 +1141,9 @@ class TripEngine:
                      "base_currency": trip.base_currency, "group_budget_cents": trip.group_budget,
                      "leader_id": trip.leader_id, "leader_approval": sorted(trip.leader_approval),
                      "auto_log_mode": trip.auto_log_mode, "planning_notes": trip.planning_notes,
-                     "lodging": trip.lodging, "home_city": trip.home_city},
+                     "lodging": trip.lodging, "home_city": trip.home_city,
+                     # The trip page, for "what's the link?". None until the database gives the trip a token.
+                     "page_url": f"{config.TRIP_PAGE_URL}/t/{trip.share_token}" if trip.share_token else None},
             "members": [{"id": p.id, "name": p.name, "handle": p.payment_handle,
                          "active": p.active, "budget_set": p.budget is not None,
                          "budget_cents": p.budget.total_cents if p.budget else None}

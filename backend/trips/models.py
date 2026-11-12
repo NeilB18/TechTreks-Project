@@ -5,8 +5,17 @@ currency, with the original amount, currency and FX rate kept alongside.
 Rows within a trip keep their order through `position`.
 """
 
+import secrets
+
 from django.conf import settings
 from django.db import models
+
+SHARE_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"  # no 0/o, 1/l/i
+
+
+def new_share_token() -> str:
+    """12 characters, about 59 bits: not guessable, and short enough to read off a phone."""
+    return "".join(secrets.choice(SHARE_ALPHABET) for _ in range(12))
 
 
 class Trip(models.Model):
@@ -26,6 +35,8 @@ class Trip(models.Model):
     ideas = models.JSONField(default=list)  # places the group wants to do, not on a day yet (up to 20)
     lodging = models.JSONField(null=True, blank=True)  # where the group is staying, found on the map
     home_city = models.CharField(max_length=100, null=True, blank=True)  # where the group flies from
+    # The trip page's address (/t/<share_token>). Random, so nobody can guess another trip's page.
+    share_token = models.CharField(max_length=16, unique=True, default=new_share_token)
 
     def __str__(self):
         return self.name

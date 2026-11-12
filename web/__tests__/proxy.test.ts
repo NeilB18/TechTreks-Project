@@ -14,8 +14,8 @@ describe("proxy", () => {
       proxy(new NextRequest(`https://tripbot.vercel.app${path}`)).headers.get("x-middleware-rewrite");
     expect(rewrite("/api/me/link-code")).toBe("https://backend.example/api/me/link-code");
     expect(rewrite("/api/me/trips/miami/budget")).toBe("https://backend.example/api/me/trips/miami/budget");
-    expect(rewrite("/accounts/google/login/?next=/trips/miami"))
-      .toBe("https://backend.example/accounts/google/login/?next=/trips/miami");
+    expect(rewrite("/accounts/google/login/?next=/t/k7rm4xq2pa8d"))
+      .toBe("https://backend.example/accounts/google/login/?next=/t/k7rm4xq2pa8d");
   });
 
   it("passes the page's host and scheme, and skips ngrok's warning page", () => {

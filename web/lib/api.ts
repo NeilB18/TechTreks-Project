@@ -25,18 +25,18 @@ async function fromApi<T>(route: string): Promise<T | null> {
   return (await res.json()) as T;
 }
 
-/** What anyone with the trip's link sees. */
-export async function getPublicTrip(tripId: string): Promise<PublicTrip | null> {
-  if (API_URL) return fromApi<PublicTrip>(`/api/trips/${encodeURIComponent(tripId)}/public`);
-  const data = await getFixtureTrip(tripId);
+/** What anyone with the trip's link (/t/<share_token>) sees. In fixtures mode the token is the fixture's name. */
+export async function getSharedTrip(token: string): Promise<PublicTrip | null> {
+  if (API_URL) return fromApi<PublicTrip>(`/api/share/${encodeURIComponent(token)}`);
+  const data = await getFixtureTrip(token);
   return data && toPublicTrip(data.detail);
 }
 
 /** A fixture's full trip, money included. Fixtures mode only (sample data, no sign-in). */
-export async function getFixtureTrip(tripId: string): Promise<TripPageData | null> {
-  if (API_URL || !/^[\w-]+$/.test(tripId)) return null;
+export async function getFixtureTrip(name: string): Promise<TripPageData | null> {
+  if (API_URL || !/^[\w-]+$/.test(name)) return null;
   try {
-    return JSON.parse(await readFile(path.join(FIXTURE_DIR, `${tripId}.json`), "utf8")) as TripPageData;
+    return JSON.parse(await readFile(path.join(FIXTURE_DIR, `${name}.json`), "utf8")) as TripPageData;
   } catch {
     return null;
   }

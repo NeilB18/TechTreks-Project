@@ -36,7 +36,8 @@ def me(request):
     return JsonResponse({
         "signed_in": True,
         "email": request.user.email,
-        "people": [{"trip_id": p.trip_id, "trip_name": p.trip.name, "person_id": p.person_id, "name": p.name}
+        "people": [{"trip_id": p.trip_id, "trip_name": p.trip.name, "share_token": p.trip.share_token,
+                    "person_id": p.person_id, "name": p.name}
                    for p in people],
     })
 

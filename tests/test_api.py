@@ -4,6 +4,7 @@ import pytest
 from conftest import AGENT_TOKEN
 from django.test import Client
 
+from trips.models import Trip
 from trips.services import DjangoBackend
 
 AUTH = {"Authorization": f"Bearer {AGENT_TOKEN}"}
@@ -63,21 +64,36 @@ def test_trip_reads_include_budgets(client):
     assert client.get("/api/trips/nowhere", headers=AUTH).status_code == 404
 
 
-def test_public_view_has_the_plan_but_no_money(client):
+def test_share_link_has_the_plan_but_no_money(client):
     DjangoBackend().update_trip(trip_id="miami", changes={"group_budget": 90000})
-    assert client.get("/api/trips/miami/public").status_code == 403
-    r = client.get("/api/trips/miami/public", headers=AUTH)
+    token = Trip.objects.get(id="miami").share_token
+    assert client.get(f"/api/share/{token}").status_code == 403
+    r = client.get(f"/api/share/{token}", headers=AUTH)
     assert r.status_code == 200
     body = r.json()
     assert set(body) == {"trip", "members", "activities", "ideas"}
     assert body["trip"]["name"] == "Miami" and "group_budget_cents" not in body["trip"]
-    assert "lodging" not in body["trip"]
+    assert "lodging" not in body["trip"] and "page_url" not in body["trip"]
     assert body["members"] == [{"id": "aarav", "name": "Aarav", "active": True},
                                {"id": "mia", "name": "Mia", "active": True}]
     text = r.content.decode()
     for private in ("venmo", "Dinner", "50000", "90000", "expense"):
         assert private not in text, private
-    assert client.get("/api/trips/nowhere/public", headers=AUTH).status_code == 404
+    # Only the token opens it: not the trip id, not a wrong token, and the old route is gone.
+    assert client.get("/api/share/miami", headers=AUTH).status_code == 404
+    assert client.get("/api/share/aaaaaaaaaaaa", headers=AUTH).status_code == 404
+    assert client.get("/api/trips/miami/public", headers=AUTH).status_code == 404
+
+
+def test_each_trip_gets_its_own_share_token_and_keeps_it(db):
+    b = DjangoBackend()
+    for tid in ("a", "b"):
+        b.load_seed({"trip": {"id": tid, "name": tid}, "members": [{"id": "x", "name": "X"}]})
+    a, bb = (Trip.objects.get(id=t).share_token for t in ("a", "b"))
+    assert len(a) == 12 and a != bb
+    b.update_trip(trip_id="a", changes={"destination": "Miami"})  # a save doesn't change it
+    assert Trip.objects.get(id="a").share_token == a
+    assert b.summary("a")["trip"]["page_url"].endswith(f"/t/{a}")
 
 
 def test_expense_and_poll_ids_are_unique_across_trips(db):

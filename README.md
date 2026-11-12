@@ -60,7 +60,7 @@ The live Qwen scenarios run only when started by hand: Actions → Tests → Run
 
 ## Agent evals
 
-There are 29 scenarios: the 12 worked examples plus 17 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
+There are 42 scenarios: the 12 worked examples plus 30 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
 
 - prompt injection (fake approvals, impersonating the leader)
 - staying quiet
@@ -68,6 +68,8 @@ There are 29 scenarios: the 12 worked examples plus 17 edge cases (`tests/scenar
 - ambiguous expenses, foreign currency, slang and typos, corrections mid-thread
 - multi-day settle-up
 - polls, reminders and onboarding
+- planning in steps, editing drafts, lodging, nearby search and picking a destination
+- posting the trip page's link
 
 ```bash
 .venv/bin/python scripts/eval_report.py              # live Qwen, every scenario 3 times
@@ -109,7 +111,9 @@ API (all routes need `Authorization: Bearer $AGENT_API_TOKEN`; the dev default i
 - `POST /api/tools/<tool_name>`: any of the 26 tools, with the tool's arguments as the JSON body. Returns 400 `{"error": ...}` on bad input.
 - `GET /api/trips/<id>/summary`: the state injected into each agent turn.
 - `GET /api/trips/<id>` and `GET /api/trips/<id>/balances`: the full trip (money and budgets included) and balances.
-- `GET /api/trips/<id>/public`: what the trip page shows anyone with the link: the overview and itinerary, with no expenses, balances, budgets, group budget, payment handles or lodging (`trips/public.py`).
+- `GET /api/share/<share_token>`: what the trip page (`/t/<share_token>`) shows anyone with the link: the overview and itinerary, with no expenses, balances, budgets, group budget, payment handles or lodging (`trips/public.py`). Each trip gets a random 12-character `share_token`, so knowing a trip's id isn't enough.
+
+The bot posts the trip page's link when someone asks for it. Set `TRIP_PAGE_URL` in `.env` to the website's address (default `http://localhost:3000`).
 
 The agent talks to it with `agent/backend/http.py` (`HttpBackend`). See `.env.example` for the settings.
 

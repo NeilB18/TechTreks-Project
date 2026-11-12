@@ -25,6 +25,7 @@ export type TripInfo = {
   leader_approval: string[];
   auto_log_mode: string | null;
   planning_notes?: string | null; // interests and pace, for itinerary drafts
+  page_url?: string | null; // the trip page, <TRIP_PAGE_URL>/t/<share_token> (full trip only)
   lodging?: Lodging | null; // not shown on the page yet: an address belongs behind sign-in
   home_city?: string | null; // where the group flies from
 };
@@ -101,7 +102,7 @@ export type Balances = {
 
 export type TripPageData = { detail: TripDetail; balances: Balances };
 
-// What anyone with the trip's link sees (GET /api/trips/<id>/public, backend/trips/public.py):
+// What anyone with the trip's link sees (GET /api/share/<share_token>, backend/trips/public.py):
 // the overview and itinerary. No expenses, balances, budgets, group budget, handles or lodging.
 export type PublicTrip = {
   trip: Pick<TripInfo, "id" | "name" | "status" | "destination" | "start_date" | "end_date" | "target_break" | "base_currency" | "leader_id">;
@@ -116,7 +117,12 @@ export type MyTrip = TripPageData & { person_id: string; budget: BudgetStatus | 
 // Signed-in API (/api/me/*, proxied to Django). The caller's own linked trip member.
 export type Me =
   | { signed_in: false; login_url: string }
-  | { signed_in: true; email: string; people: { trip_id: string; trip_name: string; person_id: string; name: string }[] };
+  | {
+      signed_in: true;
+      email: string;
+      // share_token: the trip page is /t/<share_token>.
+      people: { trip_id: string; trip_name: string; share_token: string; person_id: string; name: string }[];
+    };
 
 export type BudgetStatus = {
   person_id: string;

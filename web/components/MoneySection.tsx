@@ -29,10 +29,12 @@ function csrfToken(): string {
  */
 export function MoneySection({
   tripId,
+  pagePath,
   live,
   sample,
 }: {
   tripId: string;
+  pagePath: string; // where sign-in comes back to: this trip page, /t/<share_token>
   live: boolean;
   sample: TripPageData | null;
 }) {
@@ -87,7 +89,7 @@ export function MoneySection({
           <>
             <p>Only people on this trip can see what&rsquo;s been spent, who owes who, and everyone&rsquo;s budget.</p>
             <a
-              href={`/accounts/google/login/?next=/trips/${encodeURIComponent(tripId)}`}
+              href={`/accounts/google/login/?next=${pagePath}`}
               className="mt-3 inline-block rounded-full bg-accent px-3 py-1.5 font-medium text-background hover:opacity-90"
             >
               Sign in with Google
