@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 import { csrfToken } from "@/lib/post";
 import { useMe } from "@/lib/me";
@@ -34,8 +35,23 @@ export function TopBar({ live }: { live: boolean }) {
 
 function AccountMenu({ me }: { me: Extract<Me, { signed_in: true }> }) {
   const name = me.people[0]?.name ?? me.email;
+  const menu = useRef<HTMLDetailsElement>(null);
+  // Close on Escape or a tap anywhere else, like a real menu.
+  useEffect(() => {
+    const close = (e: Event) => {
+      const d = menu.current;
+      if (!d?.open) return;
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !d.contains(e.target as Node)) d.open = false;
+    };
+    document.addEventListener("keydown", close);
+    document.addEventListener("click", close);
+    return () => {
+      document.removeEventListener("keydown", close);
+      document.removeEventListener("click", close);
+    };
+  }, []);
   return (
-    <details className="relative">
+    <details ref={menu} className="relative">
       <summary
         aria-label={`Account: ${name}`}
         className="flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-pop font-bold text-ground [&::-webkit-details-marker]:hidden"

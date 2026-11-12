@@ -15,6 +15,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" data-theme="sunset" className={`${display.variable} ${body.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
+        <a href="#main" className="sr-only z-50 rounded-full bg-pop px-4 py-2 font-bold text-ground focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+          Skip to content
+        </a>
         {children}
       </body>
     </html>

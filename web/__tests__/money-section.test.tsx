@@ -45,6 +45,12 @@ describe("MoneySection", () => {
     expect(screen.getByRole("link", { name: "Sign in with Google" }).getAttribute("href")).toBe("/t/miami-demo?as=leo");
     cleanup();
     render(<MoneySection tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} previewAs="not-linked" />);
+    expect(screen.getByRole("heading", { name: "You’re not on this trip" })).toBeTruthy();
+    // Wrong Google account: sign out and come back to this trip page.
+    const other = screen.getByRole("button", { name: "Other Google account" }).closest("form")!;
+    expect(other.getAttribute("action")).toBe("/accounts/logout/");
+    expect((other.elements.namedItem("next") as HTMLInputElement).value).toBe("/t/miami-demo");
+    expect(screen.getByRole("link", { name: "My trips" }).getAttribute("href")).toBe("/trips");
     fireEvent.click(screen.getByRole("button", { name: "Get my link code" }));
     expect(screen.getByText("@tripbot link K7RM4X")).toBeTruthy();
   });

@@ -13,7 +13,7 @@ export default async function Home() {
   const samples = await listFixtureTrips();
   return (
     <>
-      <main className="mx-auto w-full max-w-2xl overflow-hidden">
+      <main id="main" className="mx-auto w-full max-w-2xl overflow-hidden">
         <TopBar live={!usingFixtures} />
 
         <header className="flex flex-col gap-4 px-5 pt-9">

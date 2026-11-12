@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Link your trip" };
 export default function LinkPage() {
   return (
     <>
-      <main className="mx-auto w-full max-w-2xl">
+      <main id="main" className="mx-auto w-full max-w-2xl">
         <TopBar live={!usingFixtures} />
         <header className="flex flex-col gap-2.5 px-5 pt-6">
           <h1 className="display text-[40px] leading-none">One last step: tell the bot it&rsquo;s you</h1>
