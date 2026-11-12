@@ -1,5 +1,11 @@
+"use client";
+
+import { useState } from "react";
+
 import { Avatars } from "@/components/Avatars";
+import { BudgetForm } from "@/components/BudgetForm";
 import { CopyButton } from "@/components/CopyButton";
+import { MarkSent } from "@/components/MarkSent";
 import { formatMoney, handleKind, listNames, payLink, warningText } from "@/lib/format";
 import type { BudgetStatus, Expense, Member, MyTrip, Payment } from "@/lib/types";
 
@@ -14,7 +20,10 @@ const GROUPS: { label: string; categories: string[] }[] = [
   { label: "Other", categories: ["OTHER"] },
 ];
 
-export function Money({ data }: { data: MyTrip }) {
+/** What the member can do here: mark payments as sent, change their budget. Sample mode saves nothing. */
+export type MoneyActions = { tripId: string; preview: boolean; reload: () => void };
+
+export function Money({ data, actions }: { data: MyTrip; actions?: MoneyActions }) {
   const { detail, balances } = data;
   const { trip, members } = detail;
   const currency = trip.base_currency;
@@ -43,7 +52,7 @@ export function Money({ data }: { data: MyTrip }) {
             <span className="label-caps">You pay</span>
             <ul>
               {youPay.map((p) => (
-                <PayRow key={p.to} p={p} who={name(p.to)} money={money} tripName={trip.name} />
+                <PayRow key={p.to} p={p} who={name(p.to)} money={money} tripName={trip.name} currency={currency} actions={actions} />
               ))}
             </ul>
           </article>
@@ -86,7 +95,7 @@ export function Money({ data }: { data: MyTrip }) {
 
       <section aria-labelledby="budgets" className="flex scroll-mt-4 flex-col gap-3.5 pt-7">
         <h2 id="budgets" className="display text-[28px]">Budgets</h2>
-        <Budgets data={data} money={money} name={name} />
+        <Budgets data={data} money={money} name={name} actions={actions} />
       </section>
 
       <section aria-labelledby="spent" className="flex scroll-mt-4 flex-col gap-3.5 pt-7">
@@ -145,7 +154,9 @@ function Headline({ youPay, youGet, money, name, colorOf }: {
   );
 }
 
-function PayRow({ p, who, money, tripName }: { p: Payment; who: string; money: Fmt; tripName: string }) {
+function PayRow({ p, who, money, tripName, currency, actions }: {
+  p: Payment; who: string; money: Fmt; tripName: string; currency: string; actions?: MoneyActions;
+}) {
   const link = payLink(p.handle, p.amount_cents, tripName);
   return (
     <li className="flex flex-col gap-2.5 border-t border-line py-3 first:mt-2">
@@ -165,13 +176,19 @@ function PayRow({ p, who, money, tripName }: { p: Payment; who: string; money: F
         {link?.kind === "other" && (
           <CopyButton text={link.handle} label={`Copy ${handleKind(link.handle)}`} className="btn btn-pop flex-1" />
         )}
-        {!link && <p className="text-sm text-muted">No payment handle yet. {who} can tell @tripbot theirs.</p>}
+        {!link && <p className="flex-1 text-sm text-muted">No payment handle yet. {who} can tell @tripbot theirs.</p>}
+        {actions && (
+          <MarkSent tripId={actions.tripId} to={p.to} who={who} owedCents={p.amount_cents} currency={currency}
+            preview={actions.preview} onSaved={actions.reload} />
+        )}
       </div>
     </li>
   );
 }
 
-function Budgets({ data, money, name }: { data: MyTrip; money: Fmt; name: (id: string) => string }) {
+function Budgets({ data, money, name, actions }: {
+  data: MyTrip; money: Fmt; name: (id: string) => string; actions?: MoneyActions;
+}) {
   const { detail, budget: mine } = data;
   const { trip, members } = detail;
   const all = data.budgets ?? {};
@@ -183,7 +200,7 @@ function Budgets({ data, money, name }: { data: MyTrip; money: Fmt; name: (id: s
           Group budget: <span className="font-bold text-ink tabular-nums">{money(trip.group_budget_cents)} each</span>
         </p>
       )}
-      {mine && <MyBudget b={mine} money={money} />}
+      {mine && <MyBudget b={mine} money={money} actions={actions} />}
       <ul className={mine ? "mt-3.5" : ""}>
         {rest.map((m) => (
           <OtherBudget key={m.id} m={m} b={all[m.id]} money={money} name={name} />
@@ -193,13 +210,20 @@ function Budgets({ data, money, name }: { data: MyTrip; money: Fmt; name: (id: s
   );
 }
 
-function MyBudget({ b, money }: { b: BudgetStatus; money: Fmt }) {
+function MyBudget({ b, money, actions }: { b: BudgetStatus; money: Fmt; actions?: MoneyActions }) {
+  const [editing, setEditing] = useState(false);
+  const form = (onCancel?: () => void) =>
+    actions && (
+      <BudgetForm tripId={actions.tripId} currentCents={b.total_cents ?? null} preview={actions.preview}
+        onSaved={() => { setEditing(false); actions.reload(); }} onCancel={onCancel} />
+    );
   if (!b.budget_set || b.total_cents == null) {
     return (
       <div>
         <span className="label-caps">You</span>
         <p className="mt-1.5 font-bold">You haven&rsquo;t set a budget</p>
-        <p className="text-sm text-muted">Tell @tripbot in the group chat, like &ldquo;my budget is $800&rdquo;.</p>
+        <p className="text-sm text-muted">@tripbot uses it to pick places that fit. You can also tell it in the chat.</p>
+        {form()}
       </div>
     );
   }
@@ -208,7 +232,14 @@ function MyBudget({ b, money }: { b: BudgetStatus; money: Fmt }) {
   const pct = (c: number) => `${Math.min(100, Math.max(0, (c / Math.max(total, 1)) * 100))}%`;
   return (
     <div>
-      <span className="label-caps">You</span>
+      <div className="flex items-baseline justify-between">
+        <span className="label-caps">You</span>
+        {actions && !editing && (
+          <button type="button" onClick={() => setEditing(true)} className="btn min-h-11 px-0 text-sm text-pop">
+            Change
+          </button>
+        )}
+      </div>
       <p className="mt-2 flex items-baseline gap-2">
         <span className="display text-[34px] tabular-nums">{money(Math.abs(left))}</span>
         <span className="text-muted">{left < 0 ? "over" : "left"} of {money(total)}</span>
@@ -228,6 +259,7 @@ function MyBudget({ b, money }: { b: BudgetStatus; money: Fmt }) {
           ))}
         </ul>
       )}
+      {editing && form(() => setEditing(false))}
     </div>
   );
 }

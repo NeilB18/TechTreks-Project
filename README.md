@@ -150,7 +150,7 @@ People join the trip the first time they @mention the bot. Anyone can save their
 
 ## Google sign-in (Phase 5)
 
-Google-only sign-in through django-allauth. A signed-in person links themselves to their trip member by posting `@tripbot link <code>` in the group, After that, `GET /api/me/trips/<id>` returns the money side of the trip page (the full trip, balances and their own budget), and `GET /api/me/trips/<id>/budget` just their budget. Anyone else gets 401 (signed out) or 403 (not on the trip). Setup: [docs/google-signin.md](docs/google-signin.md).
+Google-only sign-in through django-allauth. A signed-in person links themselves to their trip member by posting `@tripbot link <code>` in the group, After that, `GET /api/me/trips/<id>` returns the money side of the trip page (the full trip, balances and their own budget), and `GET /api/me/trips/<id>/budget` just their budget. Anyone else gets 401 (signed out) or 403 (not on the trip). Members can also act from the page: `POST /api/me/trips/<id>/payments` marks a payment they sent (up to what they owe that person; the same `request_id` twice records it once), `POST /api/me/trips/<id>/budget` changes their own total (category limits are kept), and `POST /api/me/trips/<id>/theme` picks the page's look. After a payment or a budget change the bot posts one short line in the group, like "Mia sent Aarav $25." Setup: [docs/google-signin.md](docs/google-signin.md).
 
 ## Trip page (Phase 5)
 
