@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Avatars } from "@/components/Avatars";
@@ -10,6 +9,7 @@ import { Itinerary } from "@/components/Itinerary";
 import { MoneySection } from "@/components/MoneySection";
 import { PreviewBar } from "@/components/PreviewBar";
 import { ThemePicker } from "@/components/ThemePicker";
+import { TopBar } from "@/components/TopBar";
 import { TripArt } from "@/components/TripArt";
 import { getFixtureTrip, getSharedTrip, usingFixtures } from "@/lib/api";
 import { countdown, formatDayRange } from "@/lib/format";
@@ -50,11 +50,7 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
     <div data-theme={theme} className="flex flex-1 flex-col bg-ground text-ink">
     <main className="mx-auto w-full max-w-2xl">
       {sample && <PreviewBar sample={sample} pagePath={pagePath} as={previewAs} theme={previewTheme} />}
-      <nav className="flex items-center justify-between px-5 py-3.5">
-        <Link href="/" className="display text-xl tracking-tight text-ink no-underline">
-          techtreks
-        </Link>
-      </nav>
+      <TopBar live={!usingFixtures} />
 
       <div className="relative overflow-hidden">
         <TripArt theme={theme} />

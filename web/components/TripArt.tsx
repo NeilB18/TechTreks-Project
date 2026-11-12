@@ -2,9 +2,9 @@ import type { Theme } from "@/lib/types";
 
 // The banner art at the top of a trip page: flat shapes in the theme's colours, no photos.
 // Sunset: a striped sun over a wave. Night Swim: a moon over waves. Campfire: mountains and stars.
-export function TripArt({ theme = "sunset" }: { theme?: Theme }) {
+export function TripArt({ theme = "sunset", className = "block h-[196px] w-full" }: { theme?: Theme; className?: string }) {
   return (
-    <svg viewBox="0 0 390 196" preserveAspectRatio="xMidYMax slice" className="block h-[196px] w-full" aria-hidden="true">
+    <svg viewBox="0 0 390 196" preserveAspectRatio="xMidYMax slice" className={className} aria-hidden="true">
       {theme === "night_swim" ? <NightSwim /> : theme === "campfire" ? <Campfire /> : <Sunset />}
     </svg>
   );
