@@ -6,7 +6,7 @@ removed, so anything new added to get_trip stays private until it's put here on 
 """
 
 TRIP_FIELDS = ("id", "name", "status", "destination", "start_date", "end_date", "target_break",
-               "base_currency", "leader_id")
+               "base_currency", "leader_id", "theme")
 MEMBER_FIELDS = ("id", "name", "active")
 ACTIVITY_FIELDS = ("activity_id", "name", "location", "start", "end", "est_cost_cents", "cost_is_per_person",
                    "est_per_person_cents", "attendees", "important", "booking_url", "lat", "lon", "verified",

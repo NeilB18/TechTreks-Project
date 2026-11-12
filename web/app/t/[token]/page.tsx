@@ -4,13 +4,17 @@ import { notFound } from "next/navigation";
 
 import { Avatars } from "@/components/Avatars";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
+import { Footer } from "@/components/Footer";
 import { Ideas } from "@/components/Ideas";
 import { Itinerary } from "@/components/Itinerary";
 import { MoneySection } from "@/components/MoneySection";
 import { PreviewBar } from "@/components/PreviewBar";
+import { ThemePicker } from "@/components/ThemePicker";
 import { TripArt } from "@/components/TripArt";
 import { getFixtureTrip, getSharedTrip, usingFixtures } from "@/lib/api";
 import { countdown, formatDayRange } from "@/lib/format";
+import { THEMES } from "@/lib/themes";
+import type { Theme } from "@/lib/types";
 
 export async function generateMetadata(props: PageProps<"/t/[token]">): Promise<Metadata> {
   const { token } = await props.params;
@@ -25,7 +29,7 @@ const STATUS_LABEL = { PLANNING: "Planning", BOOKED: "Booked", ACTIVE: "On the t
 // for signed-in members of the trip. Look: the "Sunset" artboard on the design canvas.
 export default async function TripPage(props: PageProps<"/t/[token]">) {
   const { token } = await props.params;
-  const { as } = await props.searchParams;
+  const { as, theme: themeParam } = await props.searchParams;
   const data = await getSharedTrip(token);
   if (!data) notFound();
   const { trip, members } = data;
@@ -36,11 +40,16 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
   const soon = countdown(trip.start_date, trip.end_date, new Date().toISOString().slice(0, 10));
   const pagePath = `/t/${encodeURIComponent(token)}`;
   const previewAs = sample && typeof as === "string" ? as : undefined;
+  // Sample mode can preview a theme with ?theme= (the picker does that instead of saving).
+  const previewTheme = sample ? THEMES.find((t) => t.id === themeParam)?.id : undefined;
+  const theme: Theme = previewTheme ?? trip.theme ?? "sunset";
+  const previewIsMember = !!sample && previewAs !== "signed-out" && previewAs !== "not-linked";
   const where = [trip.destination ?? "Destination not picked yet", soon].filter(Boolean).join(" · ");
 
   return (
+    <div data-theme={theme} className="flex flex-1 flex-col bg-ground text-ink">
     <main className="mx-auto w-full max-w-2xl">
-      {sample && <PreviewBar sample={sample} pagePath={pagePath} as={previewAs} />}
+      {sample && <PreviewBar sample={sample} pagePath={pagePath} as={previewAs} theme={previewTheme} />}
       <nav className="flex items-center justify-between px-5 py-3.5">
         <Link href="/" className="display text-xl tracking-tight text-ink no-underline">
           techtreks
@@ -48,7 +57,7 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
       </nav>
 
       <div className="relative overflow-hidden">
-        <TripArt />
+        <TripArt theme={theme} />
         <span className="sticker absolute top-[74px] left-5 -rotate-6">{STATUS_LABEL[trip.status]}</span>
       </div>
 
@@ -70,6 +79,11 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
         <p className="sr-only">Going: {active.map((m) => m.name).join(", ")}</p>
         <div className="mt-2 flex gap-2.5">
           <CopyLinkButton />
+          <ThemePicker
+            tripId={trip.id}
+            theme={theme}
+            preview={sample ? { member: previewIsMember, pagePath, as: previewAs } : null}
+          />
         </div>
       </header>
 
@@ -89,5 +103,7 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
         <MoneySection tripId={trip.id} pagePath={pagePath} live={!usingFixtures} sample={sample} previewAs={previewAs} />
       </div>
     </main>
+    <Footer />
+    </div>
   );
 }

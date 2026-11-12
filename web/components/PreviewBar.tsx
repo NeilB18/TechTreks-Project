@@ -5,7 +5,7 @@ import type { TripPageData } from "@/lib/types";
  * Sample mode only (no backend): see the page as someone signed out, someone not on the trip,
  * or any member. It never shows on the real site, where TRIP_API_URL is set.
  */
-export function PreviewBar({ sample, pagePath, as }: { sample: TripPageData; pagePath: string; as?: string }) {
+export function PreviewBar({ sample, pagePath, as, theme }: { sample: TripPageData; pagePath: string; as?: string; theme?: string }) {
   const current = as ?? previewMember(sample);
   const options: [string, string][] = [
     ["signed-out", "Signed out"],
@@ -19,7 +19,7 @@ export function PreviewBar({ sample, pagePath, as }: { sample: TripPageData; pag
         {options.map(([value, label]) => (
           <li key={value} className="shrink-0">
             <a
-              href={`${pagePath}?as=${value}`}
+              href={`${pagePath}?as=${value}${theme ? `&theme=${theme}` : ""}`}
               aria-current={value === current ? "page" : undefined}
               className={`btn min-h-11 px-3.5 text-sm ${value === current ? "btn-pop" : "btn-outline"}`}
             >

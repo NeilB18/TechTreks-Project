@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { Footer } from "@/components/Footer";
 import { listFixtureTrips, usingFixtures } from "@/lib/api";
 
 export default async function Home() {
   const trips = await listFixtureTrips();
   return (
+    <>
     <main className="mx-auto w-full max-w-2xl px-4 py-10">
       <h1 className="text-2xl font-semibold">Trip pages</h1>
       {usingFixtures ? (
@@ -27,5 +29,7 @@ export default async function Home() {
         <p className="mt-2 text-sm text-muted">Open the link @tripbot posted in your group chat.</p>
       )}
     </main>
+    <Footer />
+    </>
   );
 }

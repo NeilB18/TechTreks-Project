@@ -5,6 +5,7 @@ shared with the trip, but the page shows your own first). People who aren't link
 of the trip get 403, and anonymous requests get 401.
 """
 
+import json
 from functools import wraps
 
 from django.conf import settings
@@ -13,6 +14,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from accounts.services import new_code
+from agent.backend.protocol import ToolError
 from trips.models import Person
 from trips.services import DjangoBackend
 
@@ -84,3 +86,19 @@ def my_budget(request, trip_id: str):
         return JsonResponse({"error": "You're not linked to a member of this trip"}, status=403)
     status = DjangoBackend().get_budget_status(trip_id=trip_id, person_id=person.person_id)
     return JsonResponse({"person_id": person.person_id, "name": person.name, "budget": status})
+
+
+@require_POST
+@login_required_json
+def my_trip_theme(request, trip_id: str):
+    """A member picks the trip page's look. Only how the page looks: no leader approval, no group post."""
+    person = Person.objects.filter(trip_id=trip_id, user=request.user).first()
+    if person is None:
+        return JsonResponse({"error": "You're not linked to a member of this trip"}, status=403)
+    try:
+        theme = json.loads(request.body or b"{}").get("theme")
+        return JsonResponse(DjangoBackend().set_theme(trip_id, theme))
+    except (ValueError, AttributeError):
+        return JsonResponse({"error": "Send {\"theme\": ...} as JSON"}, status=400)
+    except ToolError as e:
+        return JsonResponse({"error": str(e)}, status=400)

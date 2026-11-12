@@ -37,6 +37,10 @@ class Trip(models.Model):
     home_city = models.CharField(max_length=100, null=True, blank=True)  # where the group flies from
     # The trip page's address (/t/<share_token>). Random, so nobody can guess another trip's page.
     share_token = models.CharField(max_length=16, unique=True, default=new_share_token)
+    # The trip page's look (sunset, night_swim, campfire): the bot picks it with the destination,
+    # and once a member picks one on the page (theme_set_by "member"), the bot leaves it.
+    theme = models.CharField(max_length=16, null=True, blank=True)
+    theme_set_by = models.CharField(max_length=8, null=True, blank=True)
 
     def __str__(self):
         return self.name

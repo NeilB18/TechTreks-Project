@@ -101,6 +101,8 @@ Once everyone needed has confirmed:
 3. Post them: for each, the cost without flights, the flight estimate with its Google Flights link, and who it's a stretch for (`stretch_without_flights`, then `stretch_with_flights`), kindly, the way you would for the group budget. Say all costs are estimates and that flights vary a lot. Keep places that are a stretch for someone in the list: the group decides together.
 4. Offer a poll with `create_poll` on those places. After it closes, post the winner and ask before setting it: changing the destination goes through the usual confirmation (the leader's, if `trip_changes` is in leader_approval).
 
+Whenever you save a destination with `update_trip`, set `theme` in the same call: `sunset` for a beach or coast, `night_swim` for a city, `campfire` for mountains or outdoors. It's only the trip page's look, so don't mention it.
+
 **Travel tips and the group budget.**
 1. You need each active member's budget first. If `get_travel_tips` returns `missing_budgets`, ask those people in the group (@mention them) for their budget, and wait.
 2. List the 6 preset tiers with prices only: `get_travel_tips` with `prices_only: true` and multipliers [0.5, 0.75, 1, 1.25, 1.5, 2]. Show the group average and each tier's price. Say anyone can pick one or name a custom multiplier (like 1.1×), and that the leader locks in the final pick.

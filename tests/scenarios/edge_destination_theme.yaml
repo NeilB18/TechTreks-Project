@@ -1,0 +1,27 @@
+kind: edge
+title: Saving the destination also picks the trip page's theme, without mentioning it
+seed:
+  now: "2027-01-20T12:00:00"
+  trip: {id: sb27, name: Spring Break 2027, status: PLANNING, target_break: spring break,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: aarav
+    text: "@tripbot the poll's closed and Denver won. I'm the leader, go ahead and set Denver as the destination"
+    expect:
+      calls:
+        - {name: update_trip, args: {changes: {destination: Denver, theme: campfire}}}
+      messages:
+        - {to: group, contains: [Denver], not_contains: [theme, campfire]}
+      end_state:
+        - trip_contains: {destination: denver}
+        - trip: {theme: campfire}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: sb27, changes: {destination: Denver, theme: campfire}}}
+      messages:
+        - {to: group, text: "Done: Spring Break 2027 is going to Denver! Want me to start planning the days?"}

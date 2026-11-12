@@ -3,7 +3,7 @@ import type { Activity, PublicTrip, TripDetail } from "./types";
 // Mirrors backend/trips/public.py, for fixtures mode (no backend). Fields are listed, not
 // removed, so anything new in the full trip stays off the share-link view until added here.
 const TRIP_FIELDS = [
-  "id", "name", "status", "destination", "start_date", "end_date", "target_break", "base_currency", "leader_id",
+  "id", "name", "status", "destination", "start_date", "end_date", "target_break", "base_currency", "leader_id", "theme",
 ] as const;
 const ACTIVITY_FIELDS = [
   "activity_id", "name", "location", "start", "end", "est_cost_cents", "cost_is_per_person", "est_per_person_cents",
