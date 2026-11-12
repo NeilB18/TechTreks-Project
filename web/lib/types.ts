@@ -149,3 +149,17 @@ export type MyBudget = {
 };
 
 export type LinkCode = { code: string; expires_at: string; instructions: string };
+
+// One row of My trips (GET /api/me/trips). net_cents: + you're owed, - you owe.
+export type TripCard = {
+  trip_id: string;
+  name: string;
+  share_token: string;
+  status: TripInfo["status"];
+  destination: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  theme: Theme | null;
+  going: number;
+  net_cents: number;
+};

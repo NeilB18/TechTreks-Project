@@ -65,6 +65,21 @@ def link_code(request):
 
 @require_GET
 @login_required_json
+def my_trips(request):
+    """My trips: every trip the signed-in account is linked to, with what you owe or are owed there."""
+    backend = DjangoBackend()
+    out = []
+    for p in Person.objects.filter(user=request.user).select_related("trip").order_by("trip__start_date"):
+        t = p.trip
+        net = backend.get_balances(trip_id=t.id)["net_balances"].get(p.person_id, 0)
+        out.append({"trip_id": t.id, "name": t.name, "share_token": t.share_token, "status": t.status,
+                    "destination": t.destination, "start_date": t.start_date, "end_date": t.end_date,
+                    "theme": t.theme, "going": t.people.filter(active=True).count(), "net_cents": net})
+    return JsonResponse({"trips": out})
+
+
+@require_GET
+@login_required_json
 def my_trip(request, trip_id: str):
     """The money side of the trip page: the full trip, balances, your own budget, and everyone's
     (budgets are shared with the trip; the page shows yours first).

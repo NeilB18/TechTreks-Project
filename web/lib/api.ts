@@ -3,8 +3,9 @@ import "server-only";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { previewMember } from "./preview";
 import { toPublicTrip } from "./public";
-import type { PublicTrip, TripPageData } from "./types";
+import type { PublicTrip, TripCard, TripPageData } from "./types";
 
 // With TRIP_API_URL set, the page's public part (overview and itinerary) comes from the
 // Django API (server-side only, so the token never reaches the browser), and the money
@@ -50,6 +51,24 @@ export async function listFixtureTrips(): Promise<{ id: string; name: string }[]
     files.map(async (f) => {
       const data = JSON.parse(await readFile(path.join(FIXTURE_DIR, f), "utf8")) as TripPageData;
       return { id: f.replace(/\.json$/, ""), name: data.detail.trip.name };
+    }),
+  );
+}
+
+/** Sample mode's My trips: every fixture, as seen by the person the trip page previews by default. */
+export async function listFixtureCards(): Promise<TripCard[]> {
+  if (API_URL) return [];
+  const files = (await readdir(FIXTURE_DIR)).filter((f) => f.endsWith(".json")).sort();
+  return Promise.all(
+    files.map(async (f) => {
+      const data = JSON.parse(await readFile(path.join(FIXTURE_DIR, f), "utf8")) as TripPageData;
+      const t = data.detail.trip;
+      const me = previewMember(data);
+      return {
+        trip_id: t.id, name: t.name, share_token: f.replace(/\.json$/, ""), status: t.status,
+        destination: t.destination, start_date: t.start_date, end_date: t.end_date, theme: t.theme ?? null,
+        going: data.detail.members.filter((m) => m.active).length, net_cents: data.balances.net_balances[me] ?? 0,
+      };
     }),
   );
 }

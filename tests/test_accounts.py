@@ -154,3 +154,14 @@ def test_google_callback_uses_the_trip_page_host(db, settings):
     assert r.status_code == 302
     assert r["Location"].startswith("https://accounts.google.com/")
     assert "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Faccounts%2Fgoogle%2Flogin%2Fcallback%2F" in r["Location"]
+
+
+def test_my_trips_lists_linked_trips_with_what_you_owe(trip):
+    assert Client().get("/api/me/trips").status_code == 401
+    client, user = signed_in()
+    assert client.get("/api/me/trips").json() == {"trips": []}
+    code = client.post("/api/me/link-code").json()["code"]
+    post_in_group(f"@tripbot link {code}")
+    [t] = client.get("/api/me/trips").json()["trips"]
+    assert t["trip_id"] == "miami" and t["share_token"] == Trip.objects.get(id="miami").share_token
+    assert (t["going"], t["net_cents"], t["status"]) == (2, -6000, "PLANNING")

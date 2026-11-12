@@ -7,8 +7,8 @@ const display = Bricolage_Grotesque({ variable: "--font-display", subsets: ["lat
 const body = Figtree({ variable: "--font-body", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Trip page",
-  description: "Your group trip's plans, expenses and how to settle up.",
+  title: "TechTreks",
+  description: "Plan the trip in the group chat: @tripbot plans the days, splits what everyone spends, and keeps budgets honest.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

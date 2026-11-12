@@ -62,3 +62,12 @@ this site's domain, and the money section (`components/MoneySection.tsx`) loads
 In fixtures mode there's no sign-in, so the fixture's sample money is shown to everyone.
 
 Setup: [../docs/google-signin.md](../docs/google-signin.md).
+
+## Pages
+
+- `/`: the landing page (in sample mode it also lists the sample trips).
+- `/t/<share_token>`: a trip page. In sample mode the token is the fixture's name, and a "Preview as" bar shows the page as someone signed out, someone not on the trip, or any member (`?as=`); the theme picker previews with `?theme=`.
+- `/trips`: My trips (`GET /api/me/trips`): coming up, past, and "Missing a trip?".
+- `/link`: get a link code, post it in the group, and the page opens the trip once the bot sees it.
+
+To see everything on your own computer without the bot: `npm install && npm run dev`, then open `http://localhost:3000`. To check on a phone, open the "Network" address `npm run dev` prints, on the same Wi-Fi.

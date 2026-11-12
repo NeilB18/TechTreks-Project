@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { fetchMe } from "@/lib/me";
 import { postJson } from "@/lib/post";
 import { THEMES } from "@/lib/themes";
-import type { Me, Theme } from "@/lib/types";
+import type { Theme } from "@/lib/types";
 
 /**
  * "Change theme", next to Copy trip link. Only members of the trip see it: live, it asks /api/me/;
@@ -31,10 +32,7 @@ export function ThemePicker({
   useEffect(() => {
     if (preview) return;
     let cancelled = false;
-    fetch("/api/me/", { cache: "no-store" })
-      .then((r) => r.json() as Promise<Me>)
-      .then((me) => !cancelled && setMember(me.signed_in && me.people.some((p) => p.trip_id === tripId)))
-      .catch(() => {});
+    fetchMe().then((me) => !cancelled && setMember(!!me?.signed_in && me.people.some((p) => p.trip_id === tripId)));
     return () => {
       cancelled = true;
     };
