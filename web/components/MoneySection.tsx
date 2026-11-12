@@ -79,8 +79,12 @@ export function MoneySection({
   return (
     // The "members only" card from the design canvas: cream paper with a sticker.
     <section aria-labelledby="money" className="relative mt-3.5 flex flex-col gap-2.5 rounded-[26px] bg-paper p-[22px] text-paper-ink">
-      <span className="sticker absolute -top-3.5 right-[18px] rotate-[8deg] text-[13px]">Members only</span>
-      <h2 id="money" className="display text-2xl leading-tight">Money and budgets</h2>
+      <span className="sticker absolute -top-3.5 right-[18px] rotate-[8deg] text-[13px]">
+        {state.step === "not-linked" ? "Hmm" : "Members only"}
+      </span>
+      <h2 id="money" className="display text-2xl leading-tight">
+        {state.step === "not-linked" ? "You’re not on this trip" : "Money and budgets"}
+      </h2>
       <div className="flex flex-col gap-2.5 text-[15px] leading-snug text-paper-muted">
         {state.step === "loading" && <p>Loading…</p>}
         {state.step === "error" && <p>{state.message}</p>}
@@ -98,7 +102,10 @@ export function MoneySection({
         )}
         {state.step === "not-linked" && (
           <>
-            <p>You&rsquo;re signed in, but not linked to anyone on this trip. If you&rsquo;re in the group chat, link yourself so we know which member you are.</p>
+            <p>
+              You can see the plan, but the money side is only for the people going. If you&rsquo;re in this
+              trip&rsquo;s group chat, link yourself and it opens up.
+            </p>
             {state.code ? (
               <p>
                 Post{" "}
@@ -110,6 +117,25 @@ export function MoneySection({
                 Get my link code
               </button>
             )}
+            <div className="flex gap-2">
+              {/* Wrong account: sign out (a POST with the CSRF token) and come back here to sign in again. */}
+              <form
+                method="post"
+                action="/accounts/logout/"
+                className="flex flex-1"
+                onSubmit={(e) => {
+                  if (preview) return e.preventDefault();
+                  (e.currentTarget.elements.namedItem("csrfmiddlewaretoken") as HTMLInputElement).value = csrfToken();
+                }}
+              >
+                <input type="hidden" name="csrfmiddlewaretoken" defaultValue="" />
+                <input type="hidden" name="next" value={pagePath} />
+                <button type="submit" className="btn min-h-11 flex-1 border-2 border-paper-ink text-sm text-paper-ink">
+                  Other Google account
+                </button>
+              </form>
+              <a href="/trips" className="btn min-h-11 flex-1 border-2 border-paper-ink text-sm text-paper-ink">My trips</a>
+            </div>
           </>
         )}
       </div>

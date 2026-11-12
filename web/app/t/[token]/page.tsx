@@ -48,7 +48,7 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
 
   return (
     <div data-theme={theme} className="flex flex-1 flex-col bg-ground text-ink">
-    <main className="mx-auto w-full max-w-2xl">
+    <main id="main" className="mx-auto w-full max-w-2xl">
       {sample && <PreviewBar sample={sample} pagePath={pagePath} as={previewAs} theme={previewTheme} />}
       <TopBar live={!usingFixtures} />
 

@@ -15,7 +15,7 @@ export default async function MyTripsPage() {
   const sample = usingFixtures ? await listFixtureCards() : null;
   return (
     <>
-      <main className="mx-auto w-full max-w-2xl">
+      <main id="main" className="mx-auto w-full max-w-2xl">
         <TopBar live={!usingFixtures} />
         <h1 className="display px-5 pt-6 text-[46px]">Your trips</h1>
         <MyTripsList sample={sample} today={new Date().toISOString().slice(0, 10)} />
