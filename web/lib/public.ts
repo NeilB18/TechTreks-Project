@@ -7,7 +7,7 @@ const TRIP_FIELDS = [
 ] as const;
 const ACTIVITY_FIELDS = [
   "activity_id", "name", "location", "start", "end", "est_cost_cents", "cost_is_per_person", "est_per_person_cents",
-  "attendees", "important", "booking_url", "lat", "lon", "verified", "maps_url", "kind", "from_idea",
+  "attendees", "important", "booking_url", "slot", "from_idea",
 ] as const;
 
 function pick<T extends object, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
@@ -22,6 +22,6 @@ export function toPublicTrip(detail: TripDetail): PublicTrip {
     members: detail.members.map((m) => pick(m, ["id", "name", "active"] as const)),
     // expense_id is left out on purpose: whether a stop is paid for is money.
     activities: detail.activities.map((a) => pick(a, ACTIVITY_FIELDS) as Activity),
-    ideas: (detail.ideas ?? []).map((i) => pick(i, ["idea_id", "name", "kind", "location"] as const)),
+    ideas: (detail.ideas ?? []).map((i) => pick(i, ["idea_id", "name", "est_cost_cents"] as const)),
   };
 }

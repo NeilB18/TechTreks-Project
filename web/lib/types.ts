@@ -24,16 +24,15 @@ export type TripInfo = {
   leader_id: string | null;
   leader_approval: string[];
   auto_log_mode: string | null;
-  planning_notes?: string | null; // interests and pace, for itinerary drafts
   theme?: Theme | null; // the trip page's look; null: Sunset
   page_url?: string | null; // the trip page, <TRIP_PAGE_URL>/t/<share_token> (full trip only)
-  lodging?: Lodging | null; // not shown on the page yet: an address belongs behind sign-in
-  home_city?: string | null; // where the group flies from
+  lodging?: string | null; // where the group is staying, as they wrote it; members only (an address)
 };
 
 export type Theme = "sunset" | "night_swim" | "campfire";
 
-export type Lodging = { name: string; address: string; lat: number; lon: number; maps_url: string };
+// Parts of the day a plan can be in (trip_model/activity.py SLOTS). A plan in a slot has no clock time.
+export type Slot = "morning" | "lunch" | "afternoon" | "dinner" | "night";
 
 export type Activity = {
   activity_id: string;
@@ -48,11 +47,8 @@ export type Activity = {
   important: boolean;
   booking_url: string | null;
   expense_id: string | null;
-  lat?: number | null;
-  lon?: number | null;
-  verified?: boolean | null; // null: never checked on the map (added by hand)
-  maps_url?: string; // only in the full trip, for stops from an itinerary draft
-  kind?: "food" | "activity" | "night" | null; // null: not a place (a flight, check-in...)
+  // start is just the day ("2027-03-15") unless the group gave a clock time; slot is set when they named one.
+  slot?: Slot | null;
   from_idea?: boolean; // came off the ideas list
 };
 
@@ -82,14 +78,11 @@ export type TripDetail = {
   ideas?: Idea[];
 };
 
-// Places the group wants to do but hasn't put on a day (up to 20), checked on the map when saved.
+// Things the group wants to do but hasn't put on a day (up to 20).
 export type Idea = {
   idea_id: string;
   name: string;
-  kind: "food" | "activity" | "night";
-  location?: string | null;
-  verified?: boolean | null;
-  maps_url?: string;
+  est_cost_cents?: number | null;
   suggested_by?: string | null;
 };
 
@@ -112,7 +105,7 @@ export type PublicTrip = {
   trip: Pick<TripInfo, "id" | "name" | "status" | "destination" | "start_date" | "end_date" | "target_break" | "base_currency" | "leader_id" | "theme">;
   members: Pick<Member, "id" | "name" | "active">[];
   activities: Activity[];
-  ideas: Pick<Idea, "idea_id" | "name" | "kind" | "location">[];
+  ideas: Pick<Idea, "idea_id" | "name" | "est_cost_cents">[];
 };
 
 // The money side, for a signed-in member of the trip (GET /api/me/trips/<id>).

@@ -1,4 +1,4 @@
-import type { Activity, BudgetWarning } from "./types";
+import type { Activity, BudgetWarning, Slot } from "./types";
 
 export function formatMoney(cents: number, currency = "USD"): string {
   const whole = cents % 100 === 0;
@@ -84,23 +84,46 @@ export function tripDayLabel(date: string, start: string | null, end: string | n
   return `Day ${n}`;
 }
 
-/** The stop's own Maps link, or a Google Maps search for its name near the trip (free, no API). */
-export function mapsUrl(a: Activity, destination: string | null): string {
-  if (a.maps_url) return a.maps_url;
-  const near = a.location || destination;
-  const query = near && !a.name.includes(near) ? `${a.name}, ${near}` : a.name;
+/**
+ * A Google Maps search for a name near a place (Google's "Maps URLs": no API key, no cost). Nobody has checked
+ * that it finds the right place.
+ */
+export function mapsSearchUrl(name: string, near: string | null): string {
+  const query = near && !name.includes(near) ? `${name}, ${near}` : name;
   return `https://www.google.com/maps/search/?api=1&${new URLSearchParams({ query })}`;
 }
 
-const KIND_LABEL = { food: "Food", activity: "Activity", night: "Night" } as const;
+/** A Maps search for the stop's name near its location, or the trip's destination. */
+export function mapsUrl(a: Activity, destination: string | null): string {
+  return mapsSearchUrl(a.name, a.location || destination);
+}
 
-/** "Activity · about $20 each": what kind of stop, and its estimated cost. */
+/** "Miami Beach Marina · about $20 each": where it is, and its estimated cost. */
 export function stopDetails(a: Activity, currency: string): string {
   const bits: string[] = [];
-  if (a.kind) bits.push(KIND_LABEL[a.kind]);
-  else if (a.location) bits.push(a.location);
+  if (a.location) bits.push(a.location);
   if (a.est_per_person_cents) bits.push(`about ${formatMoney(a.est_per_person_cents, currency)} each`);
   return bits.join(" · ");
+}
+
+// Same order and sort minutes as trip_model/activity.py SLOTS.
+const SLOT_MINUTES: Record<Slot, number> = { morning: 540, lunch: 720, afternoon: 900, dinner: 1140, night: 1320 };
+const SLOT_LABEL: Record<Slot, string> = {
+  morning: "Morning", lunch: "Lunch", afternoon: "Afternoon", dinner: "Dinner", night: "Night",
+};
+
+/** "2pm" for a clock time, "Lunch" for a slot, or null when it's just on a day. */
+export function whenLabel(a: Activity): string | null {
+  return formatTime(a.start) ?? (a.slot ? SLOT_LABEL[a.slot] : null);
+}
+
+/** Minutes into the day for ordering: plans with just the day first, then slots and clock times together. */
+function minutesInto(a: Activity): number {
+  if (a.start && a.start.length > 10) {
+    const [h, min] = a.start.slice(11, 16).split(":").map(Number);
+    return h * 60 + min;
+  }
+  return a.slot ? SLOT_MINUTES[a.slot] : -1;
 }
 
 export function formatTime(iso: string | null): string | null {
@@ -113,7 +136,7 @@ export function formatTime(iso: string | null): string | null {
 
 export type Day = { date: string | null; activities: Activity[] };
 
-/** Activities grouped by calendar day in date/time order; undated ones last. */
+/** Activities grouped by calendar day, in order through the day (see minutesInto); undated ones last. */
 export function groupByDay(activities: Activity[]): Day[] {
   const days = new Map<string, Activity[]>();
   const undated: Activity[] = [];
@@ -127,7 +150,7 @@ export function groupByDay(activities: Activity[]): Day[] {
   }
   const out: Day[] = [...days.keys()].sort().map((date) => ({
     date,
-    activities: days.get(date)!.sort((x, y) => (x.start ?? "").localeCompare(y.start ?? "")),
+    activities: days.get(date)!.sort((x, y) => minutesInto(x) - minutesInto(y)),
   }));
   if (undated.length) out.push({ date: null, activities: undated });
   return out;

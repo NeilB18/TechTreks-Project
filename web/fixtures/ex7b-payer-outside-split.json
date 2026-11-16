@@ -16,9 +16,7 @@
         "trip_changes"
       ],
       "auto_log_mode": null,
-      "planning_notes": null,
       "lodging": null,
-      "home_city": null,
       "theme": null,
       "page_url": null
     },
@@ -151,7 +149,6 @@
     "refunds": [],
     "polls": [],
     "reminders": [],
-    "itinerary_drafts": [],
     "budgets": {}
   },
   "balances": {

@@ -1,4 +1,4 @@
-import { formatDay, formatTime, groupByDay, isOutsideTrip, mapsUrl, stopDetails, tripDayLabel } from "@/lib/format";
+import { formatDay, groupByDay, isOutsideTrip, mapsUrl, stopDetails, tripDayLabel, whenLabel } from "@/lib/format";
 import type { Activity, TripInfo } from "@/lib/types";
 
 // Days shown open; later ones are folded (tap to open), so a long trip stays short on a phone.
@@ -16,7 +16,7 @@ export function Itinerary({
       <div className="rounded-[22px] border-2 border-dashed border-outline p-5">
         <h3 className="text-lg font-bold">Nothing planned yet</h3>
         <p className="mt-1 text-sm text-muted">
-          Ask in the group chat, like &ldquo;@tripbot plan Saturday&rdquo; or &ldquo;@tripbot add Wynwood Walls Friday&rdquo;.
+          Tell the bot in the group chat, like &ldquo;@tripbot add Wynwood Walls Friday&rdquo; or &ldquo;@tripbot boat tour Saturday 2pm, $60 each&rdquo;.
         </p>
       </div>
     );
@@ -47,11 +47,11 @@ export function Itinerary({
 }
 
 function Stop({ a, trip }: { a: Activity; trip: Pick<TripInfo, "start_date" | "end_date" | "base_currency" | "destination"> }) {
-  const time = formatTime(a.start);
+  const time = whenLabel(a);
   const details = stopDetails(a, trip.base_currency);
   return (
     <li className="flex items-center gap-3 border-t border-line py-3">
-      <span className="w-14 shrink-0 text-sm font-semibold text-muted tabular-nums">{time ?? "Any time"}</span>
+      <span className="w-[4.5rem] shrink-0 text-sm font-semibold text-muted tabular-nums">{time ?? "Any time"}</span>
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-2">
           <span className="font-bold">{a.name}</span>
