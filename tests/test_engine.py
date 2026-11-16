@@ -6,7 +6,6 @@ Each test runs against the in-memory TripEngine and the Django DjangoBackend.
 import pytest
 from conftest import make_backend
 
-from agent.backend.core import rules
 from agent.backend.protocol import ToolError, dispatch
 
 MEMBERS = [{"id": p, "name": p.title(), "handle": f"@{p}-venmo"} for p in ["aarav", "jake", "mia"]]
@@ -161,21 +160,18 @@ def test_budget_warnings_come_from_category_limits_only(b):
     assert b.get_budget_status("t", "jake")["warnings"] == ["FOOD over limit by $6.67 including planned activities"]
 
 
-def test_tier_prices_round_to_dollar():
-    assert [rules.tier_price(83333, m) for m in rules.PRESET_MULTIPLIERS] == \
-        [41700, 62500, 83300, 104200, 125000, 166700]
-    assert rules.tier_price(83333, 1.1) == 91700
-
-
-def test_travel_tips_share_each_budget(b):
-    for pid, total in [("aarav", 120000), ("jake", 80000), ("mia", 50000)]:
+def test_a_group_budget_names_who_is_below_it_or_has_none(b):
+    for pid, total in [("aarav", 120000), ("jake", 80000)]:
         dispatch(b, "set_budget", {"trip_id": "t", "person_id": pid, "total": total})
-    r = dispatch(b, "get_travel_tips", {"trip_id": "t", "destination": "Miami",
-                                        "multipliers": [1.1], "prices_only": True})
-    assert r["average_cents"] == 83333 and r["tiers"] == [{"multiplier": 1.1, "budget_cents": 91700}]
-    assert r["budgets"] == {"aarav": 120000, "jake": 80000, "mia": 50000}
-    u = dispatch(b, "update_trip", {"trip_id": "t", "changes": {"group_budget": 91700}})
-    assert u["members_below_group_budget"] == ["jake", "mia"]
+    u = dispatch(b, "update_trip", {"trip_id": "t", "changes": {"group_budget": 90000}})
+    assert u["members_below_group_budget"] == ["jake"] and u["members_without_budget"] == ["mia"]
+    assert b.summary("t")["trip"]["group_budget_cents"] == 90000
+
+
+def test_the_place_tools_are_gone(b):
+    for tool in ("generate_itinerary", "edit_draft", "compare_destinations", "find_nearby", "get_travel_tips"):
+        with pytest.raises(ToolError, match="Unknown tool"):
+            dispatch(b, tool, {"trip_id": "t"})
 
 
 def test_date_change_reports_activities_outside(b):
@@ -213,33 +209,6 @@ def test_poll_flow(b):
     assert dispatch(b, "close_poll", {"poll_id": p})["winner"] == "Cancún"
     with pytest.raises(ToolError):
         dispatch(b, "vote_poll", {"poll_id": p, "person_id": "mia", "option": "Miami"})
-
-
-def test_itinerary_saved_only_with_draft_id(b):
-    places = [{"name": "Versailles Restaurant", "kind": "food", "est_cost_cents": 2500},
-              {"name": "Vizcaya Museum and Gardens", "kind": "activity", "est_cost_cents": 2500},
-              {"name": "Zzqx Imaginary Taco Palace", "kind": "food"}]
-    d = dispatch(b, "generate_itinerary", {"trip_id": "t", "places": places, "days": ["2027-03-14", "2027-03-15", "2027-03-16", "2027-03-17", "2027-03-18"]})
-    assert len(d["days"]) == 5 and d["not_found"] == ["Zzqx Imaginary Taco Palace"]
-    assert b.get_trip("t")["activities"] == []
-    s = dispatch(b, "generate_itinerary", {"trip_id": "t", "save_draft_id": d["draft_id"]})
-    assert len(s["activity_ids"]) == 3
-    saved = {a["name"]: a for a in b.get_trip("t")["activities"]}  # coordinates survive the database round trip
-    assert saved["Vizcaya Museum and Gardens"]["verified"] is True and saved["Vizcaya Museum and Gardens"]["lat"]
-    assert saved["Zzqx Imaginary Taco Palace"]["verified"] is False and saved["Zzqx Imaginary Taco Palace"]["lat"] is None
-
-
-def test_itinerary_needs_places(b):
-    with pytest.raises(ToolError, match="Pass days"):
-        dispatch(b, "generate_itinerary", {"trip_id": "t", "places": [{"name": "Wynwood Walls", "kind": "activity"}]})
-    with pytest.raises(ToolError, match="Pass places"):
-        dispatch(b, "generate_itinerary", {"trip_id": "t", "days": ["2027-03-14"]})
-    with pytest.raises(ToolError, match="kind"):
-        dispatch(b, "generate_itinerary", {"trip_id": "t", "days": ["2027-03-14"],
-                                           "places": [{"name": "Somewhere", "kind": "shopping"}]})
-    with pytest.raises(ToolError, match="outside the trip"):
-        dispatch(b, "generate_itinerary", {"trip_id": "t", "days": ["2027-04-01"],
-                                           "places": [{"name": "Wynwood Walls", "kind": "activity"}]})
 
 
 def test_unknown_args_are_tool_errors(b):

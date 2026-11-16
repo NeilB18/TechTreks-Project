@@ -1,5 +1,5 @@
 kind: edge
-title: Where we're staying is saved from chat, confirmed with its address, and corrected by anyone
+title: Where we're staying is saved from chat as written, and anyone can correct it
 seed:
   now: "2027-03-01T12:00:00"
   trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
@@ -23,7 +23,7 @@ turns:
       calls:
         - {name: update_trip, args: {trip_id: miami, changes: {lodging: Freehand Miami}}}
       messages:
-        - {to: group, text: "Saved: you're staying at the Freehand Miami (Miami). Maps: https://www.google.com/maps/search/?api=1&query=Freehand+Miami%2C+Miami. Wrong place? Just tell me the address."}
+        - {to: group, text: "Saved: you're staying at the Freehand Miami."}
   - sender: mia
     text: "@tripbot wrong one, our airbnb is 2727 Indian Creek Dr"
     expect:
@@ -37,4 +37,4 @@ turns:
       calls:
         - {name: update_trip, args: {trip_id: miami, changes: {lodging: 2727 Indian Creek Dr}}}
       messages:
-        - {to: group, text: "Fixed: you're staying at 2727 Indian Creek Dr. Maps: https://www.google.com/maps/search/?api=1&query=2727+Indian+Creek+Dr%2C+Miami"}
+        - {to: group, text: "Fixed: you're staying at 2727 Indian Creek Dr."}

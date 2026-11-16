@@ -14,7 +14,8 @@ def test_demo_trip_is_persisted_and_reruns_preserve_changes():
     backend = DjangoBackend()
     detail = backend.get_trip(trip_id="sample-trip")
     assert len(detail["members"]) == 6
-    assert len(detail["activities"]) == 11
+    assert len(detail["activities"]) == 12
+    assert len(detail["ideas"]) == 2 and detail["trip"]["lodging"]
     assert len(detail["expenses"]) == 6
     assert sum(backend.get_balances(trip_id="sample-trip")["net_balances"].values()) == 0
 

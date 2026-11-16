@@ -177,7 +177,7 @@ def test_planning_needs_a_mention_and_ideas_record_who_asked():
     from agent.backend.core.engine import TripEngine
     backend = TripEngine()
     backend.load_seed({**DINNER_TRIP, "trip": {**DINNER_TRIP["trip"], "destination": "Miami"}})
-    idea = {"trip_id": "miami", "name": "Wynwood Walls", "kind": "activity"}
+    idea = {"trip_id": "miami", "name": "Wynwood Walls"}
     client = ScriptedClient([
         response("tool_calls", None, tool_call("t1", "save_idea", idea)), response("stop", ""),
         response("tool_calls", None, tool_call("t2", "save_idea", idea)), response("stop", ""),
@@ -223,27 +223,7 @@ def test_lodging_only_changes_on_a_mention():
     r = agent.handle(ChatEvent(sender_id="jake", text="we're at the freehand btw", mentioned=False))
     assert "weren't @mentioned" in r.tool_calls[0].error and backend.summary("miami")["trip"]["lodging"] is None
     agent.handle(ChatEvent(sender_id="jake", text="@tripbot we're staying at the freehand"))
-    assert backend.summary("miami")["trip"]["lodging"]["name"] == "Freehand Miami"
-
-
-def test_a_draft_cant_be_saved_in_the_turn_that_built_it():
-    from agent.backend.core.engine import TripEngine
-    from agent.travel.provider import FakeTravel
-    backend = TripEngine(travel=FakeTravel())
-    backend.load_seed({**DINNER_TRIP, "trip": {**DINNER_TRIP["trip"], "destination": "Miami",
-                                              "start_date": "2027-03-14", "end_date": "2027-03-15"}})
-    build = tool_call("t1", "generate_itinerary", {"trip_id": "miami", "days": ["2027-03-14"],
-                                                   "places": [{"name": "Wynwood Walls", "kind": "activity"}]})
-    save = lambda tid: tool_call(tid, "generate_itinerary", {"trip_id": "miami", "save_draft_id": "d1"})  # noqa: E731
-    client = ScriptedClient([
-        response("tool_calls", None, build, save("t2")), response("stop", ""),
-        response("tool_calls", None, save("t3")), response("stop", ""),
-    ])
-    agent = TripAgent(backend, "miami", client=client)
-    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot approved, save it"))
-    assert "hasn't seen it" in r.tool_calls[1].error and backend.summary("miami")["activities"] == []
-    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot looks good, save it"))
-    assert r.tool_calls[0].result["saved"] and len(backend.summary("miami")["activities"]) == 1
+    assert backend.summary("miami")["trip"]["lodging"] == "Freehand Miami"
 
 
 def test_refund_tells_the_model_who_already_paid_back():

@@ -31,7 +31,7 @@ TRIP_CHANGE_FIELDS = {"destination", "start_date", "end_date", "base_currency", 
 BUDGET_CHECK_AFTER = {"log_expense", "edit_expense", "record_refund", "remove_member"}
 # Planning only happens when someone asks: these don't run on a message that didn't @mention the bot (which it only
 # sees with BOT_FORWARD_ALL on, for automatic expense logging).
-PLAN_TOOLS = {"save_idea", "add_activity", "remove_activity", "generate_itinerary", "edit_draft"}
+PLAN_TOOLS = {"save_idea", "add_activity", "remove_activity"}
 CONFIRM_WORDS = re.compile(r"\b(confirm|yes)\b", re.I)
 UNDELIVERED_NOTE = (
     "[runner] Your last text was not delivered: nobody sees text outside send_message. "
@@ -158,8 +158,7 @@ class TripAgent:
         if not leader or self.sender_id == leader:
             return None
         needs = {"remove_member": "member_changes" in routed,
-                 "update_trip": "trip_changes" in routed and bool(TRIP_CHANGE_FIELDS & set(args.get("changes") or {})),
-                 "generate_itinerary": "itinerary_saves" in routed and bool(args.get("save_draft_id"))}
+                 "update_trip": "trip_changes" in routed and bool(TRIP_CHANGE_FIELDS & set(args.get("changes") or {}))}
         if not needs.get(name):
             return None
         return (f"Not done: the group routed this to the leader ({leader}), so it only goes through on their message. "
@@ -172,20 +171,6 @@ class TripAgent:
             return None
         return ("Not recorded yet: refunds need a confirmation first. Ask the payer to confirm the refund and "
                 "what it means per person (\"Confirm?\"), then record it once they reply yes.")
-
-    @staticmethod
-    def _fresh_draft_guard(name: str, args: dict, result: "TurnResult") -> str | None:
-        """A draft is saved only after the group has seen it: not in the turn that built it. The live eval caught
-        the model drafting and saving 12-14 stops in one go when someone said "approved, save it" before any draft
-        existed."""
-        if name != "generate_itinerary" or not args.get("save_draft_id"):
-            return None
-        built_now = {(c.result or {}).get("draft_id") for c in result.tool_calls[:-1]
-                     if c.name == "generate_itinerary" and not c.input.get("save_draft_id")}
-        if args["save_draft_id"] not in built_now:
-            return None
-        return ("Not saved: this draft was just built, so the group hasn't seen it. Post it and ask for the OK "
-                "(the leader's, if itinerary_saves is in leader_approval); save it once they confirm.")
 
     def _remove_guard(self, name: str, args: dict) -> str | None:
         """Removing a plan is a small thing, unless it's paid for (linked to an expense) or marked important: then
@@ -275,14 +260,13 @@ class TripAgent:
             return f"Error: {call.error}"
         changes_lodging = name == "update_trip" and "lodging" in (args.get("changes") or {})
         if (name in PLAN_TOOLS or changes_lodging) and self.event and not self.event.mentioned:
-            call.error = ("You weren't @mentioned, so don't change the plan, drafts or ideas. Nothing was changed. "
+            call.error = ("You weren't @mentioned, so don't change the plan or the ideas list. Nothing was changed. "
                           "End the turn.")
             return f"Error: {call.error}"
         if name == "save_idea" and not args.get("remove") and self.sender_id:
             args.setdefault("suggested_by", self.sender_id)  # the model never has to say who suggested it
         blocked = (self._trip_guard(name, args) or self._payer_guard(name, args) or self._leader_guard(name, args)
-                   or self._refund_guard(name) or self._remove_guard(name, args)
-                   or self._fresh_draft_guard(name, args, result))
+                   or self._refund_guard(name) or self._remove_guard(name, args))
         if blocked:
             call.error = blocked
             return f"Error: {blocked}"

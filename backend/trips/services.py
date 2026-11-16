@@ -27,8 +27,7 @@ from trip_model.trip import Trip
 from trip_model.trip_status import TripStatus
 from trips import models as m
 
-READ_ONLY = {"get_balances", "get_budget_status", "convert_currency", "get_trip", "get_travel_tips", "find_nearby",
-             "compare_destinations"}
+READ_ONLY = {"get_balances", "get_budget_status", "convert_currency", "get_trip"}
 
 
 # ------------------------------------------------------------------- load
@@ -42,8 +41,7 @@ def load_trip(trip_id: str, lock: bool = False) -> Trip:
                 start_date=parse_day(row.start_date, "start_date"), end_date=parse_day(row.end_date, "end_date"),
                 target_break=row.target_break, base_currency=row.base_currency, group_budget=row.group_budget,
                 leader_id=row.leader_id, leader_approval=list(row.leader_approval),
-                auto_log_mode=row.auto_log_mode, planning_notes=row.planning_notes, lodging=row.lodging,
-                home_city=row.home_city, share_token=row.share_token,
+                auto_log_mode=row.auto_log_mode, lodging=row.lodging, share_token=row.share_token,
                 theme=row.theme, theme_set_by=row.theme_set_by)
     trip.ideas = list(row.ideas)
     for p in row.people.all():
@@ -69,14 +67,13 @@ def load_trip(trip_id: str, lock: bool = False) -> Trip:
             end=parse_day_or_time(a.end, "end"), est_cost_cents=a.est_cost_cents,
             cost_is_per_person=a.cost_is_per_person, attendees=[trip.get_member(pid) for pid in a.attendees],
             important=a.important, booking_url=a.booking_url, expense_id=a.expense_id,
-            lat=a.lat, lon=a.lon, verified=a.verified, kind=a.kind, from_idea=a.from_idea))
+            slot=a.slot, from_idea=a.from_idea))
     for p in row.polls.prefetch_related("votes"):
         trip.add_poll(Poll(p.id, p.question, list(p.options),
                            closes_at=parse_time(p.closes_at, "closes_at") if p.closes_at else None,
                            is_open=p.is_open, votes={v.person_id: v.option for v in p.votes.all()}))
     for r in row.reminders.all():
         trip.add_reminder(reminder_from_row(trip, r))
-    trip.itinerary_drafts = {d.draft_id: d.days for d in row.itinerary_drafts.all()}
     return trip
 
 
@@ -95,8 +92,7 @@ def save_trip(trip: Trip) -> None:
         start_date=iso(trip.start_date), end_date=iso(trip.end_date), target_break=trip.target_break,
         base_currency=trip.base_currency, group_budget=trip.group_budget, leader_id=trip.leader_id,
         leader_approval=list(trip.leader_approval), auto_log_mode=trip.auto_log_mode,
-        planning_notes=trip.planning_notes, ideas=list(trip.ideas), lodging=trip.lodging,
-        home_city=trip.home_city, theme=trip.theme, theme_set_by=trip.theme_set_by,
+        ideas=list(trip.ideas), lodging=trip.lodging, theme=trip.theme, theme_set_by=trip.theme_set_by,
         # A new trip gets its share_token from the model's default; a seed may give one.
         **({"share_token": trip.share_token} if trip.share_token else {})))
     trip.share_token = row.share_token
@@ -138,8 +134,7 @@ def save_trip(trip: Trip) -> None:
         trip=row, activity_id=a.id, name=a.name, location=a.location, start=iso(a.start), end=iso(a.end),
         est_cost_cents=a.est_cost_cents, cost_is_per_person=a.cost_is_per_person,
         attendees=[p.id for p in a.attendees], important=a.important, booking_url=a.booking_url,
-        expense_id=a.expense_id, lat=a.lat, lon=a.lon, verified=a.verified, kind=a.kind, from_idea=a.from_idea,
-        position=i)
+        expense_id=a.expense_id, slot=a.slot, from_idea=a.from_idea, position=i)
         for i, a in enumerate(trip.activities))
     row.polls.all().delete()
     for i, p in enumerate(trip.polls):
@@ -152,9 +147,6 @@ def save_trip(trip: Trip) -> None:
         trip=row, reminder_id=r.id, message=r.message, due_at=iso(r.due_at),
         audience=r.audience if r.audience == "all" else [p.id for p in r.audience],
         sent=r.sent, created_by=r.created_by, position=i) for i, r in enumerate(trip.reminders))
-    row.itinerary_drafts.all().delete()
-    m.ItineraryDraft.objects.bulk_create(m.ItineraryDraft(trip=row, draft_id=k, days=v)
-                                         for k, v in trip.itinerary_drafts.items())
 
 
 # ---------------------------------------------------------------- backend

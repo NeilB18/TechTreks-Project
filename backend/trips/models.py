@@ -31,10 +31,8 @@ class Trip(models.Model):
     leader_id = models.CharField(max_length=64, null=True, blank=True)
     leader_approval = models.JSONField(default=list)
     auto_log_mode = models.CharField(max_length=32, null=True, blank=True)
-    planning_notes = models.TextField(null=True, blank=True)  # interests and pace, for itinerary drafts
-    ideas = models.JSONField(default=list)  # places the group wants to do, not on a day yet (up to 20)
-    lodging = models.JSONField(null=True, blank=True)  # where the group is staying, found on the map
-    home_city = models.CharField(max_length=100, null=True, blank=True)  # where the group flies from
+    ideas = models.JSONField(default=list)  # things the group wants to do, not on a day yet (up to 20)
+    lodging = models.CharField(max_length=200, null=True, blank=True)  # where the group is staying, as they wrote it
     # The trip page's address (/t/<share_token>). Random, so nobody can guess another trip's page.
     share_token = models.CharField(max_length=16, unique=True, default=new_share_token)
     # The trip page's look (sunset, night_swim, campfire): the bot picks it with the destination,
@@ -152,10 +150,7 @@ class Activity(models.Model):
     important = models.BooleanField(default=False)
     booking_url = models.URLField(max_length=500, null=True, blank=True)
     expense_id = models.CharField(max_length=32, null=True, blank=True)
-    lat = models.FloatField(null=True, blank=True)
-    lon = models.FloatField(null=True, blank=True)
-    verified = models.BooleanField(null=True, blank=True)  # None: never checked on the map
-    kind = models.CharField(max_length=16, null=True, blank=True)  # food, activity or night; None: not a place
+    slot = models.CharField(max_length=16, null=True, blank=True)  # morning, lunch, ...: start is then just the day
     from_idea = models.BooleanField(default=False)  # came off the ideas list
     position = models.IntegerField(default=0)
 
@@ -197,9 +192,3 @@ class Reminder(models.Model):
 
     class Meta:
         ordering = ["position"]
-
-
-class ItineraryDraft(models.Model):
-    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="itinerary_drafts")
-    draft_id = models.CharField(max_length=32)
-    days = models.JSONField()

@@ -1,0 +1,30 @@
+kind: edge
+title: A named slot is saved as that slot, and two plans can share one without asking
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  activities:
+    - {id: a1, name: Versailles Restaurant, start: "2027-03-14", slot: lunch}
+    - {id: a2, name: "Joe's Stone Crab", start: "2027-03-14", slot: dinner}
+turns:
+  - sender: mia
+    text: "@tripbot add La Mar for Sunday lunch too, some of us are splitting up"
+    expect:
+      calls:
+        - {name: add_activity, args: {day: "2027-03-14", slot: lunch}}
+      messages:
+        - {to: group, contains: [La Mar], not_contains: [full, "?"]}
+      end_state:
+        - activity_count: 3
+        - activity_at: {name: la mar, start: "2027-03-14", slot: lunch}
+    golden:
+      calls:
+        - {name: add_activity, args: {trip_id: miami, name: La Mar, day: "2027-03-14", slot: lunch}}
+      messages:
+        - {to: group, text: "Added La Mar for Sunday lunch, next to Versailles."}

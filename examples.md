@@ -1,6 +1,8 @@
 # Trip Agent — examples.md
 
 > **Oct 28, 2026:** budgets are now shared with everyone on the trip, and the bot only posts in the group (GroupMe bots can't DM). Where an example below says DM or private, read it as a group message that tags that person. The replayable versions in `tests/scenarios/` are up to date.
+>
+> **Nov 12, 2026:** the bot no longer suggests or looks up places, and travel-tip tiers are gone, so Example 5 (travel tips for a given budget) was removed and Example 8 no longer fetches tips.
 
 Worked examples showing Claude how to reason through each edge case.
 Format: chat message → state snapshot → reasoning → tool calls → replies (group + DMs).
@@ -240,88 +242,6 @@ get_budget_status(...) × 3  → { warnings: [] }
 **Reply (group):**
 > Logged 🍹 Bar tab, $90, paid by Aarav. Aarav $40, Mia $30, Jake $20.
 
-## Example 5 — Travel tips for a given budget
-
-### State snapshot
-- Trip: Miami, Mar 16–20. Members: Aarav (leader), Jake, Mia
-- leader_approval: [member changes, trip changes]
-- Private budgets (set via DM): Aarav $1,200, Jake $800, Mia $500. Average is ~$833.
-- Tier presets: 0.5× / 0.75× / 1× / 1.25× / 1.5× / 2× of the group average, or any custom multiplier.
-
-### Turn 1
-**Jake (group):** @tripbot give us some tips for Miami
-
-**Reasoning**
-1. Tips depend on the group budget, and none has been picked yet.
-2. All three members have set private budgets, so no DMs are needed to collect them. If someone hadn't set one, DM them first and wait.
-3. List the 6 preset tiers first, with prices only. No tips yet. The backend works out the prices from the group average, so individual budgets never reach the chat.
-4. In the group, show only the average and the tier prices, never individual budgets.
-5. Anyone can pick a preset or ask for a custom multiplier. Only the leader locks one in.
-
-**Tool calls**
-```
-get_travel_tips(trip_id="miami", destination="Miami",
-                multipliers=[0.5, 0.75, 1, 1.25, 1.5, 2], prices_only=true)
-  → { average_cents: 83333, missing_budgets: [],
-      tiers: [ {multiplier: 0.5, budget_cents: 41700}, {multiplier: 0.75, budget_cents: 62500},
-               {multiplier: 1, budget_cents: 83300}, {multiplier: 1.25, budget_cents: 104200},
-               {multiplier: 1.5, budget_cents: 125000}, {multiplier: 2, budget_cents: 166700} ] }
-```
-
-**Reply (group):**
-> Group average is ~$833/person. Pick a level and I'll pull tips for it:
-> 0.5× ~$417 · 0.75× ~$625 · 1× ~$833 · 1.25× ~$1,042 · 1.5× ~$1,250 · 2× ~$1,667
-> Or name your own multiplier (like 1.1×). @Aarav locks in the final pick.
-
-### Turn 2
-**Jake (group):** @tripbot show us 1.1x
-
-**Reasoning**
-1. Jake proposed a custom multiplier. Anyone can propose, so fetch tips for that one tier.
-2. 1.1 × ~$833 ≈ $917. Tips cover lodging, food, activities, and money-saving.
-3. Proposing isn't locking in. Ask Aarav (the leader) to confirm before saving it as the group budget.
-
-**Tool calls**
-```
-get_travel_tips(trip_id="miami", destination="Miami", multipliers=[1.1])
-  → { average_cents: 83333,
-      tiers: [ {multiplier: 1.1, budget_cents: 91700, lodging, food, activities, saving_tips} ] }
-```
-
-**Reply (group):**
-> Miami at ~$917/person (1.1×) 🌴
-> 🏠 Shared Airbnb near South Beach
-> 🍽️ Casual spots + one nice dinner
-> 🚤 Boat tour and a beach day
-> 💡 Citi Bike + the free Miami Beach trolley instead of Ubers
-> @Aarav, lock this in as the group budget?
-
-### Turn 3
-**Aarav (group):** @tripbot yeah lock it in
-
-**Reasoning**
-1. The leader confirmed, so save ~$917 as the group budget.
-2. Future suggestions and itineraries should target ~$917/person.
-3. The update says Jake's and Mia's private budgets are below the new group budget ($800 and $500 vs ~$917). DM each of them privately, and nudge Aarav by DM, naming them but not their numbers.
-
-**Tool calls**
-```
-update_trip(trip_id="miami", changes={ group_budget: 91700 })
-  → { updated: true, members_below_group_budget: ["jake", "mia"] }
-```
-
-**Reply (group):**
-> Locked in: ~$917/person (1.1×) 🌴 I'll plan around that.
-
-**Reply (DM → Mia):**
-> Heads up: the group budget is ~$917/person, which is above your budget. I'll flag cheaper options for you as we plan. Want to look at which parts to skip?
-
-**Reply (DM → Jake):**
-> Heads up: the group budget is ~$917/person, which is a bit above your budget. I'll flag cheaper options for you as we plan.
-
-**Reply (DM → Aarav):**
-> FYI: Jake's and Mia's budgets are below the group budget. Worth keeping a few cheaper options in the plan.
-
 ## Example 6 — Currency conversion
 
 > **Post-MVP.** The MVP is USD-only. This example stays so the currency code keeps being tested.
@@ -454,7 +374,7 @@ get_budget_status(...) × 7  → { warnings: [] }
 **Reasoning**
 1. Budget talk, and she asked in a DM: answer only in her DM.
 2. Check her real numbers with `get_budget_status` instead of guessing.
-3. Advice should come from the travel-tips tool, not my own knowledge. The cheapest tier (0.5×) has the money-saving food ideas.
+3. Stick to her real numbers and her own trip. Don't suggest cheaper places.
 4. She's over on one category but has plenty left overall, so offer to raise the food limit. Don't change anything until she says so.
 
 **Tool calls**
@@ -463,12 +383,10 @@ get_budget_status(trip_id="miami", person_id="mia")
   → { total_cents: 90000, remaining_cents: 74000,
       by_category: { FOOD: { limit_cents: 15000, spent_cents: 16000 } },
       warnings: ["FOOD over limit by $10 including planned activities"] }
-get_travel_tips(trip_id="miami", destination="Miami", multipliers=[0.5])
-  → { tiers: [{ multiplier: 0.5, food: "Street food, food trucks and grocery-store breakfasts", ... }] }
 ```
 
 **Reply (DM → Mia):**
-> Yeah, you're $10 over your $150 food limit, but you've still got $740 left overall. Cheaper ideas for the next two days: street food, food trucks and grocery-store breakfasts. Want me to raise your food limit (say to $200) so it matches how you're actually spending?
+> Yeah, you're $10 over your $150 food limit, but you've still got $740 left overall. Want me to raise your food limit (say to $200) so it matches how you're actually spending?
 
 ### Turn 2
 **Mia (DM):** yeah make it $200

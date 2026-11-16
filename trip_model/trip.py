@@ -3,16 +3,13 @@
 #     destination | None; start_date | None; end_date | None   # empty until a poll decides them
 #     target_break | None            # "spring break", "fall break", etc.
 #     base_currency                  # "USD"; the MVP is USD-only
-#     group_budget | None            # per-person cents of the tier the leader locked in
+#     group_budget | None            # per-person cents the leader set for the group
 #     leader_id | None; leader_approval: list[str]; auto_log_mode | None
 #         # stored only; whether the leader feature stays is still being decided
 #     members: list[Person]; activities; expenses; polls; reminders
 #     opt_outs: set[(person_id, Category)]   # e.g. ("jake", DRINKS)
-#     itinerary_drafts: dict[draft_id, list[day]]
-#     ideas: list[dict]              # places the group wants to do, not on a day yet (agent/backend/core/engine.py)
-#     planning_notes | None          # interests and pace, e.g. "chill mornings, big on food"
-#     lodging | None                 # where the group is staying: {name, address, lat, lon, maps_url}, found on the map
-#     home_city | None               # where the group flies from, for flight links when picking a destination
+#     ideas: list[dict]              # things the group wants to do, not on a day yet (agent/backend/core/engine.py)
+#     lodging | None                 # where the group is staying, as the group wrote it (a hotel name or address)
 #     share_token | None             # the trip page's address, /t/<share_token>; set by the database
 #     theme | None; theme_set_by     # the trip page's look (sunset, night_swim, campfire), and who picked it (bot, member)
 #
@@ -46,7 +43,7 @@ class Trip:
                  destination=None, start_date: date | None = None,
                  end_date: date | None = None, target_break=None, base_currency="USD",
                  group_budget=None, leader_id=None, leader_approval: list[str] | None = None,
-                 auto_log_mode=None, planning_notes=None, lodging: dict | None = None, home_city=None,
+                 auto_log_mode=None, lodging: str | None = None,
                  share_token: str | None = None, theme: str | None = None, theme_set_by: str | None = None):
         self.id = id
         self.name = name
@@ -60,9 +57,7 @@ class Trip:
         self.leader_id = leader_id
         self.leader_approval = leader_approval if leader_approval is not None else []
         self.auto_log_mode = auto_log_mode
-        self.planning_notes = planning_notes
         self.lodging = lodging
-        self.home_city = home_city
         self.share_token = share_token
         self.theme = theme
         self.theme_set_by = theme_set_by
@@ -72,7 +67,6 @@ class Trip:
         self.polls: list[Poll] = []
         self.reminders: list[Reminder] = []
         self.opt_outs: set[tuple] = set()
-        self.itinerary_drafts: dict[str, list[dict]] = {}
         self.ideas: list[dict] = []
 
     def member_ids(self):
@@ -190,10 +184,10 @@ class Trip:
         self.reminders.append(reminder)
 
     def itinerary_by_day(self):
-        # Activities without a start time aren't on a day yet.
+        # Activities without a start aren't on a day yet. Within a day: plans with just the day come first, then
+        # the rest by clock time or slot.
         itinerary = {}
-        for activity in sorted((a for a in self.activities if a.start is not None),
-                               key=lambda a: as_datetime(a.start)):
+        for activity in sorted((a for a in self.activities if a.start is not None), key=Activity.sort_key):
             itinerary.setdefault(as_datetime(activity.start).date(), []).append(activity)
         return itinerary
 

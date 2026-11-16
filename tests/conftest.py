@@ -58,11 +58,3 @@ def make_backend(kind: str):
 def any_backend(request, db):
     return make_backend(request.param)
 
-
-@pytest.fixture(autouse=True)
-def no_live_travel(monkeypatch):
-    """Tests never call Google Places, SerpAPI or OpenStreetMap, even if keys are in .env."""
-    monkeypatch.delenv("GOOGLE_PLACES_API_KEY", raising=False)
-    monkeypatch.delenv("SERPAPI_KEY", raising=False)
-    from agent.travel.provider import FakeTravel
-    monkeypatch.setattr("agent.backend.core.engine.get_provider", FakeTravel)  # the default would check places on OSM

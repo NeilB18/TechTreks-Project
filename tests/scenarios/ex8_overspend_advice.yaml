@@ -26,16 +26,14 @@ turns:
     expect:
       calls:
         - {name: get_budget_status, args: {person_id: mia}}
-        - {name: get_travel_tips}
       forbid_mutations: true
       messages:
         - {to: group, contains: [Mia, "$10", "$740"]}
     golden:
       calls:
         - {name: get_budget_status, args: {trip_id: miami, person_id: mia}}
-        - {name: get_travel_tips, args: {trip_id: miami, destination: Miami, multipliers: [0.5]}}
       messages:
-        - {to: group, text: "@Mia Yeah, you're $10 over your $150 food limit, but you've still got $740 left overall. Cheaper ideas for the next two days: street food, food trucks and grocery-store breakfasts. Want me to raise your food limit (say to $200) so it matches how you're actually spending?"}
+        - {to: group, text: "@Mia Yeah, you're $10 over your $150 food limit, but you've still got $740 left overall. Want me to raise your food limit (say to $200) so it matches how you're actually spending?"}
   - sender: mia
     text: "yeah make it $200"
     expect:
