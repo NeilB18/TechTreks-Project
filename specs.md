@@ -1,13 +1,14 @@
 # Trip Agent — specs.md
 
 ## Purpose
-Agent in a group chat that plans a group trip, builds the itinerary, and manages group money (expenses, splits, per-person budgets that everyone on the trip can see).
+Agent in a group chat that keeps track of a group trip's plans and manages group money (expenses, splits, per-person budgets that everyone on the trip can see).
+
+> **Nov 12, 2026:** the bot no longer suggests or looks up places. Itinerary drafts, destination suggestions, nearby search and travel-tip tiers were removed. Planning is now a calendar of what the group decides.
 
 ## Features
 - Log expenses
 - Split costs
-- Travel tips
-- Generate itinerary
+- Keep the trip's calendar (plans, ideas list, where the group is staying)
 
 ## Data model
 The data model and its rules are implemented in `trip_model/` (see `trip_model/README.md`); `TripEngine` (`agent/backend/core/engine.py`) runs the tools on it. The MVP is USD-only; the currency fields and decisions below are post-MVP.
@@ -17,7 +18,7 @@ Category enum: LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT
 - **Person**: id, name, chat_user_id, payment_handle, budget (for this trip; shared with the trip), trips
 - **Budget**: owner_id, total_cents, limits {Category: cents}; remaining(category, expenses); warn when a category's remaining minus planned activity costs < 10% of that category's limit (category limits only; the total doesn't warn)
 - **Expense**: id, paid_by, amount_cents, description, category, splits {person_id: cents} (net change per person: + is owed, − owes; sums to 0), created_at, source_message. A person's share = what they paid − their split
-- **Activity**: id, name, location, start, end, est_cost_cents, cost_is_per_person, attendees, important, booking_url, expense_id
+- **Activity**: id, name, location, start, end, slot (morning / lunch / afternoon / dinner / night, only when the group named one; start is then just the day), est_cost_cents, cost_is_per_person, attendees, important, booking_url, expense_id, from_idea
 - **Poll**: id, question, options, votes {person_id: option}, closes_at, is_open
 - **Reminder**: message, due_at, audience (list | "all"), sent, created_by ("agent" | "system")
 - **Trip**: id, name, status (PLANNING / BOOKED / ACTIVE / DONE), destination?, start_date?, end_date?, target_break?, members, activities, expenses, polls, reminders
@@ -33,14 +34,15 @@ Category enum: LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT
 - **Blacklist:** (1) person exclusions — decided per expense (e.g. someone didn't go to a specific lunch); (2) per-person category opt-outs — a person opts out of a whole category (e.g. not drinking → DRINKS).
 - **Refund distribution:** refunds go back in the same ratio as the original shares.
 - **Poll results:** when a poll closes, the agent posts the winner and asks before updating the trip.
-- **Travel tips & budget:** the agent collects each member's budget in the group, and the backend works out the group average. The agent first lists 6 preset tiers with prices only: 0.5× / 0.75× / 1× / 1.25× / 1.5× / 2× of the average (rounded to the dollar). Anyone can pick a preset or ask for a custom multiplier (e.g. 1.1×), and the agent then fetches tips for that one tier. Only the leader locks a tier in as the group budget. Tips cover lodging, food, activities, and money-saving tips. If someone's budget is below the chosen tier, the agent says so in the group, kindly, offers them cheaper options, and makes sure the leader sees it.
+- **Group budget:** the leader sets a per-person budget for the group as a number. If someone's own budget is below it, the agent says so in the group, kindly, and makes sure the leader sees it. Members without a budget are asked for one. (Travel-tip tiers were removed Nov 12, 2026.)
+- **Plans:** a plan with just a day has no time. It gets a slot only when someone names one, and any number of plans can share a slot. A clock time is saved as given. Two plans at exactly the same clock time on a day need the person's "yes" first. Moving a plan to another day keeps its time or slot.
 - **Trip state:** each turn the agent gets a short `Trip.summary()` (members with their budget totals, leader, leader_approval, exclusions, recent expenses, activities, open polls). For anything else it calls `get_trip`.
 - **Currency:** if a currency symbol is ambiguous (e.g. "$" abroad), the agent asks. Confirmations show both amounts (e.g. "€90 (≈ $97)"). People settle up in whatever currency they choose, and the agent converts.
 
 ## Agent rules
 - **Shared budgets (decided Oct 28, 2026):** each person's budget for the trip, what's left and their warnings are visible to everyone on the trip. The agent only posts in the group and tags a person with @Name when a message is for them. Only the person sets their own budget.
 - **Confirmation:** confirm before big changes (removing a member, refunds, trip changes); simple expense logs happen immediately.
-- **Group leader:** set manually by the group (can change later). During onboarding, the group decides which decision types need leader approval. Options: trip changes, member changes, itinerary saves, refunds/deletes. There is no default. Decisions that need the leader require leader approval; smaller ones need the person's confirmation plus the group's.
+- **Group leader:** set manually by the group (can change later). During onboarding, the group decides which decision types need leader approval. Options: trip changes, member changes, refunds/deletes. There is no default. Decisions that need the leader require leader approval; smaller ones need the person's confirmation plus the group's.
 - **Dropouts:** count as a bigger decision. Anyone can say someone's out, but the person must confirm. If the group routed member changes to the leader, the leader also approves. The person is removed immediately but still owes their past splits until they're paid.
 
 - **Expense edits/deletes:** any member can request; the payer must confirm.
@@ -52,7 +54,7 @@ Category enum: LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT
 - **Paybacks:** recorded with `record_payback` only once the payment really happened (the sender says they paid, or the receiver confirms).
 - **Opt-out conflict:** if someone opted out of a category but is explicitly named in a split for that category, the agent asks before logging.
 - **Budget checks:** after every expense, the agent calls `get_budget_status` for each person in the split and posts any warnings in the group, tagging the person.
-- **Travel info:** tips and itinerary places come from external APIs (Google Places / SerpAPI), not the model's own knowledge.
+- **Places:** the agent never suggests, looks up or recommends places, and never makes up prices or opening hours. Asked for that ("pizza near us?", "plan our days"), it says so in one short line, and offers something else only when it clearly fits.
 
 ## Platform & listening
 - **Platform:** GroupMe for now.
@@ -84,9 +86,9 @@ Amounts in cents. "Confirm" = agent must get the stated confirmation before call
 ### Planning
 | Tool | Does | Inputs | Confirm |
 |---|---|---|---|
-| `generate_itinerary` | Builds a day-by-day draft via Places/SerpAPI; posts it; saves as Activities only after group confirms (call again with save_draft_id) | trip_id, constraints, save_draft_id? | Yes (before saving) |
-| `add_activity` | Adds/edits one activity | trip_id, activity fields | No |
-| `get_travel_tips` | Tier prices from the group average (`prices_only`), or tips via external APIs for the chosen multiplier(s). Returns the average, never individual budgets | trip_id, destination, multipliers[], prices_only?, interests? | No |
+| `add_activity` | Adds/edits/moves one plan: just a day, a named slot, or a clock time. Saves nothing if another plan is at exactly that clock time, until called again with confirm_same_time | trip_id, activity fields, day?, slot?, idea_id?, confirm_same_time? | Only for the same clock time |
+| `remove_activity` | Removes a plan; one from the ideas list goes back on it | trip_id, activity_id | If paid for or important |
+| `save_idea` | Adds or removes an idea (no day yet, up to 20) | trip_id, name, est_cost_cents?, remove? | No |
 | `create_poll` | Starts a group vote | trip_id, question, options[], closes_at | No |
 | `vote_poll` | Records a vote from a chat reply | poll_id, person_id, option | No |
 | `close_poll` | Closes a poll and returns the winner (trip update needs group confirmation via `update_trip`) | poll_id | No |
@@ -106,7 +108,7 @@ Amounts in cents. "Confirm" = agent must get the stated confirmation before call
 | `send_message` | The only way the agent talks: posts in the group chat | text |
 
 ### Model changes implied by the decisions above
-- Trip: + base_currency, leader_id, leader_approval (set of decision types chosen at onboarding), group_budget (tier the leader picked)
+- Trip: + base_currency, leader_id, leader_approval (set of decision types chosen at onboarding), group_budget (per person, set by the leader), lodging (text, as the group wrote it)
 - Expense: + original_amount, original_currency, fx_rate
 - Refund: new (expense_id, amount, currency, note, created_at)
 - Exclusion: new (person_id, category) — category opt-outs
@@ -114,7 +116,7 @@ Amounts in cents. "Confirm" = agent must get the stated confirmation before call
 ## Open questions
 - [x] Budget warning logic → under 10% of a category's limit left, counting planned activities; category limits only
 - [ ] FX rate provider — ask mentor (harness uses a fixed rate table for now)
-- [x] How tier prices are derived from the average → 6 presets (0.5×–2×) + custom multiplier; anyone proposes, leader confirms
+- [x] How tier prices are derived from the average → tiers removed Nov 12, 2026; the leader sets the group budget directly
 - [x] How the agent reads saved trip state on later messages → both: injected summary every turn + `get_trip` tool
 - [x] Can GroupMe bots DM? → no, and budgets are shared now, so the bot only posts in the group
 
@@ -123,7 +125,6 @@ Amounts in cents. "Confirm" = agent must get the stated confirmation before call
 - Change of location / budget / date
 - Running out of budget early → warning
 - Split among / exclude specific people
-- Travel tips for a given budget
 - Currency conversion
 - Blacklisted items
 - Overspend advice

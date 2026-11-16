@@ -5,13 +5,13 @@
 
 ## 1. What we're building
 An AI agent that lives in a group chat (GroupMe for now) and:
-- plans a group trip (destination/date polls, itinerary),
+- keeps track of a group trip's plans (destination/date polls, a calendar of what the group decides, an ideas list),
 - logs and splits group expenses from plain-text messages,
-- gives travel tips by budget tier,
 - tracks **per-person budgets** (shared with everyone on the trip) and warns people in the group before they overspend.
 
 **Users:** college students, groups of 4–12, spring break / fall break / long weekends.
 **Why:** customer discovery from Romir's finance startup (Quor) found students overspend on group trips → budgeting + privacy is the core hook, not just itinerary generation.
+**Nov 12, 2026:** the team cut place recommendations. The bot no longer suggests or looks up places: itinerary drafts, destination suggestions, nearby search, travel-tip tiers, map checks and the Google Places / SerpAPI code are gone. Older notes below that mention them are history.
 **Context:** Tech@NYU Tech Treks project. Name not picked yet (shortlist: Breakmate, Tripline, Squadtrip, Splitsville).
 
 ## 2. Team & ownership
@@ -31,7 +31,7 @@ Working style: Romir, Roger, and Shriya make the design decisions — when somet
 - **Backend:** Django (+ DRF)
 - **DB:** Supabase Postgres (use as plain Postgres; don't use Supabase Auth to avoid two user systems). SQLite locally for now
 - **Sign-in:** Google via django-allauth
-- **Travel data:** Google Places + SerpAPI (Duffel only if in-app booking is added later)
+- **Travel data:** none. The bot doesn't look up places (Nov 12, 2026); the trip page's Maps buttons are plain Google Maps search links
 - **Payments:** Venmo/Zelle deep links only (no money moves through us)
 - **Currency:** the MVP is **USD-only**. Multi-currency (FX conversion, `convert_currency`, Example 6) stays in the code and keeps passing, but is post-MVP: no new work on it for now
 - **Trip page:** Next.js + Tailwind
@@ -54,13 +54,13 @@ Category and TripStatus are Python enums in `trip_model/` (int values); tools, t
 - **Poll**: id, question, options, votes {person_id: option}, closes_at, is_open; closes itself once `closes_at` passes; `vote()` checks the option; `winner()` returns every tied option
 - **Reminder**: id, message, due_at, audience (list | "all"), sent, created_by ("agent" | "system"); `is_due()` (the bot uses it), `mark_sent()`
 - **Trip**: id, name, status (PLANNING / BOOKED / ACTIVE / DONE), destination?, start_date?, end_date?, target_break?, base_currency, group_budget, members, activities, expenses, polls, reminders
-  - stored settings: base_currency, group_budget, leader_id, leader_approval, auto_log_mode, itinerary_drafts. **The leader fields are carried over unchanged while the team decides whether to keep the leader feature**
+  - stored settings: base_currency, group_budget, leader_id, leader_approval, auto_log_mode, lodging (text), ideas. **The leader fields are carried over unchanged while the team decides whether to keep the leader feature**
   - methods: add_* (reject non-members and duplicate expense ids), get_member, remove_member, set/remove_opt_out, split_people, get/delete_expense, add_refund, itinerary_by_day (not used by the backend yet), spent_by_category
   - `summary()` → **the context contract fed to the agent each turn** lives in the engine, not the model
   - `balances()` → one net number per person (sums to 0)
   - `settlement_plan()` → suggested payments, **netted across the group**: exact opposites pay each other first, then the biggest debtor pays the biggest creditor. At most n − 1 payments; money only goes from people who owe to people who are owed. A suggestion only; it never changes balances
   - `record_settlement(from, to, amount_cents, payment_id)` → call only after a real payment; saved as a SETTLEMENT expense; the same payment_id can't be recorded twice
-- **In the engine, not the model:** id generation, the leader/approval rules, travel tips and tier prices, itinerary drafts, FX conversion (post-MVP), `summary()`
+- **In the engine, not the model:** id generation, the leader/approval rules, the plans and ideas list (slots, the same-time check), FX conversion (post-MVP), `summary()`
 
 ## 5. Tools (21 + `send_message`) — the agent ↔ backend contract
 Added since the first draft: `get_trip` (full trip state, including budgets), `send_message` (the agent's only way to talk: posts in the group) and `record_payback` (Oct 25). Current inputs are in `specs.md` and `agent/tools/schemas.py`.
@@ -87,9 +87,9 @@ Added since the first draft: `get_trip` (full trip state, including budgets), `s
 **Planning**
 | Tool | Does | Confirm |
 |---|---|---|
-| `generate_itinerary` | Day-by-day draft via Places/SerpAPI; post draft; save as Activities only after group confirms | Before saving |
-| `add_activity` | Add/edit one activity | No |
-| `get_travel_tips` | Tips across budget tiers from external APIs | No |
+| `add_activity` | Add/edit/move one plan: just a day, a named slot, or a clock time | Only for two plans at the same clock time |
+| `remove_activity` | Remove a plan | If paid for or important |
+| `save_idea` | Add or remove an idea (no day yet) | No |
 | `create_poll` | Group vote (destination, dates, activities) | No |
 | `vote_poll` | Record votes from chat replies | No |
 | `close_poll` | Close + return winner (applying it goes through `update_trip`, needs confirm) | No |
@@ -113,9 +113,9 @@ Added since the first draft: `get_trip` (full trip state, including budgets), `s
 - **Dropout:** needs both the person's and the leader's confirmation. Group gets the new per-person cost; the dropout is tagged with what they owe.
 - **Exclusion conflict:** if someone opted out of a category but is explicitly named on an expense, ask before logging.
 - **Currency (post-MVP; the MVP is USD-only):** ambiguous symbol (e.g. "$" abroad) → ask. Confirmations show both ("€90 (≈ $97)"). Settle up in payer's choice of currency; agent converts.
-- **Travel tips:** 3 tiers (budget / mid / splurge) built from the group average; leader picks the tier; tips cover lodging, food, activities, money-saving. If someone's budget is below the chosen tier → say so in the group, kindly, and tag the leader.
+- **Group budget:** the leader sets it per person. If someone's budget is below it → say so in the group, kindly, and tag the leader. (Travel-tip tiers were removed Nov 12, 2026.)
 - **Date change:** flag activities that fall outside the new dates; group decides. (See examples.md for location/budget-change handling.)
-- **Travel info** comes from external APIs, not the model's own knowledge.
+- **Places:** the bot never suggests or looks up places. Asked for that, it says so in one short line.
 - **Listening:** reply only when @mentioned; may speak unprompted for important things only — budget warnings, conflicts, unpaid debts, deadlines.
 
 ## 7. Progress so far
@@ -140,13 +140,13 @@ Added since the first draft: `get_trip` (full trip state, including budgets), `s
 - [ ] Mentor: demo date + what must work
 - [x] Model + API key → Qwen `qwen3.8-flash` via Alibaba Cloud Model Studio (Singapore region); key in the gitignored `.env`
 - [x] Trip state for the agent → injected summary every turn + `get_trip` tool
-- [x] Travel-tip tiers → 6 presets (0.5×–2×) + custom multiplier; anyone proposes, leader confirms
+- [x] Travel-tip tiers → removed Nov 12, 2026 (the leader sets the group budget directly)
 
 ## 9. What's next
 1. When Qwen access works: `pytest -m live --repeat 3`, fix the prompt until the scenarios pass.
 2. Real GroupMe test: create the bot, `manage.py link_group`, chat end to end.
 3. Deploy the backend + trip page on one domain; connect Supabase; set up Google OAuth (`docs/google-signin.md`).
-4. Replace placeholder travel tips / FX with Google Places, SerpAPI and a real FX provider.
+4. Replace the placeholder FX table with a real FX provider (post-MVP).
 5. Run the trip page tests (`cd web && npm install && npm test`); they weren't run after the Oct 25 changes.
 
 ## 10. Data model work (done Oct 25, 2026)
