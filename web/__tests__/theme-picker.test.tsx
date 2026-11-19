@@ -30,14 +30,14 @@ describe("ThemePicker", () => {
     expect(screen.queryByRole("button", { name: "Change theme" })).toBeNull();
   });
 
-  it("only offers the themes the bot can save, plus the trip's own", () => {
+  it("offers all five themes", () => {
     render(
       <MemberDataProvider tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={sample} previewAs="mia">
         <ThemePicker theme="snow" />
       </MemberDataProvider>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Change theme" }));
-    expect(screen.getAllByRole("radio").map((r) => r.textContent)).toEqual(["Beach", "City nights", "Mountains", "Snow"]);
+    expect(screen.getAllByRole("radio").map((r) => r.textContent)).toEqual(["Beach", "City nights", "Mountains", "Snow", "Desert road"]);
   });
 
   it("in sample mode, previews the picked theme instead of saving", () => {
