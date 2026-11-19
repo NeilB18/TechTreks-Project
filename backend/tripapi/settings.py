@@ -116,10 +116,17 @@ BOT_INLINE = os.environ.get("BOT_INLINE", "0") == "1"  # 1 = run the agent insid
 # Chat times ("remind me at 9am") are the group's local time. One zone for now; per trip needs a Trip field.
 BOT_TIME_ZONE = os.environ.get("BOT_TIME_ZONE", "America/New_York")
 
+# The bot's and Add a trip's info lines, and every 500's traceback, to the server's output (errors
+# vanish otherwise when DEBUG is off).
 LOGGING = {
     "version": 1,
+    "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "loggers": {"bot": {"handlers": ["console"], "level": "INFO"}},
+    "loggers": {
+        "bot": {"handlers": ["console"], "level": "INFO"},
+        "accounts": {"handlers": ["console"], "level": "INFO"},
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
 }
 
 REST_FRAMEWORK = {

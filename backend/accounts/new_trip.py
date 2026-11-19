@@ -81,28 +81,39 @@ def create_trip_with_group(user, name: str, token: str) -> Trip:
     if callback is None:
         raise GroupMeError("BACKEND_PUBLIC_URL or GROUPME_CALLBACK_SECRET isn't set")
     me = _call("GET", "/users/me", token)
+    if not me.get("id"):
+        raise GroupMeError("GroupMe didn't say who you are")
     group = _call("POST", "/groups", token, {
         "name": name, "share": True,
         "description": f"Planned with {settings.BOT_MENTION}: the plan, who paid, and who owes who."})
+    if not group.get("id"):
+        raise GroupMeError("GroupMe didn't return the new group")
     try:
-        bot = _call("POST", "/bots", token, {"bot": {
+        made = _call("POST", "/bots", token, {"bot": {
             "name": settings.BOT_MENTION.lstrip("@"), "group_id": str(group["id"]), "callback_url": callback}})
-    except GroupMeError:
-        # Don't leave an empty group behind that nobody asked for.
+        # GroupMe's docs show the bot's fields directly, but the API wraps them: {"bot": {"bot_id": ...}}.
+        bot = made.get("bot") if isinstance(made.get("bot"), dict) else made
+        if not bot.get("bot_id"):
+            raise GroupMeError(f"GroupMe didn't return the new bot's id (got keys {sorted(made)})")
+        with transaction.atomic():
+            trip = Trip.objects.create(id=_trip_id(name), name=name)
+            GroupChat.objects.create(group_id=str(group["id"]), bot_id=str(bot["bot_id"]), trip=trip,
+                                     join_url=group.get("share_url") or "")
+            person_id = DjangoBackend().add_member(trip_id=trip.id, chat_user_id=str(me["id"]),
+                                                   name=me.get("name") or "Trip leader")["person_id"]
+            Person.objects.filter(trip=trip, person_id=person_id).update(user=user)
+            Trip.objects.filter(id=trip.id).update(leader_id=person_id)
+    except Exception as e:
+        # Nothing was saved (the transaction rolled back), so don't leave a group nobody can use: removing
+        # the group removes its bot too.
+        log.exception("Add a trip failed after GroupMe made group %s", group.get("id"))
         try:
             _call("POST", f"/groups/{group['id']}/destroy", token)
         except GroupMeError:
-            log.warning("Couldn't remove GroupMe group %s after the bot failed", group.get("id"))
-        raise
-
-    with transaction.atomic():
-        trip = Trip.objects.create(id=_trip_id(name), name=name)
-        GroupChat.objects.create(group_id=str(group["id"]), bot_id=str(bot["bot_id"]), trip=trip,
-                                 join_url=group.get("share_url") or "")
-        person_id = DjangoBackend().add_member(trip_id=trip.id, chat_user_id=str(me["id"]),
-                                               name=me.get("name") or "Trip leader")["person_id"]
-        Person.objects.filter(trip=trip, person_id=person_id).update(user=user)
-        Trip.objects.filter(id=trip.id).update(leader_id=person_id)
+            log.warning("Couldn't remove GroupMe group %s", group.get("id"))
+        if isinstance(e, GroupMeError):
+            raise
+        raise GroupMeError(f"saving the trip failed ({type(e).__name__})") from e
     trip.refresh_from_db()
 
     page = f"{settings.FRONTEND_URL}/t/{trip.share_token}"

@@ -1,0 +1,12 @@
+{% extends "allauth/layouts/base.html" %}
+{% comment %}
+Django's "Server Error (500)" page, in the site's look. Django draws it with no request context, so
+SITE_NAME and FRONTEND_URL fall back to their defaults in the layout.
+{% endcomment %}
+{% block head_title %}Something went wrong{% endblock head_title %}
+{% block content %}
+  <h1>Something went wrong</h1>
+  <p>That&rsquo;s on us, not you. Nothing you did was lost. Go back and try again in a minute.</p>
+  <a class="btn" href="/trips">Go to my trips</a>
+  <a class="back" href="/">Back to TravelBot</a>
+{% endblock content %}
