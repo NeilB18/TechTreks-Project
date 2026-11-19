@@ -122,7 +122,10 @@ export type PublicTrip = {
 
 // The money side, for a signed-in member of the trip (GET /api/me/trips/<id>).
 // group_join_url: the group chat's share link, for groups made with Add a trip ("Invite friends").
-export type MyTrip = TripPageData & { person_id: string; budget: BudgetStatus | null; group_join_url?: string | null };
+// time_zone: the trip's (an IANA name like "America/New_York"); stored times are its wall clock.
+export type MyTrip = TripPageData & {
+  person_id: string; budget: BudgetStatus | null; group_join_url?: string | null; time_zone?: string | null;
+};
 
 // Signed-in API (/api/me/*, proxied to Django). The caller's own linked trip member.
 export type Me =

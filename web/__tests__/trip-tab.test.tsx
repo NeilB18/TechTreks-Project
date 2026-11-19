@@ -111,10 +111,21 @@ describe("Trip tab helpers", () => {
 
   it("says how long ago, or the date once it's over a week (or in the future)", () => {
     const now = Date.parse("2027-03-10T12:00:00Z");
-    expect(timeAgo("2027-03-10T11:00", now)).toBe("1h");
-    expect(timeAgo("2027-03-08T12:00", now)).toBe("2d");
-    expect(timeAgo("2027-02-20T12:00", now)).toBe("Feb 20");
-    expect(timeAgo("2027-03-11T12:00", now)).toBe("Mar 11");
+    expect(timeAgo("2027-03-10T11:00", now, "UTC")).toBe("1h");
+    expect(timeAgo("2027-03-08T12:00", now, "UTC")).toBe("2d");
+    expect(timeAgo("2027-02-20T12:00", now, "UTC")).toBe("Feb 20");
+    expect(timeAgo("2027-03-11T12:00", now, "UTC")).toBe("Mar 11");
+  });
+
+  it("reads stored times on the trip's clock, not as UTC (an expense just logged isn't 5h old)", () => {
+    const now = Date.parse("2026-11-19T21:43:00Z"); // 4:43pm in New York
+    expect(timeAgo("2026-11-19T16:39", now, "America/New_York")).toBe("4m");
+    expect(timeAgo("2026-11-19T15:40:20", now, "America/New_York")).toBe("1h");
+    // Summer time: 12:00 in New York is 16:00 UTC.
+    expect(timeAgo("2027-07-01T12:00", Date.parse("2027-07-01T16:30:00Z"), "America/New_York")).toBe("30m");
+    // A time with its own zone is read as written.
+    expect(timeAgo("2026-11-19T21:13:00Z", now, "America/New_York")).toBe("30m");
+    expect(timeAgo("2026-11-19T16:13:00-05:00", now)).toBe("30m");
   });
 
   it("makes a calendar file with the trip and each dated stop", () => {

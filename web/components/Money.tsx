@@ -244,7 +244,7 @@ function Spent({ data, money, name, index }: Helpers) {
   const { detail, person_id: me } = data;
   const currency = detail.trip.base_currency;
   const now = useNow();
-  const when = (iso: string) => (now === null ? "" : timeAgo(iso, now));
+  const when = (iso: string) => (now === null ? "" : timeAgo(iso, now, data.time_zone));
   const who = (id: string) => (id === me ? "You" : name(id));
   const whom = (id: string) => (id === me ? "you" : name(id));
 
