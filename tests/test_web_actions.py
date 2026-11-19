@@ -100,3 +100,14 @@ def test_saves_even_when_the_group_post_fails_or_there_is_no_group(mia, monkeypa
     GroupChat.objects.all().delete()
     assert post(mia, "payments", {"to": "aarav", "amount_cents": 6000, "request_id": "r9"}).status_code == 200
     assert paybacks() == 1
+
+
+def test_site_actions_use_the_groups_clock_like_the_bot(mia, monkeypatch, settings):
+    """Mark as sent is stamped with the group's wall-clock time, like expenses logged in the chat, and the
+    page gets the zone to read those times in (it showed a just-logged expense as 5 hours old)."""
+    from accounts import views
+
+    monkeypatch.setattr(views, "local_now", lambda: "2026-11-19T16:40")
+    assert post(mia, "payments", {"to": "aarav", "amount_cents": 2500, "request_id": "r1"}).status_code == 200
+    assert Expense.objects.get(trip_id="miami", category="SETTLEMENT").created_at == "2026-11-19T16:40"
+    assert mia.get("/api/me/trips/miami").json()["time_zone"] == settings.BOT_TIME_ZONE

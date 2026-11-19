@@ -44,7 +44,7 @@ export function Latest() {
                 </span>
                 {it.what && <span className="truncate text-sm text-muted">{it.what}</span>}
               </span>
-              <span className="flex-none pt-[7px] text-[13px] text-muted">{now === null ? "" : timeAgo(it.at, now)}</span>
+              <span className="flex-none pt-[7px] text-[13px] text-muted">{now === null ? "" : timeAgo(it.at, now, state.data.time_zone)}</span>
             </li>
           ))}
         </ol>

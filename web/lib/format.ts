@@ -234,8 +234,43 @@ export function openDaysLine(activities: Activity[], start: string | null, end: 
 }
 
 /** "5m", "3h", "2d" for the last week; a date ("Mar 1") before that or for anything in the future. */
-export function timeAgo(iso: string, now: number): string {
-  const then = Date.parse(iso.length <= 16 ? `${iso}Z` : iso);
+/**
+ * When a stored time happened, in milliseconds. The backend saves times as the group's wall clock with
+ * no zone ("2026-11-19T16:40" in the trip's time zone, America/New_York for now), so read them in
+ * `timeZone`. A time that carries its own zone ("Z", "+00:00") is read as written; without a time zone
+ * (sample data), the viewer's own clock.
+ */
+export function epochOf(iso: string, timeZone?: string | null): number {
+  if (/(Z|[+-]\d\d:?\d\d)$/i.test(iso.slice(10))) return Date.parse(iso);
+  const [date, time = "00:00"] = iso.split("T");
+  const [y, m, d] = date.split("-").map(Number);
+  const [h = 0, min = 0, s = 0] = time.split(":").map(Number);
+  const wall = Date.UTC(y, m - 1, d, h, min, Math.floor(s));
+  if (timeZone) {
+    try {
+      // The zone's offset at that moment (twice, so a time near a daylight-saving change lands right).
+      const first = wall - zoneOffset(wall, timeZone);
+      return wall - zoneOffset(first, timeZone);
+    } catch {
+      // An unknown zone name: fall through to the viewer's clock.
+    }
+  }
+  return new Date(y, m - 1, d, h, min, Math.floor(s)).getTime();
+}
+
+/** How far `timeZone`'s wall clock is ahead of UTC at `at`, in milliseconds. */
+function zoneOffset(at: number, timeZone: string): number {
+  const p: Record<string, number> = {};
+  for (const part of new Intl.DateTimeFormat("en-US", {
+    timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).formatToParts(new Date(at))) p[part.type] = Number(part.value);
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - at;
+}
+
+/** "5m", "3h", "2d", or the date once it's a week old. `timeZone`: the trip's (see epochOf). */
+export function timeAgo(iso: string, now: number, timeZone?: string | null): string {
+  const then = epochOf(iso, timeZone);
   const mins = Math.floor((now - then) / 60_000);
   if (Number.isNaN(mins) || mins < 0 || mins >= 7 * 24 * 60) return formatDate(iso);
   if (mins < 60) return `${Math.max(1, mins)}m`;

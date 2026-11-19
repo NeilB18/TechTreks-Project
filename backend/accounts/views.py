@@ -23,10 +23,17 @@ from agent.backend.core.rules import fmt_usd
 from agent.backend.protocol import ToolError
 from bot import groupme
 from bot.models import GroupChat
+from bot.services import local_now
 from trips.models import Budget, Person, Trip
 from trips.services import DjangoBackend
 
 log = logging.getLogger(__name__)
+
+
+def _backend() -> DjangoBackend:
+    """The trip engine on the group's clock, like the bot: what you do on the site ("Mark as sent") gets the
+    same kind of timestamp as what you tell @tripbot (the group's wall-clock time, settings.BOT_TIME_ZONE)."""
+    return DjangoBackend(now=local_now())
 
 
 def login_required_json(view):
@@ -70,7 +77,7 @@ def link_code(request):
 @login_required_json
 def my_trips(request):
     """My trips: every trip the signed-in account is linked to, with what you owe or are owed there."""
-    backend = DjangoBackend()
+    backend = _backend()
     out = []
     for p in Person.objects.filter(user=request.user).select_related("trip").order_by("trip__start_date"):
         t = p.trip
@@ -93,13 +100,15 @@ def my_trip(request, trip_id: str):
     person = Person.objects.filter(trip_id=trip_id, user=request.user).first()
     if person is None:
         return JsonResponse({"error": "You're not linked to a member of this trip"}, status=403)
-    backend = DjangoBackend()
+    backend = _backend()
     return JsonResponse({
         "person_id": person.person_id,
         "detail": backend.get_trip(trip_id=trip_id),
         "balances": backend.get_balances(trip_id=trip_id),
         "budget": backend.get_budget_status(trip_id=trip_id, person_id=person.person_id),
         "budgets": backend.budget_overview(trip_id=trip_id),
+        # Times in the trip are the group's wall clock in this zone; the page reads them with it.
+        "time_zone": settings.BOT_TIME_ZONE,
         # The group chat's share link, for groups made with Add a trip: "Invite friends".
         "group_join_url": getattr(getattr(person.trip, "group_chat", None), "join_url", "") or None,
     })
@@ -113,7 +122,7 @@ def my_budget(request, trip_id: str):
     person = Person.objects.filter(trip_id=trip_id, user=request.user).first()
     if person is None:
         return JsonResponse({"error": "You're not linked to a member of this trip"}, status=403)
-    backend = DjangoBackend()
+    backend = _backend()
     if request.method == "POST":
         total = _body(request).get("total_cents")
         if not isinstance(total, int) or isinstance(total, bool) or not 0 < total <= MAX_CENTS:
@@ -149,7 +158,7 @@ def my_payment(request, trip_id: str):
     if done:
         return JsonResponse(done)
 
-    backend = DjangoBackend()
+    backend = _backend()
     owed = sum(p["amount_cents"] for p in backend.get_balances(trip_id=trip_id)["suggested_payments"]
                if p["from"] == person.person_id and p["to"] == receiver.person_id)
     if amount > owed:
@@ -198,7 +207,7 @@ def my_trip_theme(request, trip_id: str):
         return JsonResponse({"error": "You're not linked to a member of this trip"}, status=403)
     try:
         theme = json.loads(request.body or b"{}").get("theme")
-        return JsonResponse(DjangoBackend().set_theme(trip_id, theme))
+        return JsonResponse(_backend().set_theme(trip_id, theme))
     except (ValueError, AttributeError):
         return JsonResponse({"error": "Send {\"theme\": ...} as JSON"}, status=400)
     except ToolError as e:
