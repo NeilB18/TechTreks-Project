@@ -20,9 +20,10 @@ MAX_TOOL_ROUNDS = 15  # model calls per incoming chat message
 # newest message keeps its <trip_state> (older copies are stale), so a reply's cost doesn't grow with the trip.
 HISTORY_TURNS = int(os.environ.get("AGENT_HISTORY_TURNS", "12"))
 REQUEST_TIMEOUT_S = 90  # per model call
-# The website, for the trip page link the bot posts (<TRIP_PAGE_URL>/t/<share_token>). The default is the
-# web dev server; set it to the hosted site (the Vercel address) where the bot runs for real.
-TRIP_PAGE_URL = os.environ.get("TRIP_PAGE_URL", "http://localhost:3000").rstrip("/")
+# The website, for the trip page link the bot posts (<TRIP_PAGE_URL>/t/<share_token>). Falls back to
+# FRONTEND_URL (the site sign-in sends people back to), so a live bot never posts a localhost link when
+# only that one is set; the web dev server is the last resort.
+TRIP_PAGE_URL = (os.environ.get("TRIP_PAGE_URL") or os.environ.get("FRONTEND_URL") or "http://localhost:3000").rstrip("/")
 
 # API keys only work on the endpoint of the region they were created in (the team key is
 # Singapore). QWEN_BASE_URL is that endpoint: "<API Host from Workspace Management>/compatible-mode/v1".
