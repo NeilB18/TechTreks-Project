@@ -105,6 +105,11 @@ DATABASES = {"default": dj_database_url.config(default=f"sqlite:///{BASE_DIR / '
 # GroupMe bot. The callback URL to register with GroupMe is
 # https://<host>/groupme/callback/<GROUPME_CALLBACK_SECRET>.
 GROUPME_CALLBACK_SECRET = os.environ.get("GROUPME_CALLBACK_SECRET", "")
+# "Add a trip" on the site (accounts/new_trip.py): the GroupMe app's client id (dev.groupme.com/applications,
+# callback URL <FRONTEND_URL>/accounts/groupme/callback), and the address GroupMe reaches this backend at,
+# for the new bot's callback (https://<host>/groupme/callback/<GROUPME_CALLBACK_SECRET>).
+GROUPME_CLIENT_ID = os.environ.get("GROUPME_CLIENT_ID", "")
+BACKEND_PUBLIC_URL = os.environ.get("BACKEND_PUBLIC_URL", "").rstrip("/")
 BOT_MENTION = os.environ.get("BOT_MENTION", "@tripbot")
 BOT_FORWARD_ALL = os.environ.get("BOT_FORWARD_ALL", "0") == "1"  # also send un-mentioned messages to the agent
 BOT_INLINE = os.environ.get("BOT_INLINE", "0") == "1"  # 1 = run the agent inside the webhook request (tests)

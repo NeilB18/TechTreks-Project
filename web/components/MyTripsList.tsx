@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { PlusIcon } from "@/components/Icons";
 import { SignInButton } from "@/components/SignInButton";
 import { countdown, formatDateRange, formatMoney, formatShortRange } from "@/lib/format";
 import { themeInfo } from "@/lib/themes";
@@ -62,8 +63,15 @@ export function MyTripsList({ sample, today }: { sample: TripCard[] | null; toda
   return (
     <>
       <section aria-labelledby="coming-up" className="flex flex-col gap-3 px-5 pt-6.5">
-        <h2 id="coming-up" className="wide text-xl">Coming up</h2>
-        {soon.length === 0 && <p className="text-muted">Nothing coming up yet.</p>}
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="coming-up" className="wide text-xl">Coming up</h2>
+          <Link href="/new" className="btn btn-white btn-pill flex-none border-0">
+            <PlusIcon size={16} />Add a trip
+          </Link>
+        </div>
+        {soon.length === 0 && (
+          <p className="text-muted">Nothing coming up yet. Add a trip and we&rsquo;ll make its group chat with @tripbot in it.</p>
+        )}
         <ul className="flex flex-col gap-3">
           {soon.map((t) => (
             <li key={t.share_token}><Card t={t} today={today} /></li>
@@ -91,7 +99,9 @@ export function MyTripsList({ sample, today }: { sample: TripCard[] | null; toda
       )}
       <section aria-labelledby="missing" className="card mx-3.5 mt-7.5 flex flex-col gap-2.5 p-[18px]">
         <h2 id="missing" className="text-[17px] font-bold">Missing a trip?</h2>
-        <p className="text-[15px] leading-[1.45] text-muted">Get a code, post it in that trip&rsquo;s group chat, and the trip shows up here.</p>
+        <p className="text-[15px] leading-[1.45] text-muted">
+          Already have a group chat with @tripbot? Get a code, post it there, and the trip shows up here.
+        </p>
         <Link href="/link" className="btn btn-line self-start px-5 text-[15px]">Get a link code</Link>
       </section>
     </>

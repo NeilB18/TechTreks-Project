@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Ideas } from "@/components/Ideas";
 import { Itinerary } from "@/components/Itinerary";
 import { Details } from "@/components/trip/Details";
+import { Invite } from "@/components/trip/Invite";
 import { Latest } from "@/components/trip/Latest";
 import { loadTrip, sharedTrip, TripShell } from "@/components/trip/TripShell";
 import { YourMoney } from "@/components/trip/YourMoney";
@@ -23,6 +24,7 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
   return (
     <TripShell view={view} tab="trip">
       <Details data={data} />
+      <Invite />
       <YourMoney moneyHref={`${pagePath}/money${query}`} />
       <Latest />
       <section aria-labelledby="plan" className="flex flex-col gap-2.5 px-5 pt-7.5">

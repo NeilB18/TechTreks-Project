@@ -66,6 +66,7 @@ function AccountMenu({ me }: { me: Extract<Me, { signed_in: true }> }) {
       <div className="absolute right-0 z-20 mt-2 flex w-56 flex-col rounded-2xl border border-line bg-raised p-2 shadow-xl">
         <p className="truncate px-3 py-2 text-[13px] text-muted">{me.email}</p>
         <Link href="/trips" className="rounded-xl px-3 py-3 font-semibold text-ink no-underline hover:bg-line">My trips</Link>
+        <Link href="/new" className="rounded-xl px-3 py-3 font-semibold text-ink no-underline hover:bg-line">Add a trip</Link>
         {/* Signing out is a POST with the CSRF token (allauth), then Django sends you back to the site. */}
         <form
           method="post"
