@@ -178,6 +178,9 @@
       "remaining_cents": 120000,
       "planned_cents": 13333,
       "remaining_after_planned_cents": 106667,
+      "paid_cents": 120000,
+      "owe_cents": 0,
+      "owed_cents": 90000,
       "by_category": {
         "ACTIVITIES": {
           "limit_cents": null,
@@ -200,6 +203,9 @@
       "remaining_cents": 80000,
       "planned_cents": 13333,
       "remaining_after_planned_cents": 66667,
+      "paid_cents": 0,
+      "owe_cents": 30000,
+      "owed_cents": 0,
       "by_category": {
         "ACTIVITIES": {
           "limit_cents": null,
@@ -222,6 +228,9 @@
       "remaining_cents": 65000,
       "planned_cents": 13333,
       "remaining_after_planned_cents": 51667,
+      "paid_cents": 0,
+      "owe_cents": 30000,
+      "owed_cents": 0,
       "by_category": {
         "ACTIVITIES": {
           "limit_cents": 14000,

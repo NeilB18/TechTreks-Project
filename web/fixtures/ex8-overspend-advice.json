@@ -230,6 +230,9 @@
       "budget_set": false,
       "spent_cents": 16000,
       "planned_cents": 0,
+      "paid_cents": 12000,
+      "owe_cents": 4000,
+      "owed_cents": 0,
       "warnings": []
     },
     "jake": {
@@ -237,6 +240,9 @@
       "budget_set": false,
       "spent_cents": 16000,
       "planned_cents": 0,
+      "paid_cents": 30000,
+      "owe_cents": 0,
+      "owed_cents": 14000,
       "warnings": []
     },
     "mia": {
@@ -247,6 +253,9 @@
       "remaining_cents": 74000,
       "planned_cents": 0,
       "remaining_after_planned_cents": 74000,
+      "paid_cents": 6000,
+      "owe_cents": 10000,
+      "owed_cents": 0,
       "by_category": {
         "FOOD": {
           "limit_cents": 20000,

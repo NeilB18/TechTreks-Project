@@ -673,16 +673,21 @@ class TripEngine:
         spent_by_cat = {c.name: v for c, v in trip.spent_by_category(person).items() if v}
         planned_by_cat = self._planned_by_category(trip, person)
         spent, planned = sum(spent_by_cat.values()), sum(planned_by_cat.values())
+        # Spent is your share, so paying someone back doesn't change it. What does change: how much of
+        # that share you've actually paid (paid_cents) and what's still to send (owe_cents) or come back
+        # to you (owed_cents). The trip page shows these under the budget.
+        net = trip.balances().get(person_id, 0)
+        money = {"paid_cents": max(0, spent + net), "owe_cents": max(0, -net), "owed_cents": max(0, net)}
         if b is None:
             return {"person_id": person_id, "budget_set": False, "spent_cents": spent,
-                    "planned_cents": planned, "warnings": []}
+                    "planned_cents": planned, **money, "warnings": []}
         limits = {c.name: v for c, v in b.limits.items()}
         cats = sorted(set(limits) | set(spent_by_cat) | set(planned_by_cat))
         return {
             "person_id": person_id, "budget_set": True,
             "total_cents": b.total_cents, "spent_cents": spent,
             "remaining_cents": b.total_cents - spent, "planned_cents": planned,
-            "remaining_after_planned_cents": b.total_cents - spent - planned,
+            "remaining_after_planned_cents": b.total_cents - spent - planned, **money,
             "by_category": {c: {"limit_cents": limits.get(c), "spent_cents": spent_by_cat.get(c, 0),
                                 "planned_cents": planned_by_cat.get(c, 0)} for c in cats},
             "warnings": self._budget_warnings(trip, b, planned_by_cat),

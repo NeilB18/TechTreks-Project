@@ -8,7 +8,7 @@ import { BudgetForm } from "@/components/BudgetForm";
 import { CopyButton } from "@/components/CopyButton";
 import { CheckIcon, CopyIcon, LockIcon } from "@/components/Icons";
 import { MarkSent } from "@/components/MarkSent";
-import { formatMoney, handleKind, listNames, payLink, warningText } from "@/lib/format";
+import { formatMoney, handleKind, listNames, paidLine, payLink, warningText } from "@/lib/format";
 import type { BudgetStatus, MyTrip, Payment } from "@/lib/types";
 
 import { useMemberData } from "./MemberData";
@@ -158,6 +158,7 @@ export function YourBudget({ budget, money, className = "border-t border-line" }
   const used = budget.spent_cents + budget.planned_cents;
   const left = budget.remaining_after_planned_cents ?? total - used;
   const pct = Math.min(100, Math.max(0, (used / Math.max(total, 1)) * 100));
+  const paid = paidLine(budget, money);
   return (
     <div className={`flex flex-col gap-2.5 px-[18px] pt-3.5 pb-4 ${className}`}>
       <div className="flex items-center justify-between gap-3">
@@ -176,6 +177,7 @@ export function YourBudget({ budget, money, className = "border-t border-line" }
       >
         <div className={`h-full rounded-full ${left < 0 ? "bg-warn" : "bg-accent"}`} style={{ width: `${pct}%` }} />
       </div>
+      {paid && <p className="text-sm text-muted tabular-nums">{paid}</p>}
       {budget.warnings.length > 0 && (
         <ul className="flex flex-col gap-0.5">
           {budget.warnings.map((w, i) => (

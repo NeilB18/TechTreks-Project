@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   countdown, formatDateRange, formatDay, formatDayRange, formatMoney, formatTime, groupByDay, isOutsideTrip, mapsSearchUrl,
-  mapsUrl, payLink, stopDetails, tripDayLabel, warningText, whenLabel,
+  mapsUrl, paidLine, payLink, stopDetails, tripDayLabel, warningText, whenLabel,
 } from "@/lib/format";
 import type { Activity } from "@/lib/types";
 
@@ -138,5 +138,17 @@ describe("trip page header and stops", () => {
     expect(stopDetails({ ...a, location: "Miami" }, "USD", "Miami")).toBe("About $70 each");
     expect(stopDetails({ ...a, location: "Miami Beach Marina", est_per_person_cents: 0 }, "USD"))
       .toBe("Miami Beach Marina");
+  });
+});
+
+describe("paidLine", () => {
+  const money = (c: number) => formatMoney(c);
+  it("says what's paid and what's left to send or come back", () => {
+    expect(paidLine({ paid_cents: 63000, owe_cents: 10750, owed_cents: 0 }, money)).toBe("You\u2019ve paid $630 \u00b7 $107.50 still to send");
+    expect(paidLine({ paid_cents: 101500, owe_cents: 0, owed_cents: 36250 }, money)).toBe("You\u2019ve paid $1,015 \u00b7 $362.50 coming back to you");
+    expect(paidLine({ paid_cents: 73750, owe_cents: 0, owed_cents: 0 }, money)).toBe("You\u2019ve paid $737.50 \u00b7 all settled");
+  });
+  it("is null when the backend didn't send it", () => {
+    expect(paidLine({}, money)).toBeNull();
   });
 });

@@ -121,6 +121,9 @@
       "budget_set": false,
       "spent_cents": 3336,
       "planned_cents": 0,
+      "paid_cents": 0,
+      "owe_cents": 3336,
+      "owed_cents": 0,
       "warnings": []
     },
     "jake": {
@@ -128,6 +131,9 @@
       "budget_set": false,
       "spent_cents": 3336,
       "planned_cents": 0,
+      "paid_cents": 10008,
+      "owe_cents": 0,
+      "owed_cents": 6672,
       "warnings": []
     },
     "mia": {
@@ -135,6 +141,9 @@
       "budget_set": false,
       "spent_cents": 3336,
       "planned_cents": 0,
+      "paid_cents": 0,
+      "owe_cents": 3336,
+      "owed_cents": 0,
       "warnings": []
     }
   }

@@ -167,6 +167,9 @@
       "budget_set": false,
       "spent_cents": 30000,
       "planned_cents": 21300,
+      "paid_cents": 90000,
+      "owe_cents": 0,
+      "owed_cents": 60000,
       "warnings": []
     },
     "jake": {
@@ -174,6 +177,9 @@
       "budget_set": false,
       "spent_cents": 30000,
       "planned_cents": 21300,
+      "paid_cents": 0,
+      "owe_cents": 30000,
+      "owed_cents": 0,
       "warnings": []
     },
     "mia": {
@@ -184,6 +190,9 @@
       "remaining_cents": 20000,
       "planned_cents": 21300,
       "remaining_after_planned_cents": -1300,
+      "paid_cents": 0,
+      "owe_cents": 30000,
+      "owed_cents": 0,
       "by_category": {
         "ACTIVITIES": {
           "limit_cents": null,

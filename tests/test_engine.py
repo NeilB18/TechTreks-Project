@@ -137,6 +137,26 @@ def test_budget_counts_share_not_payment_and_skips_settlements(b):
     assert s["spent_cents"] == 10000 and s["remaining_cents"] == 40000
 
 
+
+def test_money_sent_shows_on_both_budgets_but_spent_stays_the_share(b):
+    """Spent is your share either way; paid/owe/owed move when money is sent (Nov 19, 2026)."""
+    for p in ("aarav", "jake"):
+        dispatch(b, "set_budget", {"trip_id": "t", "person_id": p, "total": 50000})
+    log(b, paid_by="aarav", amount=30000, split_with=["aarav", "jake", "mia"])  # $100 each
+    jake, aarav = b.get_budget_status("t", "jake"), b.get_budget_status("t", "aarav")
+    assert (jake["spent_cents"], jake["paid_cents"], jake["owe_cents"], jake["owed_cents"]) == (10000, 0, 10000, 0)
+    assert (aarav["spent_cents"], aarav["paid_cents"], aarav["owed_cents"]) == (10000, 30000, 20000)
+
+    dispatch(b, "record_payback", {"trip_id": "t", "from_person": "jake", "to_person": "aarav",
+                                   "amount": 6000, "currency": "USD"})
+    jake, aarav = b.get_budget_status("t", "jake"), b.get_budget_status("t", "aarav")
+    assert (jake["spent_cents"], jake["paid_cents"], jake["owe_cents"]) == (10000, 6000, 4000)
+    assert jake["remaining_cents"] == 40000  # the budget itself still counts the share
+    assert (aarav["spent_cents"], aarav["paid_cents"], aarav["owed_cents"]) == (10000, 24000, 14000)
+    # No budget set: the same numbers still come back.
+    mia = b.get_budget_status("t", "mia")
+    assert (mia["budget_set"], mia["paid_cents"], mia["owe_cents"]) == (False, 0, 10000)
+
 def test_budget_warning_counts_planned_activities(b):
     # Example 1: a $400 group-total boat tour split 4 ways fits Mia's $140 activities limit;
     # after a dropout it's ~$133 each, leaving under 10% of the limit.

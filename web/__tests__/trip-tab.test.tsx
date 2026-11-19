@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { Details } from "@/components/trip/Details";
 import { FloatingBar } from "@/components/trip/FloatingBar";
 import { Latest } from "@/components/trip/Latest";
 import { MemberDataProvider } from "@/components/trip/MemberData";
@@ -12,6 +13,7 @@ import { YourMoney } from "@/components/trip/YourMoney";
 import { openDaysLine, timeAgo, tripLength } from "@/lib/format";
 import { tripCalendar } from "@/lib/ics";
 import { latestItems } from "@/lib/latest";
+import { toPublicTrip } from "@/lib/public";
 import type { TripPageData } from "@/lib/types";
 
 const fixture = (name: string): TripPageData =>
@@ -122,5 +124,19 @@ describe("Trip tab helpers", () => {
     expect(ics).toContain("DTEND;VALUE=DATE:20270319"); // all-day end is the day after
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1 + detail.activities.filter((a) => a.start).length);
     expect(ics).toContain("SUMMARY:Miami Spring Break");
+  });
+});
+
+describe("Who's going", () => {
+  it("opens a list of everyone on the trip, with the leader and you marked", () => {
+    const data = fixture("miami-demo");
+    const going = data.detail.members.filter((m) => m.active);
+    render(<As as="mia"><Details data={toPublicTrip(data.detail)} /></As>);
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`${going.length} going`) }));
+    const sheet = screen.getByRole("dialog", { name: "Who\u2019s going" });
+    for (const m of going) expect(within(sheet).getByText(m.name)).toBeTruthy();
+    const leader = going.find((m) => m.id === data.detail.trip.leader_id)!;
+    expect(within(sheet).getByText(leader.name).parentElement!.textContent).toContain("Leader");
+    expect(within(sheet).getByText("You").parentElement!.textContent).toContain("Mia");
   });
 });
