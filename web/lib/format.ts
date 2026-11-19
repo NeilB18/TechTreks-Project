@@ -95,20 +95,6 @@ export function tripDayLabel(date: string, start: string | null, end: string | n
 }
 
 /**
- * A Google Maps search for a name near a place (Google's "Maps URLs": no API key, no cost). Nobody has checked
- * that it finds the right place.
- */
-export function mapsSearchUrl(name: string, near: string | null): string {
-  const query = near && !name.includes(near) ? `${name}, ${near}` : name;
-  return `https://www.google.com/maps/search/?api=1&${new URLSearchParams({ query })}`;
-}
-
-/** A Maps search for the stop's name near its location, or the trip's destination. */
-export function mapsUrl(a: Activity, destination: string | null): string {
-  return mapsSearchUrl(a.name, a.location || destination);
-}
-
-/**
  * "About $20 each", "Miami Beach Marina, about $20 each", or just the place: under a stop's name.
  * A place that's only the trip's destination ("Miami") is left out.
  */

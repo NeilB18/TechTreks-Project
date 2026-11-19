@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  countdown, formatDateRange, formatDay, formatDayRange, formatMoney, formatTime, groupByDay, isOutsideTrip, mapsSearchUrl,
-  mapsUrl, paidLine, payLink, stopDetails, tripDayLabel, warningText, whenLabel,
+  countdown, formatDateRange, formatDay, formatDayRange, formatMoney, formatTime, groupByDay, isOutsideTrip,
+  paidLine, payLink, stopDetails, tripDayLabel, warningText, whenLabel,
 } from "@/lib/format";
 import type { Activity } from "@/lib/types";
 
@@ -120,15 +120,6 @@ describe("trip page header and stops", () => {
     expect(tripDayLabel("2027-03-16", "2027-03-14", "2027-03-18")).toBe("Day 3");
     expect(tripDayLabel("2027-03-20", "2027-03-14", "2027-03-18")).toBe("");
     expect(tripDayLabel("2027-03-16", null, null)).toBe("");
-  });
-
-  it("links every stop to a Google Maps search near the trip", () => {
-    const a = { ...activity("x", null), name: "Joe's Stone Crab" };
-    expect(mapsUrl(a, "Miami")).toBe("https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami");
-    expect(mapsUrl({ ...a, location: "Miami Beach Marina" }, "Miami")).toContain("Miami+Beach+Marina");
-    expect(mapsSearchUrl("Freehand Miami", "Miami")).toBe(
-      "https://www.google.com/maps/search/?api=1&query=Freehand+Miami");
-    expect(mapsSearchUrl("2727 Indian Creek Dr", null)).toContain("query=2727+Indian+Creek+Dr");
   });
 
   it("describes a stop by place and cost", () => {

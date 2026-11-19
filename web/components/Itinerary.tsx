@@ -1,5 +1,5 @@
-import { ChevronIcon, PinIcon } from "@/components/Icons";
-import { formatDay, groupByDay, isOutsideTrip, mapsUrl, openDaysLine, stopDetails, tripDayLabel, whenLabel } from "@/lib/format";
+import { ChevronIcon } from "@/components/Icons";
+import { formatDay, groupByDay, isOutsideTrip, openDaysLine, stopDetails, tripDayLabel, whenLabel } from "@/lib/format";
 import type { Activity, TripInfo } from "@/lib/types";
 
 // Days shown open; later ones are folded (tap to open), so a long trip stays short on a phone.
@@ -72,9 +72,6 @@ function Stop({ a, trip }: { a: Activity; trip: TripBits }) {
           <span className="text-[13px] font-semibold text-warn">Outside the trip dates</span>
         )}
       </span>
-      <a href={mapsUrl(a, trip.destination)} target="_blank" rel="noreferrer" aria-label={`${a.name} on Google Maps`} className="icon-btn bg-white/8">
-        <PinIcon size={17} stroke={2} />
-      </a>
     </li>
   );
 }

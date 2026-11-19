@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Avatar, Avatars } from "@/components/Avatars";
 import { CalendarIcon, ChevronIcon, HomeIcon, PeopleIcon, PinIcon, PlusIcon } from "@/components/Icons";
 import { Sheet, useSheet } from "@/components/Sheet";
-import { formatDayRange, listNames, mapsSearchUrl, tripLength } from "@/lib/format";
+import { formatDayRange, listNames, tripLength } from "@/lib/format";
 import { tripCalendar } from "@/lib/ics";
 import type { PublicTrip } from "@/lib/types";
 
@@ -27,7 +27,7 @@ export function Details({ data }: { data: PublicTrip }) {
       </Row>
       <Row icon={<PinIcon />} title={trip.destination ?? "Destination not picked yet"}
         sub={trip.destination ? null : "The theme changes once you pick one"} />
-      <Stay destination={trip.destination} />
+      <Stay />
       <Going members={members} leaderId={trip.leader_id} />
     </section>
   );
@@ -46,23 +46,14 @@ function Row({ icon, title, sub, children }: { icon: ReactNode; title: string; s
   );
 }
 
-function Stay({ destination }: { destination: string | null }) {
+function Stay() {
   const { state } = useMemberData();
   // Where the group is staying, as they told the bot ("Freehand Miami, 2727 Indian Creek Dr").
   const lodging = state.step === "ready" ? state.data.detail.trip.lodging : null;
   if (!lodging) return null;
   return (
-    <Row icon={<HomeIcon />} title={lodging} sub="Only people on the trip see this">
-      <a
-        href={mapsSearchUrl(lodging, destination)}
-        target="_blank"
-        rel="noreferrer"
-        aria-label={`${lodging} on Google Maps`}
-        className="btn btn-pill flex-none"
-      >
-        Maps
-      </a>
-    </Row>
+    // Plain text, no Maps link: a name like "the Airbnb" can send people to the wrong place.
+    <Row icon={<HomeIcon />} title={lodging} sub="Where you're staying. Only people on the trip see this" />
   );
 }
 
