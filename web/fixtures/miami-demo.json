@@ -663,6 +663,9 @@
       "budget_set": false,
       "spent_cents": 39400,
       "planned_cents": 33000,
+      "paid_cents": 155000,
+      "owe_cents": 0,
+      "owed_cents": 115600,
       "warnings": []
     },
     "priya": {
@@ -670,6 +673,9 @@
       "budget_set": false,
       "spent_cents": 39400,
       "planned_cents": 33000,
+      "paid_cents": 10000,
+      "owe_cents": 29400,
+      "owed_cents": 0,
       "warnings": []
     },
     "jake": {
@@ -677,6 +683,9 @@
       "budget_set": false,
       "spent_cents": 32400,
       "planned_cents": 33000,
+      "paid_cents": 35000,
+      "owe_cents": 0,
+      "owed_cents": 2600,
       "warnings": []
     },
     "mia": {
@@ -684,6 +693,9 @@
       "budget_set": false,
       "spent_cents": 37736,
       "planned_cents": 33000,
+      "paid_cents": 12000,
+      "owe_cents": 25736,
+      "owed_cents": 0,
       "warnings": []
     },
     "sam": {
@@ -691,6 +703,9 @@
       "budget_set": false,
       "spent_cents": 37736,
       "planned_cents": 33000,
+      "paid_cents": 10008,
+      "owe_cents": 27728,
+      "owed_cents": 0,
       "warnings": []
     },
     "leo": {
@@ -698,6 +713,9 @@
       "budget_set": false,
       "spent_cents": 35336,
       "planned_cents": 33000,
+      "paid_cents": 0,
+      "owe_cents": 35336,
+      "owed_cents": 0,
       "warnings": []
     }
   }

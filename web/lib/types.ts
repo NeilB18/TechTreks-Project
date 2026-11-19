@@ -141,6 +141,11 @@ export type BudgetStatus = {
   remaining_cents?: number;
   planned_cents: number;
   remaining_after_planned_cents?: number;
+  // Your share counts as spent; these say how much of it you've actually paid, and what's still to send
+  // (owe) or to come back to you (owed). They change when money is sent; spent doesn't.
+  paid_cents?: number;
+  owe_cents?: number;
+  owed_cents?: number;
   // Roger's engine sends strings ("DRINKS under 10% remaining"); objects are accepted too in case that changes.
   warnings: BudgetWarning[];
 };

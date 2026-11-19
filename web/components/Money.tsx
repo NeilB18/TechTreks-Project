@@ -7,7 +7,7 @@ import { BudgetForm } from "@/components/BudgetForm";
 import { CheckIcon, LockIcon, UndoIcon } from "@/components/Icons";
 import { useMemberData } from "@/components/trip/MemberData";
 import { PayRow } from "@/components/trip/YourMoney";
-import { formatMoney, timeAgo, warningText } from "@/lib/format";
+import { formatMoney, paidLine, timeAgo, warningText } from "@/lib/format";
 import { useNow } from "@/lib/now";
 import type { BudgetStatus, Member, MyTrip } from "@/lib/types";
 
@@ -183,6 +183,7 @@ function MyBudgetRow({ b, me, money, index }: { b: BudgetStatus; me?: Member; mo
   const total = b.total_cents ?? 0;
   const used = b.spent_cents + b.planned_cents;
   const left = b.remaining_after_planned_cents ?? total - used;
+  const paid = paidLine(b, money);
   return (
     <li className="flex flex-col gap-2 py-3">
       <div className="flex items-center gap-3">
@@ -197,6 +198,7 @@ function MyBudgetRow({ b, me, money, index }: { b: BudgetStatus; me?: Member; mo
             {money(b.spent_cents)} spent and {money(b.planned_cents)} planned.{" "}
             {left < 0 ? `${money(-left)} over.` : `${money(left)} left.`}
           </p>
+          {paid && <p className="text-sm text-muted tabular-nums">{paid}</p>}
         </>
       )}
       {b.warnings.map((w, i) => (

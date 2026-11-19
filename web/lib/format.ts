@@ -242,3 +242,19 @@ export function timeAgo(iso: string, now: number): string {
   if (mins < 24 * 60) return `${Math.floor(mins / 60)}h`;
   return `${Math.floor(mins / (24 * 60))}d`;
 }
+
+/**
+ * Under a budget: "You've paid $630 · $107.50 still to send", "· $362.50 coming back to you", or
+ * "· all settled". Spent is your share; this is the part that changes when money is sent. Null if the
+ * backend didn't send the numbers.
+ */
+export function paidLine(
+  b: { paid_cents?: number; owe_cents?: number; owed_cents?: number },
+  money: (cents: number) => string,
+): string | null {
+  if (b.paid_cents == null) return null;
+  const rest = b.owe_cents ? `${money(b.owe_cents)} still to send`
+    : b.owed_cents ? `${money(b.owed_cents)} coming back to you`
+    : "all settled";
+  return `You\u2019ve paid ${money(b.paid_cents)} \u00b7 ${rest}`;
+}
