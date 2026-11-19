@@ -29,7 +29,8 @@ export type TripInfo = {
   lodging?: string | null; // where the group is staying, as they wrote it; members only (an address)
 };
 
-export type Theme = "sunset" | "night_swim" | "campfire";
+// snow and desert: the website can show them; the bot saves them once the bot-themes PR merges.
+export type Theme = "sunset" | "night_swim" | "campfire" | "snow" | "desert";
 
 // Parts of the day a plan can be in (trip_model/activity.py SLOTS). A plan in a slot has no clock time.
 export type Slot = "morning" | "lunch" | "afternoon" | "dinner" | "night";

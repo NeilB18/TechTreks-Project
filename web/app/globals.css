@@ -1,78 +1,62 @@
 @import "tailwindcss";
 
 /*
- * Trip themes (design canvas: "Trip page themes"). Dark-first, Partiful-inspired.
- * Each theme sets the same names; a page picks one with data-theme on its wrapper.
- * The trip page uses the trip's theme (the bot picks it with the destination; members can change it).
+ * The TravelBot look (design canvas "TravelBot website redesign", Final designs page).
+ * One dark background for every page. A trip's theme only sets its photo (lib/themes.ts) and
+ * one accent colour, picked with data-theme on the page's wrapper.
  *
- *   ground   page background          surface  cards on the ground     line    dividers inside cards
- *   ink      text on ground/surface   muted    secondary text (4.5:1+ on ground and surface)
- *   pop      primary buttons, labels  hot      stickers, owes          outline secondary button borders
- *   paper    light cards (members-only, receipts)  paper-ink / paper-muted: text on paper
+ *   ground   page background         raised   bottom sheets, menus (opaque)
+ *   surface  cards (see-through)     fill     chips and round icon buttons
+ *   line     dividers, card borders  edge     outlined button borders
+ *   ink      text                    soft     icons      muted  secondary text (4.5:1+ on ground)
+ *   accent   the theme's colour: avatars, Must do, budget bars    accent-ink  text on accent
  */
-:root,
-[data-theme="sunset"] {
-  --ground: #2b0f2e;
-  --surface: #43204a;
-  --line: #5a3361;
-  --ink: #fff4ec;
-  --muted: #e3cdd8;
-  --pop: #ffc94a;
-  --hot: #ff6b4a;
-  --outline: #8a5a8f;
-  --paper: #fff4ec;
-  --paper-ink: #2b0f2e;
-  --paper-muted: #5b3a5e;
-  --paper-hot: #b8402a;
-  --warn: #ffb27a;
-  --good: #8ef0b0;
-}
-
-/* Night Swim: a city at night. Moon and waves. */
-[data-theme="night_swim"] {
-  --ground: #071a2b;
-  --surface: #10304a;
-  --line: #1f4562;
-  --ink: #eaf6ff;
-  --muted: #a9c3d6;
-  --pop: #4fe3c1;
-  --hot: #8fb8ff;
-  --outline: #3e6a8c;
-  --paper: #eaf6ff;
-  --paper-ink: #071a2b;
-  --paper-muted: #34506a;
-  --paper-hot: #1d6b58;
+:root {
+  --ground: #0f1628;
+  --raised: #18213a;
+  --surface: rgb(255 255 255 / 0.07);
+  --fill: rgb(255 255 255 / 0.1);
+  --line: rgb(255 255 255 / 0.12);
+  --edge: rgb(255 255 255 / 0.38);
+  --ink: #ffffff;
+  --soft: #e2e5ee;
+  --muted: #c9cedc;
   --warn: #ffc48a;
-  --good: #b9f27c;
+  --accent: #ffa25c;
+  --accent-ink: #2a1406;
+
+  /* Older names the money section and the other pages still use until they're redone (PRs 2 to 4). */
+  --pop: var(--accent);
+  --hot: var(--accent);
+  --outline: var(--edge);
+  --paper: #ffffff;
+  --paper-ink: #0f1628;
+  --paper-muted: #4a5368;
+  --paper-hot: #b3261e;
+  --good: #9be3b0;
 }
 
-/* Campfire: mountains and the outdoors. */
-[data-theme="campfire"] {
-  --ground: #14231a;
-  --surface: #213827;
-  --line: #34503a;
-  --ink: #f5f1e6;
-  --muted: #c9c3ae;
-  --pop: #ff9f3d;
-  --hot: #e9e2c8;
-  --outline: #4e6b54;
-  --paper: #f5f1e6;
-  --paper-ink: #14231a;
-  --paper-muted: #3c4a3f;
-  --paper-hot: #9a4a00;
-  --warn: #ffc48a;
-  --good: #9ed39a;
-}
+/* Theme accents: taken from each theme's photo, all 4.5:1+ with their ink. */
+[data-theme="sunset"] { --accent: #ffa25c; --accent-ink: #2a1406; }
+[data-theme="night_swim"] { --accent: #ff8fb1; --accent-ink: #2a0614; }
+[data-theme="campfire"] { --accent: #ffc266; --accent-ink: #2a1a02; }
+[data-theme="snow"] { --accent: #8fd0ff; --accent-ink: #06202e; }
+[data-theme="desert"] { --accent: #ffc98a; --accent-ink: #2a1804; }
 
-/* Tailwind colours from the theme. background/foreground/card/accent are the older names the money
-   section still uses (it's restyled in the next PR). Fonts come from next/font in app/layout.tsx:
-   --font-display (Bricolage Grotesque) and --font-body (Figtree). */
+/* Tailwind colours. The font is Mona Sans (next/font in app/layout.tsx), with its width axis. */
 @theme inline {
   --color-ground: var(--ground);
+  --color-raised: var(--raised);
   --color-surface: var(--surface);
+  --color-fill: var(--fill);
   --color-line: var(--line);
+  --color-edge: var(--edge);
   --color-ink: var(--ink);
+  --color-soft: var(--soft);
   --color-muted: var(--muted);
+  --color-warn: var(--warn);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
   --color-pop: var(--pop);
   --color-hot: var(--hot);
   --color-outline: var(--outline);
@@ -80,93 +64,169 @@
   --color-paper-ink: var(--paper-ink);
   --color-paper-muted: var(--paper-muted);
   --color-paper-hot: var(--paper-hot);
-  --color-warn: var(--warn);
   --color-good: var(--good);
-  --color-background: var(--ground);
-  --color-foreground: var(--ink);
   --color-card: var(--surface);
-  --color-accent: var(--pop);
-  --font-sans: var(--font-body);
+  --font-sans: var(--font-mona), "Helvetica Neue", Arial, sans-serif;
 }
 
-body {
-  background: var(--ground);
-  color: var(--ink);
-  font-family: var(--font-body), system-ui, sans-serif;
+@layer base {
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+  }
+
+  a {
+    color: var(--ink);
+    text-underline-offset: 4px;
+  }
 }
 
 @layer components {
-  /* Big, tight headings: trip titles and section names. */
-  .display {
-    font-family: var(--font-display), var(--font-body), sans-serif;
+  /* Titles: Mona Sans at its widest, heavy and tight. */
+  .wide {
     font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 0.98;
+    font-stretch: 125%;
+    letter-spacing: -0.015em;
+    line-height: 1;
   }
 
-  /* Small all-caps labels: DAY 1, YOU PAY. */
-  .label-caps {
-    font-family: var(--font-display), var(--font-body), sans-serif;
-    font-weight: 800;
-    font-size: 0.8125rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--pop);
+  /* Text on a photo stays readable without a box. */
+  .on-photo {
+    text-shadow: 0 1px 14px rgb(0 0 0 / 0.32);
   }
 
-  /* A tilted sticker: status, MEMBERS ONLY. */
-  .sticker {
-    display: inline-block;
-    padding: 0.4rem 0.85rem;
-    border-radius: 999px;
-    background: var(--hot);
-    color: var(--ground);
-    font-family: var(--font-display), var(--font-body), sans-serif;
-    font-weight: 800;
-    font-size: 0.875rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  /* Pill buttons, at least 44px tall. */
+  /* Buttons, at least 44px tall. White is the main action; outlined is the second one. */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    min-height: 2.875rem;
+    min-height: 3rem;
     padding: 0 1.125rem;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.9375rem;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 1rem;
     text-decoration: none;
     cursor: pointer;
   }
-  .btn-pop {
-    background: var(--pop);
+  .btn-white {
+    background: #ffffff;
     color: var(--ground);
+    font-weight: 700;
+  }
+  .btn-line {
+    border: 1.5px solid var(--edge);
+    color: var(--ink);
+  }
+  /* Small round-ended buttons inside rows: Change, Maps. */
+  .btn-pill {
+    min-height: 2.75rem;
+    padding: 0 1rem;
+    border: 1.5px solid var(--edge);
+    border-radius: 999px;
+    font-size: 0.875rem;
+    color: var(--ink);
+  }
+  /* Round 44px icon buttons: copy, add to calendar, map pin. */
+  .icon-btn {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    background: var(--fill);
+    color: var(--ink);
+  }
+
+  .btn:focus-visible,
+  .icon-btn:focus-visible,
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+  }
+
+  /* Initials in a circle. Colour comes from components/Avatars.tsx. */
+  .avatar {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+
+  /* Bottom sheets (Mark as sent, Change theme): a <dialog> that comes up from the bottom. */
+  .sheet {
+    margin: auto auto 0;
+    width: 100%;
+    max-width: 42rem;
+    max-height: 92dvh;
+    padding: 10px 20px 28px;
+    border-radius: 26px 26px 0 0;
+    background: var(--raised);
+    color: var(--ink);
+  }
+  .sheet::backdrop {
+    background: rgb(5 8 16 / 0.62);
+  }
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 52px;
+    padding: 0 14px;
+    border: 1.5px solid var(--edge);
+    border-radius: 14px;
+    background: rgb(0 0 0 / 0.2);
+  }
+  .field:focus-within {
+    border-color: #ffffff;
+  }
+
+  /* Older classes, kept until the pages that use them are redone (PRs 2 to 4). */
+  .display {
+    font-weight: 800;
+    font-stretch: 125%;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .label-caps {
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: var(--ink);
+  }
+  .sticker {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: var(--fill);
+    font-weight: 600;
+    font-size: 0.8125rem;
+  }
+  .btn-pop {
+    background: #ffffff;
+    color: var(--ground);
+    font-weight: 700;
   }
   .btn-outline {
-    border: 2px solid var(--outline);
+    border: 1.5px solid var(--edge);
     color: var(--ink);
   }
   .btn-paper {
     background: var(--paper-ink);
     color: var(--paper);
   }
-  .btn:focus-visible,
-  .map-btn:focus-visible,
-  summary:focus-visible {
-    outline: 3px solid var(--pop);
-    outline-offset: 2px;
-  }
-
-  .card {
-    background: var(--surface);
-    border-radius: 22px;
-  }
-
-  /* Round 44px button with a map pin. */
   .map-btn {
     display: inline-flex;
     flex: none;
@@ -175,7 +235,16 @@ body {
     width: 2.75rem;
     height: 2.75rem;
     border-radius: 999px;
-    background: var(--ground);
-    color: var(--pop);
+    background: var(--fill);
+    color: var(--ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

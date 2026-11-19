@@ -70,4 +70,27 @@ Setup: [../docs/google-signin.md](../docs/google-signin.md).
 - `/trips`: My trips (`GET /api/me/trips`): coming up, past, and "Missing a trip?".
 - `/link`: get a link code, post it in the group, and the page opens the trip once the bot sees it.
 
+## Look and themes
+
+The site is called TravelBot for now (`lib/site.ts`, one constant; the bot stays @tripbot). It
+uses one dark background and Mona Sans (`next/font`, with its width axis for titles). The designs
+are on the "Final designs" page of the redesign canvas; the brief and the banned list are in
+[../docs/design-brief.md](../docs/design-brief.md).
+
+Each trip has a theme: one of our own photos, shown behind the trip's title and blurred behind the
+page, plus one accent colour (`lib/themes.ts`, `app/globals.css`). The bot picks it from the
+destination and people on the trip can change it. There are no uploads.
+
+| Theme | Bot id | Photo (Unsplash) |
+|---|---|---|
+| Beach | `sunset` | Rolando Yera, [palms at sunset](https://unsplash.com/photos/ATwi-EmGbSE) |
+| City nights | `night_swim` | Adam Borkowski, [downtown street at night](https://unsplash.com/photos/s1oMlP-RlqU) |
+| Mountains | `campfire` | Chris Ried, [Smoky Mountain ridges](https://unsplash.com/photos/D2NvTDuPME4) |
+| Snow | `snow` | Devin Lyster, [pines in front of snowy peaks](https://unsplash.com/photos/uKnFVOAMQq0) |
+| Desert road | `desert` | Shinichiro Ichimura, [desert road](https://unsplash.com/photos/i87kxNbAD0E) |
+
+The photos are free under the [Unsplash License](https://unsplash.com/license) (no credit required;
+we credit anyway). Snow and Desert road show on the site already, but the picker only offers them
+once the bot can save them (`pickable` in `lib/themes.ts`).
+
 To see everything on your own computer without the bot: `npm install && npm run dev`, then open `http://localhost:3000`. To check on a phone, open the "Network" address `npm run dev` prints, on the same Wi-Fi.

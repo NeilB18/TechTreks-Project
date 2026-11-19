@@ -6,26 +6,30 @@ import { useEffect, useRef } from "react";
 
 import { csrfToken } from "@/lib/post";
 import { useMe } from "@/lib/me";
+import { SITE_NAME } from "@/lib/site";
 import type { Me } from "@/lib/types";
 
+const textLink = "inline-flex min-h-11 items-center text-[15px] font-semibold underline";
+
 /**
- * The bar on every page: the wordmark, and on the right "Sign in", or your initial opening
+ * The bar on every page: the name, and on the right "Sign in", or your initial opening
  * My trips and Sign out. In sample mode (no backend) there's no sign-in, so it links to My trips.
+ * It has no background, so it can sit on a trip's photo.
  */
-export function TopBar({ live }: { live: boolean }) {
+export function TopBar({ live, className = "" }: { live: boolean; className?: string }) {
   const me = useMe(live);
   const path = usePathname();
   return (
-    <nav className="flex items-center justify-between px-5 py-3.5">
-      <Link href="/" className="display text-xl text-ink no-underline">
-        techtreks
+    <nav className={`relative z-10 flex items-center justify-between px-5 py-1.5 ${className}`}>
+      <Link href="/" className="wide inline-flex min-h-11 items-center text-lg no-underline">
+        {SITE_NAME.toLowerCase()}
       </Link>
       {!live ? (
-        <Link href="/trips" className="btn btn-outline min-h-11 text-sm">My trips</Link>
+        <Link href="/trips" className={textLink}>My trips</Link>
       ) : me === undefined ? null : me?.signed_in ? (
         <AccountMenu me={me} />
       ) : (
-        <a href={`/accounts/google/login/?next=${path}`} className="btn min-h-11 bg-ink text-sm text-ground">
+        <a href={`/accounts/google/login/?next=${path}`} className={textLink}>
           Sign in
         </a>
       )}
@@ -54,13 +58,13 @@ function AccountMenu({ me }: { me: Extract<Me, { signed_in: true }> }) {
     <details ref={menu} className="relative">
       <summary
         aria-label={`Account: ${name}`}
-        className="flex size-11 cursor-pointer list-none items-center justify-center rounded-full bg-pop font-bold text-ground [&::-webkit-details-marker]:hidden"
+        className="flex size-11 cursor-pointer list-none items-center justify-center rounded-full [&::-webkit-details-marker]:hidden"
       >
-        {name.trim()[0]?.toUpperCase()}
+        <span className="avatar size-9 bg-white text-[15px] text-ground">{name.trim()[0]?.toUpperCase()}</span>
       </summary>
-      <div className="card absolute right-0 z-20 mt-2 flex w-56 flex-col p-2 shadow-xl">
-        <p className="truncate px-3 py-2 text-xs text-muted">{me.email}</p>
-        <Link href="/trips" className="rounded-xl px-3 py-3 font-semibold text-ink hover:bg-line">My trips</Link>
+      <div className="absolute right-0 z-20 mt-2 flex w-56 flex-col rounded-2xl border border-line bg-raised p-2 shadow-xl">
+        <p className="truncate px-3 py-2 text-[13px] text-muted">{me.email}</p>
+        <Link href="/trips" className="rounded-xl px-3 py-3 font-semibold text-ink no-underline hover:bg-line">My trips</Link>
         {/* Signing out is a POST with the CSRF token (allauth), then Django sends you back to the site. */}
         <form
           method="post"

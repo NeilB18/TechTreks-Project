@@ -24,8 +24,8 @@ describe("ThemePicker", () => {
     vi.stubGlobal("fetch", fetch);
     render(<ThemePicker tripId="miami" theme="sunset" preview={{ member: true, pagePath: "/t/miami-demo", as: "mia" }} />);
     fireEvent.click(screen.getByRole("button", { name: "Change theme" }));
-    fireEvent.click(screen.getByRole("radio", { name: /Campfire/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Use Campfire" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Mountains/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Use Mountains" }));
     expect(router.push).toHaveBeenCalledWith("/t/miami-demo?as=mia&theme=campfire", { scroll: false });
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -42,8 +42,8 @@ describe("ThemePicker", () => {
     }));
     render(<ThemePicker tripId="miami" theme="sunset" preview={null} />);
     fireEvent.click(await screen.findByRole("button", { name: "Change theme" }));
-    fireEvent.click(screen.getByRole("radio", { name: /Night Swim/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Use Night Swim" }));
+    fireEvent.click(screen.getByRole("radio", { name: /City nights/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Use City nights" }));
     await vi.waitFor(() => expect(router.refresh).toHaveBeenCalled());
     const post = calls.find((c) => c.init?.method === "POST")!;
     expect(post.url).toBe("/api/me/trips/miami/theme");
