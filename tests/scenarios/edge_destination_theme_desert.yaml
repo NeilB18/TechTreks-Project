@@ -1,0 +1,42 @@
+kind: edge
+title: A Vegas road trip gets the Desert road theme, and a ski trip gets Snow, without mentioning either
+seed:
+  now: "2027-01-20T12:00:00"
+  trip: {id: sb27, name: Spring Break 2027, status: PLANNING, target_break: spring break,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: aarav
+    text: "@tripbot we're doing the road trip to Las Vegas. I'm the leader, set Vegas as the destination"
+    expect:
+      calls:
+        - {name: update_trip, args: {changes: {theme: desert}}}
+      messages:
+        - {to: group, contains: [Vegas], not_contains: [theme, desert]}
+      end_state:
+        - trip_contains: {destination: vegas}
+        - trip: {theme: desert}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: sb27, changes: {destination: Las Vegas, theme: desert}}}
+      messages:
+        - {to: group, text: "Done: Spring Break 2027 is going to Las Vegas! Want me to start planning the days?"}
+  - sender: aarav
+    text: "@tripbot change of plans, it's a ski trip now. Set the destination to Breckenridge"
+    expect:
+      calls:
+        - {name: update_trip, args: {changes: {theme: snow}}}
+      messages:
+        - {to: group, contains: [Breckenridge], not_contains: [theme]}
+      end_state:
+        - trip_contains: {destination: breckenridge}
+        - trip: {theme: snow}
+    golden:
+      calls:
+        - {name: update_trip, args: {trip_id: sb27, changes: {destination: Breckenridge, theme: snow}}}
+      messages:
+        - {to: group, text: "Done: Spring Break 2027 is going to Breckenridge now."}

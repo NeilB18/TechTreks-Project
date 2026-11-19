@@ -40,7 +40,8 @@ TRIP_FIELDS = ["destination", "start_date", "end_date", "base_currency", "status
                "target_break", "group_budget", "leader_id", "leader_approval", "name",
                "auto_log_mode", "lodging", "theme"]
 # The trip page's looks: a beach or coast, a city, mountains or outdoors.
-THEMES = ["sunset", "night_swim", "campfire"]
+# The trip page's themes (web/lib/themes.ts has their photos): Beach, City nights, Mountains, Snow, Desert road.
+THEMES = ["sunset", "night_swim", "campfire", "snow", "desert"]
 
 MAX_IDEAS = 20  # the ideas list stays short: things the group asked to keep, not a catalog
 MAX_LODGING = 200

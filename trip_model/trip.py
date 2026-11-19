@@ -11,7 +11,7 @@
 #     ideas: list[dict]              # things the group wants to do, not on a day yet (agent/backend/core/engine.py)
 #     lodging | None                 # where the group is staying, as the group wrote it (a hotel name or address)
 #     share_token | None             # the trip page's address, /t/<share_token>; set by the database
-#     theme | None; theme_set_by     # the trip page's look (sunset, night_swim, campfire), and who picked it (bot, member)
+#     theme | None; theme_set_by     # the trip page's look (sunset, night_swim, campfire, snow, desert), and who picked it (bot, member)
 #
 #     get_member(person_id, active_only=False); active_member_ids()
 #     add_member(); remove_member(person_id) -> ids of activities they left

@@ -60,7 +60,7 @@ The live Qwen scenarios run only when started by hand: Actions → Tests → Run
 
 ## Agent evals
 
-There are 36 scenarios: the 11 worked examples plus 25 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
+There are 37 scenarios: the 11 worked examples plus 26 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
 
 - prompt injection (fake approvals, impersonating the leader)
 - staying quiet
@@ -71,6 +71,7 @@ There are 36 scenarios: the 11 worked examples plus 25 edge cases (`tests/scenar
 - the trip's calendar: a plan with just a day, a named slot, a clock time, "are you sure?" for two plans at the same time, the ideas list, and where the group is staying
 - saying no, in one line, to finding or planning places
 - posting the trip page's link
+- picking the trip page's theme from the destination (Beach, City nights, Mountains, Snow, Desert road)
 
 ```bash
 .venv/bin/python scripts/eval_report.py              # live Qwen, every scenario 3 times
