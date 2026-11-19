@@ -93,7 +93,7 @@
     white-space: nowrap;
     cursor: pointer;
   }
-  /* Small round-ended buttons inside rows: Change, Maps. */
+  /* Small round-ended buttons inside rows: Change. */
   .btn-pill {
     min-height: 2.75rem;
     padding: 0 1rem;

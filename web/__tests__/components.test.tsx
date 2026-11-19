@@ -99,7 +99,8 @@ describe("Itinerary folding", () => {
     expect(days.map((d) => d.open)).toEqual([true, true, false, false, false]);
     expect(screen.getByText("Day 3")).toBeTruthy();
     expect(screen.getByText("Vizcaya Museum and Gardens, La Mar by Gastón Acurio")).toBeTruthy();
-    expect(screen.getAllByRole("link", { name: /on Google Maps/ })).toHaveLength(detail.activities.length);
+    // Places are plain text: no Google Maps links (a name alone can land on the wrong place).
+    expect(screen.queryByRole("link", { name: /Google Maps/ })).toBeNull();
     expect(screen.getByText("Must do")).toBeTruthy();
   });
 

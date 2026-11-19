@@ -170,6 +170,6 @@ The bot keeps track of what the group decides and never suggests, looks up or ch
 - `add_activity`: "boat tour Saturday" is saved on that day with no time. It gets a slot (morning, lunch, afternoon, dinner, night) only when someone names one, and any number of plans can share a slot. A clock time ("Saturday 2pm") is saved as given. If another plan is at exactly that clock time, nothing is saved until the person says yes (`confirm_same_time`). Moving a plan to another day keeps its time or slot.
 - `save_idea`: things the group wants to do without a day yet (up to 20). Putting one on a day takes it off the list, and removing that plan puts it back.
 - `remove_activity`: right away, unless it's paid for or marked important.
-- Where the group is staying (`lodging` on `update_trip`) is saved as the group wrote it. The trip page shows it to members with a Google Maps search link.
-- The trip page's Maps buttons are plain Google Maps search links (Google's "Maps URLs": no key, no cost). Nobody checks they find the right place.
+- Where the group is staying (`lodging` on `update_trip`) is saved as the group wrote it. The trip page shows it to members as plain text.
+- Places on the trip page (lodging, each plan's location) are plain text, with no Google Maps links (Nov 19, 2026): a name alone ("the Airbnb", "Joe's") could open the wrong place.
 - Removed: itinerary drafts, destination suggestions, nearby search, travel-tip tiers, the map checks, and the Google Places and SerpAPI code. They're in git history if a good places API turns up.
