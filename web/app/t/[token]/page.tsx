@@ -1,107 +1,35 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 
-import { Avatars } from "@/components/Avatars";
-import { CopyLinkButton } from "@/components/CopyLinkButton";
-import { Footer } from "@/components/Footer";
 import { Ideas } from "@/components/Ideas";
 import { Itinerary } from "@/components/Itinerary";
-import { MoneySection } from "@/components/MoneySection";
-import { PreviewBar } from "@/components/PreviewBar";
-import { ThemePicker } from "@/components/ThemePicker";
-import { TopBar } from "@/components/TopBar";
-import { PhotoBackdrop, PhotoHeader } from "@/components/TripPhoto";
-import { getFixtureTrip, getSharedTrip, usingFixtures } from "@/lib/api";
-import { countdown, formatDayRange } from "@/lib/format";
-import { THEMES, themeInfo } from "@/lib/themes";
-import type { Theme } from "@/lib/types";
+import { Details } from "@/components/trip/Details";
+import { Latest } from "@/components/trip/Latest";
+import { loadTrip, sharedTrip, TripShell } from "@/components/trip/TripShell";
+import { YourMoney } from "@/components/trip/YourMoney";
 
 export async function generateMetadata(props: PageProps<"/t/[token]">): Promise<Metadata> {
   const { token } = await props.params;
-  const data = await getSharedTrip(token);
+  const data = await sharedTrip(token);
   return { title: data ? data.trip.name : "Trip not found" };
 }
 
-const STATUS_LABEL = { PLANNING: "Planning", BOOKED: "Booked", ACTIVE: "On the trip", DONE: "Done" } as const;
-
-// The trip page, at /t/<share_token>: the link the bot posts. The overview and itinerary render on
-// the server from the shared view. The money side (MoneySection) loads in the browser, and only
-// for signed-in members of the trip. Look: the "Sunset" artboard on the design canvas.
+// The Trip tab, at /t/<share_token>: the link the bot posts (design canvas: Final designs, "Trip
+// tab"). The details and the plan render on the server from the shared view, for anyone with the
+// link. Your money, Latest and where you're staying load in the browser, only for signed-in
+// people on the trip. The Money tab is /t/<share_token>/money.
 export default async function TripPage(props: PageProps<"/t/[token]">) {
-  const { token } = await props.params;
-  const { as, theme: themeParam } = await props.searchParams;
-  const data = await getSharedTrip(token);
-  if (!data) notFound();
-  const { trip, members } = data;
-  const sample = usingFixtures ? await getFixtureTrip(token) : null;
-  const active = members.filter((m) => m.active);
-  const leader = members.find((m) => m.id === trip.leader_id);
-  const dates = formatDayRange(trip.start_date, trip.end_date);
-  const soon = countdown(trip.start_date, trip.end_date, new Date().toISOString().slice(0, 10));
-  const pagePath = `/t/${encodeURIComponent(token)}`;
-  const previewAs = sample && typeof as === "string" ? as : undefined;
-  // Sample mode can preview a theme with ?theme= (the picker does that instead of saving).
-  const previewTheme = sample ? THEMES.find((t) => t.id === themeParam)?.id : undefined;
-  const theme: Theme = previewTheme ?? themeInfo(trip.theme).id;
-  const photo = themeInfo(theme);
-  const previewIsMember = !!sample && previewAs !== "signed-out" && previewAs !== "not-linked";
-  const where = [trip.destination ?? "Destination not picked yet", soon].filter(Boolean).join(" · ");
-
+  const view = await loadTrip(props);
+  const { data, pagePath, query } = view;
   return (
-    <div data-theme={theme} className="relative flex flex-1 flex-col overflow-hidden">
-    <PhotoBackdrop theme={photo} />
-    <main id="main" className="relative mx-auto w-full max-w-2xl">
-      {sample && <PreviewBar sample={sample} pagePath={pagePath} as={previewAs} theme={previewTheme} />}
-      <PhotoHeader theme={photo}>
-        <TopBar live={!usingFixtures} className="absolute inset-x-0 top-0" />
-        <header className="absolute inset-x-0 top-11 bottom-7.5 flex flex-col items-center justify-center gap-2.5 px-5.5 text-center">
-          <span className="rounded-lg bg-white/22 px-2.5 py-1 text-[13px] font-semibold">{STATUS_LABEL[trip.status]}</span>
-          <h1 className="wide on-photo text-[38px] text-balance">{trip.name}</h1>
-        </header>
-      </PhotoHeader>
-
-      <header className="flex flex-col gap-3.5 px-5 pt-5 pb-2">
-        <div>
-          <p className="text-[17px] font-semibold">{dates ?? "Dates not picked yet"}</p>
-          <p className="text-[15px] text-muted">{where}</p>
-        </div>
-        {active.length > 0 && (
-          <div className="mt-1.5 flex items-center gap-3">
-            <Avatars names={active.map((m) => m.name)} colorIndexes={active.map((m) => members.indexOf(m))} />
-            <p className="flex flex-col">
-              <span className="text-[15px] font-bold">{active.length} going</span>
-              <span className="text-sm text-muted">{leader ? `${leader.name} is leading` : "No trip lead yet"}</span>
-            </p>
-          </div>
-        )}
-        <p className="sr-only">Going: {active.map((m) => m.name).join(", ")}</p>
-        <div className="mt-2 flex gap-2.5">
-          <CopyLinkButton />
-          <ThemePicker
-            tripId={trip.id}
-            theme={theme}
-            preview={sample ? { member: previewIsMember, pagePath, as: previewAs } : null}
-          />
-        </div>
-      </header>
-
-      <section aria-labelledby="itinerary" className="flex flex-col gap-3.5 px-5 pt-7">
-        <h2 id="itinerary" className="display text-[28px]">The plan</h2>
-        <Itinerary activities={data.activities} trip={trip} />
+    <TripShell view={view} tab="trip">
+      <Details data={data} />
+      <YourMoney moneyHref={`${pagePath}/money${query}`} />
+      <Latest />
+      <section aria-labelledby="plan" className="flex flex-col gap-2.5 px-5 pt-7.5">
+        <h2 id="plan" className="wide mb-1 text-xl">The plan</h2>
+        <Itinerary activities={data.activities} trip={data.trip} />
+        {data.ideas.length > 0 && <Ideas ideas={data.ideas} />}
       </section>
-
-      {data.ideas.length > 0 && (
-        <section aria-labelledby="ideas" className="flex flex-col gap-3 px-5 pt-7">
-          <h2 id="ideas" className="display text-[22px]">Ideas, no day yet</h2>
-          <Ideas ideas={data.ideas} />
-        </section>
-      )}
-
-      <div className="px-5 pt-8">
-        <MoneySection tripId={trip.id} pagePath={pagePath} live={!usingFixtures} sample={sample} previewAs={previewAs} />
-      </div>
-    </main>
-    <Footer />
-    </div>
+    </TripShell>
   );
 }

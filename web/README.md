@@ -51,8 +51,8 @@ trips; use this direct link. Google sign-in requires the separate OAuth setup be
 With `TRIP_API_URL` set, the server renders the overview and itinerary from
 `/api/share/<share_token>` (the page is `/t/<share_token>`), which has no money in it. The page proxies `/accounts/*`
 (Google sign-in) and `/api/me/*` to Django (see `proxy.ts`), so the session cookie is on
-this site's domain, and the money section (`components/MoneySection.tsx`) loads
-`/api/me/trips/<id>` in the browser. It:
+this site's domain, and `components/trip/MemberData.tsx` loads `/api/me/trips/<id>` once in the
+browser for both tabs. The page:
 
 1. offers "Sign in with Google" when you're signed out;
 2. once you're signed in, gives you a code to post as `@tripbot link <code>` in the group;
@@ -66,7 +66,8 @@ Setup: [../docs/google-signin.md](../docs/google-signin.md).
 ## Pages
 
 - `/`: the landing page (in sample mode it also lists the sample trips).
-- `/t/<share_token>`: a trip page. In sample mode the token is the fixture's name, and a "Preview as" bar shows the page as someone signed out, someone not on the trip, or any member (`?as=`); the theme picker previews with `?theme=`.
+- `/t/<share_token>`: the trip page's Trip tab. Details (with Add to calendar, an `.ics` made in the browser), Your money, Latest and the plan. Your money, Latest and where you're staying only show for people on the trip. In sample mode the token is the fixture's name, and a "Preview as" bar shows the page as someone signed out, someone not on the trip, or any member (`?as=`); the theme picker previews with `?theme=`.
+- `/t/<share_token>/money`: the Money tab (people on the trip only): settle up, budgets, and everything spent.
 - `/trips`: My trips (`GET /api/me/trips`): coming up, past, and "Missing a trip?".
 - `/link`: get a link code, post it in the group, and the page opens the trip once the bot sees it.
 

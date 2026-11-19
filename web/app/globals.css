@@ -108,16 +108,8 @@
     font-weight: 600;
     font-size: 1rem;
     text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
-  }
-  .btn-white {
-    background: #ffffff;
-    color: var(--ground);
-    font-weight: 700;
-  }
-  .btn-line {
-    border: 1.5px solid var(--edge);
-    color: var(--ink);
   }
   /* Small round-ended buttons inside rows: Change, Maps. */
   .btn-pill {
@@ -126,6 +118,15 @@
     border: 1.5px solid var(--edge);
     border-radius: 999px;
     font-size: 0.875rem;
+    color: var(--ink);
+  }
+  .btn-white {
+    background: #ffffff;
+    color: var(--ground);
+    font-weight: 700;
+  }
+  .btn-line {
+    border: 1.5px solid var(--edge);
     color: var(--ink);
   }
   /* Round 44px icon buttons: copy, add to calendar, map pin. */

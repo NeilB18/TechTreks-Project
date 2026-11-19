@@ -1,21 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
-// `text` can be a function, for text only known in the browser (like the page's own address).
+/**
+ * Copies text to the clipboard and says "Copied" for a moment. `text` can be a function, for text
+ * only known in the browser (like the page's own address). An icon-only button passes `ariaLabel`
+ * (its name) and icons as `label` / `copiedLabel`.
+ */
 export function CopyButton({
   text,
   label,
-  className = "rounded-full border border-line px-3 py-1.5 text-sm hover:bg-line/40",
+  copiedLabel = "Copied",
+  ariaLabel,
+  className = "btn btn-line",
 }: {
   text: string | (() => string);
-  label: string;
+  label: ReactNode;
+  copiedLabel?: ReactNode;
+  ariaLabel?: string;
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
+      aria-label={ariaLabel && (copied ? "Copied" : ariaLabel)}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(typeof text === "function" ? text() : text);
@@ -27,7 +36,7 @@ export function CopyButton({
       }}
       className={className}
     >
-      {copied ? "Copied" : label}
+      {copied ? copiedLabel : label}
     </button>
   );
 }

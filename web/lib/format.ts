@@ -98,12 +98,15 @@ export function mapsUrl(a: Activity, destination: string | null): string {
   return mapsSearchUrl(a.name, a.location || destination);
 }
 
-/** "Miami Beach Marina · about $20 each": where it is, and its estimated cost. */
-export function stopDetails(a: Activity, currency: string): string {
-  const bits: string[] = [];
-  if (a.location) bits.push(a.location);
-  if (a.est_per_person_cents) bits.push(`about ${formatMoney(a.est_per_person_cents, currency)} each`);
-  return bits.join(" · ");
+/**
+ * "About $20 each", "Miami Beach Marina, about $20 each", or just the place: under a stop's name.
+ * A place that's only the trip's destination ("Miami") is left out.
+ */
+export function stopDetails(a: Activity, currency: string, destination?: string | null): string {
+  const cost = a.est_per_person_cents ? `about ${formatMoney(a.est_per_person_cents, currency)} each` : "";
+  const place = a.location && a.location.trim().toLowerCase() !== destination?.trim().toLowerCase() ? a.location : null;
+  const text = [place, cost].filter(Boolean).join(", ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // Same order and sort minutes as trip_model/activity.py SLOTS.
@@ -190,4 +193,42 @@ export function warningText(w: BudgetWarning): string {
   });
   text = text.replace(/^(\w[\w ]*?) (under|over) /, "$1: $2 ").replace(/ remaining\b/, " left");
   return text;
+}
+
+/** "5 days" for a trip's dates; null without both. */
+export function tripLength(start: string | null, end: string | null): string | null {
+  if (!start || !end) return null;
+  const n = dayNumber(end) - dayNumber(start) + 1;
+  return n === 1 ? "1 day" : `${n} days`;
+}
+
+const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/**
+ * The trip's days with nothing on them: "Friday and Saturday are open." Weekday names for a trip
+ * of a week or less, dates for longer ones. null when every day has something (or no dates).
+ */
+export function openDaysLine(activities: Activity[], start: string | null, end: string | null): string | null {
+  if (!start || !end) return null;
+  const busy = new Set(activities.filter((a) => a.start).map((a) => a.start!.slice(0, 10)));
+  const first = dayNumber(start);
+  const last = dayNumber(end);
+  if (last < first || last - first > 30) return null;
+  const open: string[] = [];
+  for (let n = first; n <= last; n++) {
+    const iso = new Date(n * 86_400_000).toISOString().slice(0, 10);
+    if (!busy.has(iso)) open.push(last - first < 7 ? WEEKDAY_LONG[new Date(n * 86_400_000).getUTCDay()] : formatDate(iso));
+  }
+  if (open.length === 0 || open.length === last - first + 1) return null;
+  return `${listNames(open)} ${open.length === 1 ? "is" : "are"} open.`;
+}
+
+/** "5m", "3h", "2d" for the last week; a date ("Mar 1") before that or for anything in the future. */
+export function timeAgo(iso: string, now: number): string {
+  const then = Date.parse(iso.length <= 16 ? `${iso}Z` : iso);
+  const mins = Math.floor((now - then) / 60_000);
+  if (Number.isNaN(mins) || mins < 0 || mins >= 7 * 24 * 60) return formatDate(iso);
+  if (mins < 60) return `${Math.max(1, mins)}m`;
+  if (mins < 24 * 60) return `${Math.floor(mins / 60)}h`;
+  return `${Math.floor(mins / (24 * 60))}d`;
 }

@@ -1,144 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { Money } from "@/components/Money";
-import { csrfToken } from "@/lib/post";
-import { previewMember, previewState, type State } from "@/lib/preview";
-import type { LinkCode, MyTrip, TripPageData } from "@/lib/types";
-
-// Live, per-person data: never serve it from the browser cache.
-const NO_STORE: RequestInit = { cache: "no-store" };
+import { useMemberData } from "@/components/trip/MemberData";
+import { MembersOnly } from "@/components/trip/MembersOnly";
 
 /**
- * Expenses, settle-up and budgets. Only signed-in members of the trip get them, from
- * /api/me/trips/<id> (proxied to Django with the session cookie): 401 means signed out,
- * 403 means signed in but not linked to anyone on this trip.
- * Without a backend (sample mode), `sample` is the fixture and `previewAs` picks what to show
- * (the "Preview as" bar): "signed-out", "not-linked", or a member's id.
+ * The Money tab's body: settle-up, budgets and everything spent for people on the trip, or the
+ * sign-in / not-on-this-trip card for everyone else. The data comes from MemberDataProvider.
  */
-export function MoneySection({
-  tripId,
-  pagePath,
-  live,
-  sample,
-  previewAs,
-}: {
-  tripId: string;
-  pagePath: string; // where sign-in comes back to: this trip page, /t/<share_token>
-  live: boolean;
-  sample: TripPageData | null;
-  previewAs?: string;
-}) {
-  const [state, setState] = useState<State>(live ? { step: "loading" } : previewState(sample, previewAs));
-  const preview = !live;
-  // Bumped after a save (a payment marked as sent, a new budget) to load the money side again.
-  const [version, setVersion] = useState(0);
-
-  useEffect(() => {
-    if (!live) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/me/trips/${encodeURIComponent(tripId)}`, NO_STORE);
-        if (cancelled) return;
-        if (res.status === 401) return setState({ step: "signed-out" });
-        if (res.status === 403) return setState({ step: "not-linked", code: null });
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as MyTrip;
-        if (!cancelled) setState({ step: "ready", data });
-      } catch {
-        if (!cancelled) setState({ step: "error", message: "Couldn’t load the money side. Try refreshing." });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [live, tripId, version]);
-
-  async function getCode() {
-    if (preview) {
-      setState({ step: "not-linked", code: { code: "K7RM4X", expires_at: "", instructions: "" } });
-      return;
-    }
-    try {
-      const res = await fetch("/api/me/link-code", {
-        ...NO_STORE, method: "POST", headers: { "X-CSRFToken": csrfToken() },
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      setState({ step: "not-linked", code: (await res.json()) as LinkCode });
-    } catch {
-      setState({ step: "error", message: "Couldn’t get a link code. Refresh and try again." });
-    }
-  }
-
-  if (state.step === "ready") {
-    return <Money data={state.data} actions={{ tripId, preview, reload: () => setVersion((v) => v + 1) }} />;
-  }
-
-  return (
-    // The "members only" card from the design canvas: cream paper with a sticker.
-    <section aria-labelledby="money" className="relative mt-3.5 flex flex-col gap-2.5 rounded-[26px] bg-paper p-[22px] text-paper-ink">
-      <span className="sticker absolute -top-3.5 right-[18px] rotate-[8deg] text-[13px]">
-        {state.step === "not-linked" ? "Hmm" : "Members only"}
-      </span>
-      <h2 id="money" className="display text-2xl leading-tight">
-        {state.step === "not-linked" ? "You’re not on this trip" : "Money and budgets"}
-      </h2>
-      <div className="flex flex-col gap-2.5 text-[15px] leading-snug text-paper-muted">
-        {state.step === "loading" && <p>Loading…</p>}
-        {state.step === "error" && <p>{state.message}</p>}
-        {state.step === "signed-out" && (
-          <>
-            <p>Sign in to see what&rsquo;s been spent, who owes who, and everyone&rsquo;s budget. Only people on this trip can see it.</p>
-            {/* In sample mode there's no Google sign-in: the button previews the page as a member instead. */}
-            <a
-              href={preview ? `${pagePath}?as=${previewMember(sample)}` : `/accounts/google/login/?next=${pagePath}`}
-              className="btn btn-paper mt-1.5 min-h-[50px] text-base"
-            >
-              Sign in with Google
-            </a>
-          </>
-        )}
-        {state.step === "not-linked" && (
-          <>
-            <p>
-              You can see the plan, but the money side is only for the people going. If you&rsquo;re in this
-              trip&rsquo;s group chat, link yourself and it opens up.
-            </p>
-            {state.code ? (
-              <p>
-                Post{" "}
-                <code className="rounded-md bg-paper-ink px-2 py-1 font-bold text-paper">@tripbot link {state.code.code}</code>{" "}
-                in the group chat in the next 15 minutes, then refresh.
-              </p>
-            ) : (
-              <button type="button" onClick={getCode} className="btn btn-paper mt-1.5 min-h-[50px] text-base">
-                Get my link code
-              </button>
-            )}
-            <div className="flex gap-2">
-              {/* Wrong account: sign out (a POST with the CSRF token) and come back here to sign in again. */}
-              <form
-                method="post"
-                action="/accounts/logout/"
-                className="flex flex-1"
-                onSubmit={(e) => {
-                  if (preview) return e.preventDefault();
-                  (e.currentTarget.elements.namedItem("csrfmiddlewaretoken") as HTMLInputElement).value = csrfToken();
-                }}
-              >
-                <input type="hidden" name="csrfmiddlewaretoken" defaultValue="" />
-                <input type="hidden" name="next" value={pagePath} />
-                <button type="submit" className="btn min-h-11 flex-1 border-2 border-paper-ink text-sm text-paper-ink">
-                  Other Google account
-                </button>
-              </form>
-              <a href="/trips" className="btn min-h-11 flex-1 border-2 border-paper-ink text-sm text-paper-ink">My trips</a>
-            </div>
-          </>
-        )}
-      </div>
-    </section>
-  );
+export function MoneySection() {
+  const { state, tripId, preview, reload } = useMemberData();
+  if (state.step === "ready") return <Money data={state.data} actions={{ tripId, preview, reload }} />;
+  return <MembersOnly />;
 }

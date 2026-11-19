@@ -1,17 +1,13 @@
+import { listNames } from "@/lib/format";
 import type { PublicTrip } from "@/lib/types";
 
-/** Places the group wants to do but hasn't put on a day: dashed chips, plus how to add one. */
+/** Places the group wants to do but hasn't put on a day, plus how to add one. */
 export function Ideas({ ideas }: { ideas: PublicTrip["ideas"] }) {
   return (
-    <>
-      <ul className="flex flex-wrap gap-2">
-        {ideas.map((i) => (
-          <li key={i.idea_id} className="rounded-full border-2 border-dashed border-outline px-3.5 py-2.5 text-sm font-semibold">
-            {i.name}
-          </li>
-        ))}
-      </ul>
+    <div className="mt-2 flex flex-col gap-1.5">
+      <h3 className="text-[17px] font-bold">Ideas, no day yet</h3>
+      <p className="leading-normal">{listNames(ideas.map((i) => i.name))}</p>
       <p className="text-sm text-muted">Put one on a day in the group chat: &ldquo;@tripbot add {ideas[0].name} Saturday&rdquo;.</p>
-    </>
+    </div>
   );
 }

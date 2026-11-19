@@ -4,8 +4,16 @@ import path from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { ComponentProps } from "react";
+
 import { MoneySection } from "@/components/MoneySection";
+import { MemberDataProvider } from "@/components/trip/MemberData";
 import type { TripPageData } from "@/lib/types";
+
+// The Money tab's body, inside the provider that loads the money side for the whole page.
+const Money = (p: Omit<ComponentProps<typeof MemberDataProvider>, "children">) => (
+  <MemberDataProvider {...p}><MoneySection /></MemberDataProvider>
+);
 
 // Each route answers with a body (200) or [status, body].
 type Routes = Record<string, unknown>;
@@ -33,18 +41,18 @@ afterEach(() => {
 describe("MoneySection", () => {
   it("without a backend, previews the fixture as its first payer and calls nothing", () => {
     const calls = mockFetch({});
-    render(<MoneySection tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} />);
+    render(<Money tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} />);
     expect(screen.getByRole("heading", { name: /^You owe/ }).textContent).toBe("You owe $353.36"); // Leo
     expect(screen.getByText(/Jake paid \$350 · 5 people/)).toBeTruthy();
     expect(calls).toEqual([]);
   });
 
   it("previews as signed out or not on the trip without a backend", () => {
-    render(<MoneySection tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} previewAs="signed-out" />);
+    render(<Money tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} previewAs="signed-out" />);
     // No Google sign-in in sample mode: the button previews as a member instead.
     expect(screen.getByRole("link", { name: "Sign in with Google" }).getAttribute("href")).toBe("/t/miami-demo?as=leo");
     cleanup();
-    render(<MoneySection tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} previewAs="not-linked" />);
+    render(<Money tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} previewAs="not-linked" />);
     expect(screen.getByRole("heading", { name: "You’re not on this trip" })).toBeTruthy();
     // Wrong Google account: sign out and come back to this trip page.
     const other = screen.getByRole("button", { name: "Other Google account" }).closest("form")!;
@@ -57,7 +65,7 @@ describe("MoneySection", () => {
 
   it("signed out: no money, and Google sign-in that returns to this trip page", async () => {
     mockFetch({ "GET /api/me/trips/miami": [401, { error: "Sign in first" }] });
-    render(<MoneySection tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
+    render(<Money tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     const link = await screen.findByRole("link", { name: "Sign in with Google" });
     expect(link.getAttribute("href")).toBe("/accounts/google/login/?next=/t/k7rm4xq2pa8d");
     expect(screen.queryByRole("heading", { name: "Settle up" })).toBeNull();
@@ -69,7 +77,7 @@ describe("MoneySection", () => {
       "GET /api/me/trips/miami": [403, { error: "not linked" }],
       "POST /api/me/link-code": { code: "AB3DE9", expires_at: "x", instructions: "x" },
     });
-    render(<MoneySection tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
+    render(<Money tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     fireEvent.click(await screen.findByRole("button", { name: "Get my link code" }));
     expect(await screen.findByText("@tripbot link AB3DE9")).toBeTruthy();
     const post = calls.find((c) => c.init?.method === "POST")!;
@@ -78,7 +86,7 @@ describe("MoneySection", () => {
 
   it("says the link code failed when getting a code fails", async () => {
     mockFetch({ "GET /api/me/trips/miami": [403, { error: "not linked" }] });
-    render(<MoneySection tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
+    render(<Money tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     fireEvent.click(await screen.findByRole("button", { name: "Get my link code" }));
     expect(await screen.findByText(/Couldn.t get a link code/)).toBeTruthy();
   });
@@ -93,7 +101,7 @@ describe("MoneySection", () => {
                   warnings: ["ACTIVITIES over limit by $13 including planned activities"] },
       },
     });
-    render(<MoneySection tripId="miami-demo" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
+    render(<Money tripId="miami-demo" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     expect(await screen.findByRole("heading", { name: "Settle up" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /^You owe/ }).textContent).toBe("You owe $257.36");
     expect(screen.getByText("to Aarav and Jake")).toBeTruthy();
@@ -105,7 +113,7 @@ describe("MoneySection", () => {
 
   it("shows an error instead of crashing when the API fails", async () => {
     mockFetch({ "GET /api/me/trips/miami": [500, {}] });
-    render(<MoneySection tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
+    render(<Money tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     expect(await screen.findByText(/Couldn.t load the money side/)).toBeTruthy();
   });
 });

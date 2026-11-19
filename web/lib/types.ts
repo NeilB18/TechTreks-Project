@@ -70,12 +70,23 @@ export type Expense = {
   refunded_cents: number;
 };
 
+// Money paid back to the people who shared an expense (a cancelled concert, a deposit returned).
+export type Refund = {
+  id: string;
+  expense_id: string;
+  amount_cents: number;
+  note?: string | null;
+  per_person: Record<string, number>;
+  created_at: string;
+};
+
 export type TripDetail = {
   trip: TripInfo;
   members: Member[];
   category_opt_outs: [string, string][];
   activities: Activity[];
   expenses: Expense[];
+  refunds?: Refund[];
   ideas?: Idea[];
 };
 
