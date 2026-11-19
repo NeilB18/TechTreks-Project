@@ -1,10 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { TripArt } from "@/components/TripArt";
 import { countdown, formatDayRange, formatMoney } from "@/lib/format";
+import { themeInfo } from "@/lib/themes";
 import type { TripCard } from "@/lib/types";
 
 const STATUS_LABEL = { PLANNING: "Planning", BOOKED: "Booked", ACTIVE: "On the trip", DONE: "Done" } as const;
@@ -66,7 +67,7 @@ export function MyTripsList({ sample, today }: { sample: TripCard[] | null; toda
           {past.map((t) => (
             <Link key={t.share_token} href={`/t/${t.share_token}`} className="card flex items-center gap-3.5 p-3 text-ink no-underline">
               <span data-theme={t.theme ?? "sunset"} aria-hidden="true" className="size-[52px] flex-none overflow-hidden rounded-[14px] bg-ground">
-                <TripArt theme={t.theme ?? "sunset"} className="block h-full w-full" />
+                <Image src={themeInfo(t.theme).photo} alt="" width={52} height={52} className="size-full object-cover" />
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate font-bold">{t.name}</span>
@@ -97,7 +98,7 @@ function Card({ t, today }: { t: TripCard; today: string }) {
   return (
     <Link href={`/t/${t.share_token}`} className="card block overflow-hidden text-ink no-underline">
       <div data-theme={t.theme ?? "sunset"} className="relative h-[92px] overflow-hidden bg-ground">
-        <TripArt theme={t.theme ?? "sunset"} className="block h-full w-full" />
+        <Image src={themeInfo(t.theme).photo} alt="" fill sizes="(max-width: 672px) 100vw, 672px" className="object-cover" />
         <span className="sticker absolute top-4 left-4 -rotate-6 text-xs">{STATUS_LABEL[t.status]}</span>
       </div>
       <div className="flex flex-col gap-1 p-4">

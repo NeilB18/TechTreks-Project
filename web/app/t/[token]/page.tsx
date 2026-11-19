@@ -10,10 +10,10 @@ import { MoneySection } from "@/components/MoneySection";
 import { PreviewBar } from "@/components/PreviewBar";
 import { ThemePicker } from "@/components/ThemePicker";
 import { TopBar } from "@/components/TopBar";
-import { TripArt } from "@/components/TripArt";
+import { PhotoBackdrop, PhotoHeader } from "@/components/TripPhoto";
 import { getFixtureTrip, getSharedTrip, usingFixtures } from "@/lib/api";
 import { countdown, formatDayRange } from "@/lib/format";
-import { THEMES } from "@/lib/themes";
+import { THEMES, themeInfo } from "@/lib/themes";
 import type { Theme } from "@/lib/types";
 
 export async function generateMetadata(props: PageProps<"/t/[token]">): Promise<Metadata> {
@@ -42,23 +42,25 @@ export default async function TripPage(props: PageProps<"/t/[token]">) {
   const previewAs = sample && typeof as === "string" ? as : undefined;
   // Sample mode can preview a theme with ?theme= (the picker does that instead of saving).
   const previewTheme = sample ? THEMES.find((t) => t.id === themeParam)?.id : undefined;
-  const theme: Theme = previewTheme ?? trip.theme ?? "sunset";
+  const theme: Theme = previewTheme ?? themeInfo(trip.theme).id;
+  const photo = themeInfo(theme);
   const previewIsMember = !!sample && previewAs !== "signed-out" && previewAs !== "not-linked";
   const where = [trip.destination ?? "Destination not picked yet", soon].filter(Boolean).join(" · ");
 
   return (
-    <div data-theme={theme} className="flex flex-1 flex-col bg-ground text-ink">
-    <main id="main" className="mx-auto w-full max-w-2xl">
+    <div data-theme={theme} className="relative flex flex-1 flex-col overflow-hidden">
+    <PhotoBackdrop theme={photo} />
+    <main id="main" className="relative mx-auto w-full max-w-2xl">
       {sample && <PreviewBar sample={sample} pagePath={pagePath} as={previewAs} theme={previewTheme} />}
-      <TopBar live={!usingFixtures} />
-
-      <div className="relative overflow-hidden">
-        <TripArt theme={theme} />
-        <span className="sticker absolute top-[74px] left-5 -rotate-6">{STATUS_LABEL[trip.status]}</span>
-      </div>
+      <PhotoHeader theme={photo}>
+        <TopBar live={!usingFixtures} className="absolute inset-x-0 top-0" />
+        <header className="absolute inset-x-0 top-11 bottom-7.5 flex flex-col items-center justify-center gap-2.5 px-5.5 text-center">
+          <span className="rounded-lg bg-white/22 px-2.5 py-1 text-[13px] font-semibold">{STATUS_LABEL[trip.status]}</span>
+          <h1 className="wide on-photo text-[38px] text-balance">{trip.name}</h1>
+        </header>
+      </PhotoHeader>
 
       <header className="flex flex-col gap-3.5 px-5 pt-5 pb-2">
-        <h1 className="display text-[46px]">{trip.name}</h1>
         <div>
           <p className="text-[17px] font-semibold">{dates ?? "Dates not picked yet"}</p>
           <p className="text-[15px] text-muted">{where}</p>

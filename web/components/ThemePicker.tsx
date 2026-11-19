@@ -82,7 +82,7 @@ export function ThemePicker({
         <h2 id="theme-title" className="display text-[28px]">Trip theme</h2>
         <p className="mt-1 text-sm text-paper-muted">Everyone on the trip sees the change.</p>
         <div role="radiogroup" aria-label="Themes" className="mt-4 grid grid-cols-3 gap-2.5">
-          {THEMES.map((t) => (
+          {THEMES.filter((t) => t.pickable || t.id === theme).map((t) => (
             <button
               key={t.id}
               type="button"
