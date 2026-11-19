@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+import { SignInButton } from "@/components/SignInButton";
 import { csrfToken } from "@/lib/post";
 import { useMe } from "@/lib/me";
 import { SITE_NAME } from "@/lib/site";
@@ -29,9 +30,9 @@ export function TopBar({ live, className = "" }: { live: boolean; className?: st
       ) : me === undefined ? null : me?.signed_in ? (
         <AccountMenu me={me} />
       ) : (
-        <a href={`/accounts/google/login/?next=${path}`} className={textLink}>
+        <SignInButton next={path} className={`${textLink} cursor-pointer`}>
           Sign in
-        </a>
+        </SignInButton>
       )}
     </nav>
   );

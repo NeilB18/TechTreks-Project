@@ -165,3 +165,21 @@ def test_my_trips_lists_linked_trips_with_what_you_owe(trip):
     [t] = client.get("/api/me/trips").json()["trips"]
     assert t["trip_id"] == "miami" and t["share_token"] == Trip.objects.get(id="miami").share_token
     assert (t["going"], t["net_cents"], t["status"]) == (2, -6000, "PLANNING")
+
+
+@pytest.mark.django_db
+def test_sign_in_pages_look_like_the_site():
+    """allauth's pages use backend/templates: the site's name and look, not allauth's "Menu:" list.
+    The site's Sign in buttons post past this page; it only shows for a plain GET."""
+    page = Client().get("/accounts/google/login/?next=/trips")
+    html = page.content.decode()
+    assert page.status_code == 200
+    assert "Sign in to TravelBot" in html and "Continue with Google" in html
+    assert "Menu:" not in html and "Sign In Via Google" not in html
+    assert 'name="csrfmiddlewaretoken"' in html
+
+
+@pytest.mark.django_db
+def test_sign_in_post_goes_straight_to_google():
+    page = Client().post("/accounts/google/login/?next=/trips")
+    assert page.status_code == 302 and page["Location"].startswith("https://accounts.google.com/")

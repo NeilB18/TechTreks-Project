@@ -1,0 +1,8 @@
+{% extends "socialaccount/base_entrance.html" %}
+{% block head_title %}Couldn't sign you in{% endblock head_title %}
+{% block content %}
+  <h1>Couldn&rsquo;t sign you in</h1>
+  <p>Something went wrong talking to Google. It&rsquo;s usually a one-off, so give it another go.</p>
+  <a class="btn" href="{{ FRONTEND_URL }}/trips">Try again</a>
+  <a class="back" href="{{ FRONTEND_URL }}">Back to {{ SITE_NAME }}</a>
+{% endblock content %}

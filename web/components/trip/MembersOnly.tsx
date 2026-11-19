@@ -1,6 +1,7 @@
 "use client";
 
 import { LockIcon } from "@/components/Icons";
+import { SignInButton } from "@/components/SignInButton";
 import { csrfToken } from "@/lib/post";
 
 import { useMemberData } from "./MemberData";
@@ -11,7 +12,7 @@ import { useMemberData } from "./MemberData";
  * and error states. Renders nothing once the money side has loaded.
  */
 export function MembersOnly({ className = "" }: { className?: string }) {
-  const { state, preview, pagePath, signInHref, getLinkCode } = useMemberData();
+  const { state, preview, pagePath, signIn, getLinkCode } = useMemberData();
   if (state.step === "ready") return null;
 
   if (state.step === "loading") {
@@ -31,7 +32,11 @@ export function MembersOnly({ className = "" }: { className?: string }) {
         <p className="text-[15px] leading-[1.45] text-muted">
           What you owe, what&rsquo;s been spent, and everyone&rsquo;s budget. Only people on this trip can see it.
         </p>
-        <a href={signInHref} className="btn btn-white">Sign in with Google</a>
+        {signIn.previewHref ? (
+          <a href={signIn.previewHref} className="btn btn-white">Sign in with Google</a>
+        ) : (
+          <SignInButton next={signIn.next} className="btn btn-white">Sign in with Google</SignInButton>
+        )}
       </section>
     );
   }

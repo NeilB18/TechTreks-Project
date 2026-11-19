@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { SignInButton } from "@/components/SignInButton";
 import { countdown, formatDateRange, formatMoney, formatShortRange } from "@/lib/format";
 import { themeInfo } from "@/lib/themes";
 import type { TripCard } from "@/lib/types";
@@ -50,7 +51,7 @@ export function MyTripsList({ sample, today }: { sample: TripCard[] | null; toda
       <section aria-labelledby="trips-sign-in" className="card mx-3.5 mt-6 flex flex-col gap-3 p-[18px]">
         <h2 id="trips-sign-in" className="text-lg font-bold">Sign in to see your trips</h2>
         <p className="text-[15px] leading-[1.45] text-muted">Your trips are the ones you&rsquo;ve linked from their group chats.</p>
-        <a href="/accounts/google/login/?next=/trips" className="btn btn-white">Sign in with Google</a>
+        <SignInButton next="/trips" className="btn btn-white">Sign in with Google</SignInButton>
       </section>
     );
   }

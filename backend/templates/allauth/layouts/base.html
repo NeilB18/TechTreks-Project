@@ -1,0 +1,101 @@
+{% load i18n %}<!DOCTYPE html>
+{% comment %}
+Every allauth page (sign-in errors, a cancelled sign-in, signing out) uses this layout, so they look
+like the rest of the site instead of allauth's plain HTML. The colours and buttons follow
+web/app/globals.css. The site normally skips allauth's pages: Sign in posts straight to Google.
+{% endcomment %}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{% block head_title %}{% endblock head_title %} | {{ SITE_NAME }}</title>
+  <style>
+    :root {
+      --ground: #0f1628; --raised: #18213a; --surface: rgb(255 255 255 / 0.07); --line: rgb(255 255 255 / 0.12);
+      --edge: rgb(255 255 255 / 0.38); --ink: #fff; --muted: #c9cedc; --warn: #ffc48a; --accent: #ffa25c;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      display: flex; flex-direction: column; min-height: 100vh;
+      background:
+        radial-gradient(120% 60% at 15% -10%, rgb(255 162 92 / 0.32), transparent 60%),
+        radial-gradient(90% 50% at 100% 0%, rgb(255 143 177 / 0.22), transparent 55%),
+        var(--ground);
+      background-repeat: no-repeat;
+      color: var(--ink);
+      font-family: "Mona Sans", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--ink); text-underline-offset: 4px; }
+    a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+    .top { display: flex; align-items: center; justify-content: space-between; padding: 6px 20px; }
+    .wordmark {
+      display: inline-flex; align-items: center; min-height: 44px; font-size: 18px; font-weight: 800;
+      font-stretch: 125%; letter-spacing: -0.015em; text-decoration: none;
+    }
+
+    main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 20px 48px; }
+    .panel {
+      width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px;
+      padding: 28px 22px 22px; border: 1px solid var(--line); border-radius: 22px;
+      background: rgb(15 22 40 / 0.72); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 24px 60px rgb(0 0 0 / 0.35);
+    }
+    .badge {
+      align-self: flex-start; display: inline-flex; align-items: center; justify-content: center;
+      width: 52px; height: 52px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line);
+    }
+    h1 {
+      margin: 4px 0 0; font-size: 30px; line-height: 1.05; font-weight: 800; font-stretch: 125%;
+      letter-spacing: -0.015em; text-wrap: balance;
+    }
+    h2 { margin: 8px 0 0; font-size: 19px; font-weight: 700; }
+    p { margin: 0; font-size: 16px; line-height: 1.45; color: var(--muted); text-wrap: pretty; }
+    form { display: flex; flex-direction: column; gap: 12px; margin: 6px 0 0; }
+    form p { display: flex; flex-direction: column; gap: 6px; color: var(--ink); }
+    label { font-size: 14px; font-weight: 600; color: var(--muted); }
+    input:not([type=hidden]):not([type=checkbox]):not([type=radio]) {
+      min-height: 48px; padding: 0 14px; border-radius: 14px; border: 1.5px solid var(--edge);
+      background: var(--surface); color: var(--ink); font: inherit; font-size: 16px;
+    }
+    .errorlist { margin: 0; padding: 0; list-style: none; color: var(--warn); font-size: 14px; }
+
+    button, .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+      min-height: 52px; padding: 0 18px; border: 0; border-radius: 14px; background: #fff; color: var(--ground);
+      font: inherit; font-size: 17px; font-weight: 700; text-decoration: none; cursor: pointer;
+    }
+    button:hover, .btn:hover { background: #eef0f5; }
+    .btn-line { background: transparent; color: var(--ink); border: 1.5px solid var(--edge); }
+    .btn-line:hover { background: var(--surface); }
+    .back { align-self: center; display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; font-weight: 600; }
+    .fine { font-size: 13px; text-align: center; }
+
+    .messages { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .messages li { padding: 10px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; }
+
+    footer { padding: 0 20px 28px; text-align: center; font-size: 13px; color: var(--muted); }
+  </style>
+  {% block extra_head %}{% endblock extra_head %}
+</head>
+<body>
+  {% block body %}
+    <nav class="top"><a class="wordmark" href="{{ FRONTEND_URL }}">{{ SITE_NAME|lower }}</a></nav>
+    <main id="main">
+      <div class="panel">
+        {% if messages %}
+          <ul class="messages" role="status">
+            {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+        {% block content %}{% endblock content %}
+      </div>
+    </main>
+    <footer>No money moves through {{ SITE_NAME }}. Sign-in is with Google; we never see your password.</footer>
+  {% endblock body %}
+  {% block extra_body %}{% endblock extra_body %}
+</body>
+</html>

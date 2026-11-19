@@ -16,7 +16,8 @@ type MemberData = {
   tabPath: string; // the tab you're on (the Trip tab is pagePath, Money is pagePath/money)
   preview: boolean; // sample mode: nothing is saved
   previewAs?: string;
-  signInHref: string;
+  // Where signing in sends you back to (live), or the sample-mode link that previews the page as a member.
+  signIn: { next: string; previewHref?: string };
   reload: () => void; // after a save (a payment marked as sent, a new budget)
   getLinkCode: () => Promise<void>;
 };
@@ -97,7 +98,7 @@ export function MemberDataProvider({
       preview,
       previewAs,
       // In sample mode there's no Google sign-in: signing in previews the page as a member instead.
-      signInHref: preview ? `${here}?as=${previewMember(sample)}` : `/accounts/google/login/?next=${here}`,
+      signIn: preview ? { next: here, previewHref: `${here}?as=${previewMember(sample)}` } : { next: here },
       reload: () => setVersion((v) => v + 1),
       getLinkCode,
     }),
