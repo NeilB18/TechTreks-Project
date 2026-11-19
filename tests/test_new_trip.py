@@ -151,3 +151,15 @@ def test_error_pages_have_the_site_look():
     for page, words in (("500.html", "Something went wrong"), ("404.html", "Nothing here")):
         html = render_to_string(page)  # Django renders these with no request context
         assert words in html and "travelbot" in html and "<style>" in html and "Menu:" not in html
+
+
+def test_access_tokens_never_reach_the_logs(caplog):
+    """GroupMe puts the token in the callback's address; the request log must not print it."""
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="django.server"):
+        logging.getLogger("django.server").info('"%s" %s %s', f"GET /accounts/groupme/callback?access_token={TOKEN}&x=1 HTTP/1.1", "302", "0")
+    with caplog.at_level(logging.INFO, logger="accounts"):
+        logging.getLogger("accounts").warning("Add a trip failed for /cb?ACCESS_TOKEN=%s", TOKEN)
+    assert TOKEN not in caplog.text
+    assert "access_token=[hidden]&x=1" in caplog.text and "ACCESS_TOKEN=[hidden]" in caplog.text
