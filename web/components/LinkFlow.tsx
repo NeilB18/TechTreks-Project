@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CopyButton } from "@/components/CopyButton";
 import { CheckIcon, CopyIcon } from "@/components/Icons";
+import { SignInButton } from "@/components/SignInButton";
 import { postJson } from "@/lib/post";
 import type { LinkCode, Me } from "@/lib/types";
 
@@ -84,7 +85,7 @@ export function LinkFlow({ live }: { live: boolean }) {
       <section aria-labelledby="link-sign-in" className="card mx-3.5 mt-6 flex flex-col gap-3 p-[18px]">
         <h2 id="link-sign-in" className="text-lg font-bold">Sign in first</h2>
         <p className="text-[15px] leading-[1.45] text-muted">Then you&rsquo;ll get a code to post in your trip&rsquo;s group chat.</p>
-        <a href="/accounts/google/login/?next=/link" className="btn btn-white">Sign in with Google</a>
+        <SignInButton next="/link" className="btn btn-white">Sign in with Google</SignInButton>
       </section>
     );
   }

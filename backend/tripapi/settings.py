@@ -88,12 +88,14 @@ WSGI_APPLICATION = "tripapi.wsgi.application"
 
 TEMPLATES = [{
     "BACKEND": "django.template.backends.django.DjangoTemplates",
-    "DIRS": [],
+    # backend/templates: our look for allauth's pages (sign-in errors and the like), ahead of allauth's own.
+    "DIRS": [BASE_DIR / "templates"],
     "APP_DIRS": True,
     "OPTIONS": {"context_processors": [
         "django.template.context_processors.request",
         "django.contrib.auth.context_processors.auth",
         "django.contrib.messages.context_processors.messages",
+        "accounts.context_processors.site",
     ]},
 }]
 

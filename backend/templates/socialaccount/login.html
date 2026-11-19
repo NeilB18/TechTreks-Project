@@ -1,0 +1,22 @@
+{% extends "socialaccount/base_entrance.html" %}
+{% load i18n %}
+{% comment %}
+allauth's "are you sure?" step before Google. The site's Sign in buttons post straight past it
+(web/components/SignInButton.tsx); people only land here from an old link or a plain GET.
+{% endcomment %}
+{% block head_title %}Sign in{% endblock head_title %}
+{% block content %}
+  <span class="badge" aria-hidden="true">{% include "socialaccount/_google_g.html" %}</span>
+  {% if process == "connect" %}
+    <h1>Connect {{ provider.name }}</h1>
+    <p>Link your {{ provider.name }} account to {{ SITE_NAME }}.</p>
+  {% else %}
+    <h1>Sign in to {{ SITE_NAME }}</h1>
+    <p>Use your Google account. {{ SITE_NAME }} only uses it to know which trips are yours, so you can see what you owe and change your budget.</p>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit">{% include "socialaccount/_google_g.html" %}Continue with Google</button>
+  </form>
+  <a class="back" href="{{ FRONTEND_URL }}">Back to {{ SITE_NAME }}</a>
+{% endblock content %}

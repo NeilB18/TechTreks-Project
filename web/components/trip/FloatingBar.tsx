@@ -2,6 +2,7 @@
 
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { LinkIcon, MoneyIcon } from "@/components/Icons";
+import { SignInButton } from "@/components/SignInButton";
 import { formatMoney, payLink } from "@/lib/format";
 
 import { useMemberData } from "./MemberData";
@@ -11,11 +12,15 @@ import { useMemberData } from "./MemberData";
  * owe someone, "Sign in | Copy link" when signed out, otherwise just "Copy link". If you owe more
  * than one person (or the handle isn't Venmo), "Pay" goes to the Money tab's settle-up.
  */
-export function FloatingBar({ moneyHref }: { moneyHref: string }) {
-  const { state, signInHref } = useMemberData();
-  let first: { href: string; label: string; external: boolean } | null = null;
+const FIRST = "flex h-[46px] min-w-0 flex-[1.3] items-center justify-center gap-2 rounded-full px-1 font-bold text-ground no-underline";
 
-  if (state.step === "signed-out") first = { href: signInHref, label: "Sign in", external: false };
+export function FloatingBar({ moneyHref }: { moneyHref: string }) {
+  const { state, signIn } = useMemberData();
+  let first: { href: string; label: string; external: boolean } | null = null;
+  const signedOut = state.step === "signed-out";
+
+  // In sample mode, Sign in is a link that previews the page as a member.
+  if (signedOut && signIn.previewHref) first = { href: signIn.previewHref, label: "Sign in", external: false };
   if (state.step === "ready") {
     const { detail, balances, person_id: me } = state.data;
     const youPay = balances.suggested_payments.filter((p) => p.from === me);
@@ -35,14 +40,18 @@ export function FloatingBar({ moneyHref }: { moneyHref: string }) {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-5.5 pb-[max(16px,env(safe-area-inset-bottom))]">
       <div className="pointer-events-auto mx-auto flex h-[58px] max-w-md items-center rounded-full bg-white px-1.5 text-ground shadow-[0_10px_30px_rgb(0_0_0/0.35)]">
+        {signedOut && !first && (
+          <>
+            <SignInButton next={signIn.next} className={`${FIRST} cursor-pointer`}>
+              <span className="truncate">Sign in</span>
+            </SignInButton>
+            <span aria-hidden="true" className="h-[26px] w-px bg-[#d5d9e2]" />
+          </>
+        )}
         {first && (
           <>
-            <a
-              href={first.href}
-              {...(first.external ? { target: "_blank", rel: "noreferrer" } : {})}
-              className="flex h-[46px] min-w-0 flex-[1.3] items-center justify-center gap-2 rounded-full px-1 font-bold text-ground no-underline"
-            >
-              {first.label !== "Sign in" && <MoneyIcon size={20} />}
+            <a href={first.href} {...(first.external ? { target: "_blank", rel: "noreferrer" } : {})} className={FIRST}>
+              {!signedOut && <MoneyIcon size={20} />}
               <span className="truncate">{first.label}</span>
             </a>
             <span aria-hidden="true" className="h-[26px] w-px bg-[#d5d9e2]" />

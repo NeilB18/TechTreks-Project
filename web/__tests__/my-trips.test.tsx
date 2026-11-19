@@ -50,8 +50,8 @@ describe("MyTripsList", () => {
   it("asks you to sign in when you aren't", async () => {
     routes({ "GET /api/me/trips": [401, {}] });
     render(<MyTripsList today="2026-11-12" sample={null} />);
-    const link = await screen.findByRole("link", { name: "Sign in with Google" });
-    expect(link.getAttribute("href")).toBe("/accounts/google/login/?next=/trips");
+    const button = await screen.findByRole("button", { name: "Sign in with Google" });
+    expect(button.closest("form")!.getAttribute("action")).toBe("/accounts/google/login/?next=%2Ftrips");
   });
 });
 

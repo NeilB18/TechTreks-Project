@@ -1,0 +1,8 @@
+{% extends "socialaccount/base_entrance.html" %}
+{% block head_title %}Sign-in cancelled{% endblock head_title %}
+{% block content %}
+  <h1>Sign-in cancelled</h1>
+  <p>No problem. You can still see the trip&rsquo;s plan without signing in; the money side needs it.</p>
+  <a class="btn" href="{{ FRONTEND_URL }}/trips">Sign in again</a>
+  <a class="back" href="{{ FRONTEND_URL }}">Back to {{ SITE_NAME }}</a>
+{% endblock content %}

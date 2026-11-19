@@ -66,8 +66,10 @@ describe("MoneySection", () => {
   it("signed out: no money, and Google sign-in that returns to this trip page", async () => {
     mockFetch({ "GET /api/me/trips/miami": [401, { error: "Sign in first" }] });
     render(<Money tripId="miami" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
-    const link = await screen.findByRole("link", { name: "Sign in with Google" });
-    expect(link.getAttribute("href")).toBe("/accounts/google/login/?next=/t/k7rm4xq2pa8d");
+    const button = await screen.findByRole("button", { name: "Sign in with Google" });
+    const form = button.closest("form")!;
+    expect(form.getAttribute("method")).toBe("post");
+    expect(form.getAttribute("action")).toBe("/accounts/google/login/?next=%2Ft%2Fk7rm4xq2pa8d");
     expect(screen.queryByRole("heading", { name: "Settle up" })).toBeNull();
   });
 
