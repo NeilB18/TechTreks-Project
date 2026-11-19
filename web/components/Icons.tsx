@@ -69,3 +69,4 @@ export const ChevronIcon = (p: Props) => <Svg {...p}><path d="M6 9l6 6 6-6" /></
 export const LockIcon = (p: Props) => (
   <Svg {...p}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></Svg>
 );
+export const UndoIcon = (p: Props) => <Svg {...p}><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></Svg>;

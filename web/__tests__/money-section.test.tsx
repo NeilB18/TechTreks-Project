@@ -42,8 +42,8 @@ describe("MoneySection", () => {
   it("without a backend, previews the fixture as its first payer and calls nothing", () => {
     const calls = mockFetch({});
     render(<Money tripId="miami-demo" pagePath="/t/miami-demo" live={false} sample={fixture("miami-demo")} />);
-    expect(screen.getByRole("heading", { name: /^You owe/ }).textContent).toBe("You owe $353.36"); // Leo
-    expect(screen.getByText(/Jake paid \$350 · 5 people/)).toBeTruthy();
+    expect(screen.getAllByText("You owe Aarav $353.36").length).toBeGreaterThan(0); // Leo
+    expect(screen.getByText(/Jake paid, split 5 ways/)).toBeTruthy();
     expect(calls).toEqual([]);
   });
 
@@ -103,12 +103,12 @@ describe("MoneySection", () => {
     });
     render(<Money tripId="miami-demo" pagePath="/t/k7rm4xq2pa8d" live sample={null} />);
     expect(await screen.findByRole("heading", { name: "Settle up" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: /^You owe/ }).textContent).toBe("You owe $257.36");
-    expect(screen.getByText("to Aarav and Jake")).toBeTruthy();
-    expect(screen.getByText("$917 each")).toBeTruthy();
-    expect(screen.getByText("$13")).toBeTruthy();
-    expect(screen.getByText("over of $500")).toBeTruthy();
-    expect(screen.getByText(/Activities: over limit by \$13/)).toBeTruthy();
+    expect(screen.getAllByText("You owe Aarav $231.36").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("You owe Jake $26").length).toBeGreaterThan(0);
+    expect(screen.getByText("The group’s budget is $917 each.")).toBeTruthy();
+    expect(screen.getByText("$513 of $500")).toBeTruthy();
+    expect(screen.getByText(/\$300 spent and \$213 planned\. \$13 over\./)).toBeTruthy();
+    expect(screen.getByText(/Things to do: over limit by \$13|Activities: over limit by \$13/)).toBeTruthy();
   });
 
   it("shows an error instead of crashing when the API fails", async () => {

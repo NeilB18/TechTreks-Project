@@ -83,7 +83,10 @@ export function TripShell({ view, tab, children }: { view: TripView; tab: "trip"
                 <span className="rounded-lg bg-white/22 px-2.5 py-1 text-[13px] font-semibold">{STATUS_LABEL[trip.status]}</span>
                 {soon && <span className="on-photo text-sm font-medium">{soon}</span>}
               </div>
-              <h1 className="wide on-photo text-[38px] tracking-[-0.02em] text-balance">{trip.name}</h1>
+              {/* Long names get a size down, so the title stays clear of Change theme. */}
+              <h1 className={`wide on-photo tracking-[-0.02em] text-balance ${trip.name.length > 22 ? "text-[32px]" : "text-[38px]"}`}>
+                {trip.name}
+              </h1>
               <p className="on-photo flex items-center gap-2 text-[15px] font-medium">
                 {leader && <Avatar name={leader.name} index={members.indexOf(leader)} size={24} />}
                 {leader ? `Led by ${leader.name}` : "No trip lead yet"}

@@ -1,15 +1,11 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-
 import { Avatar } from "@/components/Avatars";
 import { formatMoney, timeAgo } from "@/lib/format";
 import { latestItems } from "@/lib/latest";
+import { useNow } from "@/lib/now";
 
 import { useMemberData } from "./MemberData";
-
-const noop = () => () => {};
-const thisMinute = () => Math.floor(Date.now() / 60_000) * 60_000;
 
 /**
  * "Latest" on the Trip tab: the 4 newest expenses, refunds and payments marked as sent. Money news
@@ -17,8 +13,7 @@ const thisMinute = () => Math.floor(Date.now() / 60_000) * 60_000;
  */
 export function Latest() {
   const { state } = useMemberData();
-  // "3h" depends on the clock, so it's only worked out in the browser (null on the server).
-  const now = useSyncExternalStore(noop, thisMinute, () => null);
+  const now = useNow();
   if (state.step !== "ready") return null;
 
   const { detail } = state.data;

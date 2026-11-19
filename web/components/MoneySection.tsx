@@ -9,7 +9,7 @@ import { MembersOnly } from "@/components/trip/MembersOnly";
  * sign-in / not-on-this-trip card for everyone else. The data comes from MemberDataProvider.
  */
 export function MoneySection() {
-  const { state, tripId, preview, reload } = useMemberData();
-  if (state.step === "ready") return <Money data={state.data} actions={{ tripId, preview, reload }} />;
-  return <MembersOnly />;
+  const { state } = useMemberData();
+  if (state.step === "ready") return <Money data={state.data} />;
+  return <MembersOnly className="mx-3.5 mt-5.5" />;
 }
