@@ -23,9 +23,9 @@ export const THEMES: ThemeInfo[] = [
   { id: "campfire", name: "Mountains", note: "Cabins, hiking, national parks", photo: "/themes/campfire.jpg",
     alt: "Blue ridges of the Smoky Mountains at dusk", pickable: true },
   { id: "snow", name: "Snow", note: "Ski trips, winter break", photo: "/themes/snow.jpg",
-    alt: "Pine trees in front of snowy mountain peaks", pickable: false },
+    alt: "Pine trees in front of snowy mountain peaks", pickable: true },
   { id: "desert", name: "Desert road", note: "Road trips, Vegas, the Southwest", photo: "/themes/desert.jpg",
-    alt: "A long empty road across a desert valley", pickable: false },
+    alt: "A long empty road across a desert valley", pickable: true },
 ];
 
 export const DEFAULT_THEME: Theme = "sunset";
