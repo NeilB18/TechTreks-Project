@@ -67,3 +67,23 @@ def test_editing_other_fields_never_asks(b):
     call(b, "add_activity", name="Boat tour", start=f"{MON}T14:00")
     a = call(b, "add_activity", name="Wynwood Walls", start=f"{MON}T14:00", confirm_same_time=True)["activity_id"]
     assert call(b, "add_activity", activity_id=a, est_cost_cents=1500)["updated"]
+
+
+def test_a_plan_in_a_slot_takes_no_clock_end_time(b):
+    lunch = call(b, "add_activity", name="Versailles", day=SUN, slot="lunch")["activity_id"]
+    with pytest.raises(ToolError, match="no clock times"):
+        call(b, "add_activity", activity_id=lunch, end=f"{SUN}T14:00")
+    # A clock start replaces the slot, and then an end time is fine.
+    moved = call(b, "add_activity", activity_id=lunch, start=f"{SUN}T12:30", end=f"{SUN}T14:00")
+    assert (moved["slot"], moved["end"]) == (None, f"{SUN}T14:00")
+
+
+def test_an_old_idea_keeps_its_location_on_a_day():
+    from agent.backend.core.engine import TripEngine
+    e = TripEngine()
+    e.load_seed({"now": "2027-03-01T12:00:00", "trip": TRIP, "members": MEMBERS})
+    # Saved before the planning cut, with a location; new ideas don't have one.
+    e._trip("t").ideas.append({"idea_id": "i1", "name": "Wynwood Walls", "location": "Wynwood", "est_cost_cents": 0,
+                               "suggested_by": None})
+    a = e.add_activity(trip_id="t", idea_id="i1", day=MON)["activity_id"]
+    assert next(x for x in e.summary("t")["activities"] if x["activity_id"] == a)["location"] == "Wynwood"

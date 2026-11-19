@@ -518,6 +518,10 @@ class TripEngine:
             fields.update(start=_day(day_of), end=None, slot=slot)
         elif isinstance(fields.get("start"), datetime):
             fields["slot"] = None  # a clock time replaces a slot
+        in_slot = fields.get("slot") or (match is not None and match.slot and "start" not in fields)
+        if in_slot and isinstance(fields.get("end"), datetime):
+            raise ToolError("A plan in a slot (like lunch) has no clock times. To give it an end time, pass a clock "
+                            "start time too, which replaces the slot.")
         clash = self._same_time(trip, fields.get("start"), skip=match)
         if clash and not confirm_same_time:  # nothing saved until the person says yes
             return {"created" if not match else "updated": False, "same_time_as": clash,
@@ -534,6 +538,8 @@ class TripEngine:
             if idea is None:
                 raise ToolError(f"No idea {idea_id!r}")
             fields.setdefault("name", idea["name"])
+            if idea.get("location"):  # ideas saved before the planning cut can have one
+                fields.setdefault("location", idea["location"])
             if idea.get("est_cost_cents") is not None:
                 fields.setdefault("est_cost_cents", idea["est_cost_cents"])
         if not str(fields.get("name") or "").strip():

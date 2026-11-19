@@ -157,10 +157,15 @@ class TripAgent:
         leader, routed = trip.get("leader_id"), set(trip.get("leader_approval") or [])
         if not leader or self.sender_id == leader:
             return None
+        changes = set(args.get("changes") or {})
+        # The group budget is always the leader's call (the prompt says so), routed or not.
         needs = {"remove_member": "member_changes" in routed,
-                 "update_trip": "trip_changes" in routed and bool(TRIP_CHANGE_FIELDS & set(args.get("changes") or {}))}
+                 "update_trip": "group_budget" in changes or ("trip_changes" in routed and bool(TRIP_CHANGE_FIELDS & changes))}
         if not needs.get(name):
             return None
+        if name == "update_trip" and "group_budget" in changes and "trip_changes" not in routed:
+            return (f"Not done: only the leader ({leader}) sets the group budget. Ask {leader} in the group, and do "
+                    "it once they say so.")
         return (f"Not done: the group routed this to the leader ({leader}), so it only goes through on their message. "
                 f"Ask {leader} in the group, and do it once they approve.")
 
@@ -184,6 +189,12 @@ class TripAgent:
         why = "it's linked to a paid expense" if a["expense_id"] else "it's marked important"
         return (f"Not removed yet: {why}. Ask the group to confirm first (\"Remove {a['name']}? Confirm?\"), "
                 "then remove it once they say yes.")
+
+    def _same_time_guard(self, name: str, args: dict) -> None:
+        """Two plans at the same time need the person's yes ("are you sure?"). confirm_same_time only counts if the
+        bot's previous turn asked; otherwise it's dropped, so the engine reports the clash and the bot asks."""
+        if name == "add_activity" and args.get("confirm_same_time") and not self._asked_last_turn():
+            args["confirm_same_time"] = False
 
     def _events(self) -> list[int]:
         """Where each incoming chat message starts in the history (the runner's own notes don't count)."""
@@ -265,6 +276,7 @@ class TripAgent:
             return f"Error: {call.error}"
         if name == "save_idea" and not args.get("remove") and self.sender_id:
             args.setdefault("suggested_by", self.sender_id)  # the model never has to say who suggested it
+        self._same_time_guard(name, args)
         blocked = (self._trip_guard(name, args) or self._payer_guard(name, args) or self._leader_guard(name, args)
                    or self._refund_guard(name) or self._remove_guard(name, args))
         if blocked:

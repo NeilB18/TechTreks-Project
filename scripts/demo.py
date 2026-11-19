@@ -1,8 +1,9 @@
 """Scripted demo: a 4-person group chat with tripbot on live Qwen.
 
 Shows the core flows in about two minutes: logging and splitting, a category
-opt-out, shared budgets, travel-tip tiers, settling up, and refusing to leak
-someone's budget. Writes a readable transcript to docs/demo-transcript.md.
+opt-out, shared budgets, a plan on the calendar, the leader's group budget,
+settling up, and refusing a delete the payer didn't confirm. Writes a readable
+transcript to docs/demo-transcript.md.
 
     .venv/bin/python scripts/demo.py
 """

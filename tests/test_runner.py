@@ -210,6 +210,27 @@ def test_removing_an_important_activity_waits_for_a_confirmation():
     assert r.tool_calls[0].result["removed"] and backend.summary("miami")["activities"] == []
 
 
+def test_two_plans_at_the_same_time_wait_for_a_yes():
+    from agent.backend.core.engine import TripEngine
+    backend = TripEngine()
+    backend.load_seed({**DINNER_TRIP, "trip": {**DINNER_TRIP["trip"], "destination": "Miami"}})
+    backend.add_activity(trip_id="miami", name="Wynwood Walls", start="2027-03-15T12:00")
+    boat = tool_call("t", "add_activity", {"trip_id": "miami", "name": "Boat tour", "start": "2027-03-15T12:00",
+                                           "confirm_same_time": True})
+    client = ScriptedClient([
+        # The model claims a yes nobody gave: the clash comes back instead, and it asks.
+        response("tool_calls", None, boat,
+                 tool_call("m", "send_message", {"text": "Wynwood Walls is already at 12pm Monday. Add it then too?"})),
+        response("stop", ""),
+        response("tool_calls", None, boat), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="jake", text="@tripbot boat tour monday at noon"))
+    assert r.tool_calls[0].result["same_time_as"] and len(backend.summary("miami")["activities"]) == 1
+    r = agent.handle(ChatEvent(sender_id="jake", text="@tripbot yes both"))
+    assert r.tool_calls[0].result["created"] is not False and len(backend.summary("miami")["activities"]) == 2
+
+
 def test_lodging_only_changes_on_a_mention():
     from agent.backend.core.engine import TripEngine
     backend = TripEngine()
@@ -338,6 +359,23 @@ def test_decisions_routed_to_the_leader_need_the_leaders_message():
     assert trip["start_date"] == "2027-03-14" and len(backend.summary("miami")["members"]) == 3
     r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot approved"))
     assert r.tool_calls[0].error is None and backend.summary("miami")["trip"]["start_date"] == "2027-03-16"
+
+
+def test_only_the_leader_sets_the_group_budget_even_when_nothing_is_routed():
+    from agent.backend.core.engine import TripEngine
+    backend = TripEngine()
+    backend.load_seed({**DINNER_TRIP, "trip": {**DINNER_TRIP["trip"], "leader_approval": []}})
+    budget = {"trip_id": "miami", "changes": {"group_budget": 40000}}
+    client = ScriptedClient([
+        response("tool_calls", None, tool_call("t1", "update_trip", budget)), response("stop", ""),
+        response("tool_calls", None, tool_call("t2", "update_trip", budget)), response("stop", ""),
+    ])
+    agent = TripAgent(backend, "miami", client=client)
+    r = agent.handle(ChatEvent(sender_id="mia", text="@tripbot set the group budget to $400 each"))
+    assert "only the leader (aarav) sets the group budget" in r.tool_calls[0].error
+    assert backend.summary("miami")["trip"]["group_budget_cents"] is None
+    r = agent.handle(ChatEvent(sender_id="aarav", text="@tripbot group budget $400 each"))
+    assert r.tool_calls[0].error is None and backend.summary("miami")["trip"]["group_budget_cents"] == 40000
 
 
 def test_refund_confirmation_can_be_asked_without_a_question_mark():

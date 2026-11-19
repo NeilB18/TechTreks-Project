@@ -3,22 +3,31 @@
 - Activities lose their map check (lat, lon, verified) and kind, and get a slot (morning, lunch, ...).
   Plans already saved keep their clock times.
 - The itinerary drafts table goes, and so do home_city and planning_notes.
-- Lodging becomes plain text: what the group wrote (the saved name).
-- Ideas lose their map details.
+- Lodging becomes plain text: the saved name and address ("Freehand Miami, 2727 Indian Creek Dr").
+- Ideas lose their map details but keep their location.
 - "itinerary_saves" leaves leader_approval: there are no drafts left to save.
 """
 
 from django.db import migrations, models
 
-IDEA_KEYS = ("idea_id", "name", "est_cost_cents", "suggested_by")
+IDEA_KEYS = ("idea_id", "name", "location", "est_cost_cents", "suggested_by")
+
+
+def lodging_text(lodging) -> str | None:
+    """"Freehand Miami, 2727 Indian Creek Dr": the name and the address, so the trip page's Maps link finds the
+    exact place. Just one of them when that's all there is, or when the name already has the address in it."""
+    if not isinstance(lodging, dict):
+        return None
+    name, address = (lodging.get("name") or "").strip(), (lodging.get("address") or "").strip()
+    text = f"{name}, {address}" if name and address and address.lower() not in name.lower() else name or address
+    return text[:200] or None
 
 
 def forwards(apps, schema_editor):
     Trip = apps.get_model("trips", "Trip")
     for trip in Trip.objects.all():
-        lodging = trip.lodging if isinstance(trip.lodging, dict) else None
-        trip.lodging_text = ((lodging.get("name") or lodging.get("address") or "")[:200] or None) if lodging else None
-        trip.ideas = [{k: i.get(k) for k in IDEA_KEYS} for i in trip.ideas or []]
+        trip.lodging_text = lodging_text(trip.lodging)
+        trip.ideas = [{k: i.get(k) for k in IDEA_KEYS if k != "location" or i.get("location")} for i in trip.ideas or []]
         trip.leader_approval = [a for a in trip.leader_approval or [] if a != "itinerary_saves"]
         trip.save(update_fields=["lodging_text", "ideas", "leader_approval"])
 
