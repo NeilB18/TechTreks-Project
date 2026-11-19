@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CopyButton } from "@/components/CopyButton";
+import { CheckIcon, CopyIcon } from "@/components/Icons";
 import { postJson } from "@/lib/post";
 import type { LinkCode, Me } from "@/lib/types";
 
@@ -76,14 +77,14 @@ export function LinkFlow({ live }: { live: boolean }) {
     return () => clearInterval(timer);
   }, [waiting, expiresAt, router]);
 
-  if (state.step === "loading") return <p className="px-5 pt-6 text-muted">Getting your code…</p>;
+  if (state.step === "loading") return <p role="status" className="px-5 pt-6 text-muted">Getting your code…</p>;
   if (state.step === "error") return <p className="px-5 pt-6 text-muted">Couldn&rsquo;t get a code. Refresh and try again.</p>;
   if (state.step === "signed-out") {
     return (
-      <section className="mx-5 mt-6 flex flex-col gap-2.5 rounded-[26px] bg-paper p-[22px] text-paper-ink">
-        <h2 className="display text-2xl">Sign in first</h2>
-        <p className="text-[15px] text-paper-muted">Then you&rsquo;ll get a code to post in your trip&rsquo;s group chat.</p>
-        <a href="/accounts/google/login/?next=/link" className="btn btn-paper mt-1.5 min-h-[50px] text-base">Sign in with Google</a>
+      <section aria-labelledby="link-sign-in" className="card mx-3.5 mt-6 flex flex-col gap-3 p-[18px]">
+        <h2 id="link-sign-in" className="text-lg font-bold">Sign in first</h2>
+        <p className="text-[15px] leading-[1.45] text-muted">Then you&rsquo;ll get a code to post in your trip&rsquo;s group chat.</p>
+        <a href="/accounts/google/login/?next=/link" className="btn btn-white">Sign in with Google</a>
       </section>
     );
   }
@@ -91,46 +92,52 @@ export function LinkFlow({ live }: { live: boolean }) {
   const message = `@tripbot link ${state.code.code}`;
   const name = state.me.people[0]?.name;
   return (
-    <ol className="mx-5 mt-7 flex list-none flex-col gap-3.5 p-0">
-      <li className="card flex items-center gap-3 px-4 py-3.5">
-        <span aria-hidden="true" className="inline-flex size-8 flex-none items-center justify-center rounded-full bg-good text-ground">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l4 4 10-10" /></svg>
-        </span>
-        <span className="flex flex-col">
-          <span className="font-bold">Signed in with Google</span>
-          <span className="text-sm text-muted">{name ?? state.me.email}</span>
-        </span>
-      </li>
+    <>
+      <p className="mx-5 mt-5 flex items-center gap-2.5 text-[15px]">
+        <span aria-hidden="true" className="avatar size-[26px] bg-[rgb(155_230_170/0.18)] text-[#9be6aa]"><CheckIcon size={15} stroke={2.6} /></span>
+        Signed in with Google as {name ?? state.me.email}
+      </p>
 
-      <li className="relative flex flex-col gap-3.5 rounded-[22px] bg-paper p-4 pt-[18px] text-paper-ink">
-        <span className="sticker absolute -top-3 right-4 rotate-6 text-xs">15 min</span>
-        <span className="label-caps text-paper-hot">Post this in the group</span>
-        <p className="rounded-2xl bg-paper-ink p-4 text-xl font-semibold text-paper">
-          @tripbot link <span className="display tracking-[0.12em] text-pop">{state.code.code}</span>
+      <section aria-labelledby="link-code" className="card mx-3.5 mt-4.5 flex flex-col gap-3.5 px-[18px] py-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="link-code" className="font-bold">Post this in the group</h2>
+          <span className="text-sm text-muted">{state.expired ? "Expired" : "Expires in 15 min"}</span>
+        </div>
+        <p className="rounded-[14px] bg-black/25 p-4 text-[17px] leading-[1.4]">
+          @tripbot link <span className="font-extrabold tracking-[0.02em] [font-stretch:125%]">{state.code.code}</span>
         </p>
-        <div className="flex gap-2">
-          <CopyButton text={message} label="Copy message" className="btn btn-paper min-h-12 flex-1" />
-          <a href="https://web.groupme.com/chats" target="_blank" rel="noreferrer" className="btn min-h-12 flex-1 border-2 border-paper-ink text-paper-ink">
+        <div className="flex gap-2.5">
+          <CopyButton
+            text={message}
+            label={<><CopyIcon size={18} />Copy message</>}
+            copiedLabel={<><CheckIcon size={18} />Copied</>}
+            className="btn btn-white min-h-[50px] flex-1 px-3"
+          />
+          <a href="https://web.groupme.com/chats" target="_blank" rel="noreferrer" className="btn btn-line min-h-[50px] flex-1 px-3">
             Open GroupMe
           </a>
         </div>
-        <p className="text-sm text-paper-muted">
-          {state.expired ? "This code expired. " : "Only works once. "}
-          {live && (
-            <button type="button" onClick={start} className="font-bold text-paper-hot underline">Get a new code</button>
-          )}
-        </p>
-      </li>
+        <p className="text-[13px] text-muted">{state.expired ? "This code expired." : "Only works once."}</p>
+      </section>
 
-      <li className="flex items-center gap-3 rounded-[22px] border-2 border-dashed border-outline px-4 py-3.5" aria-live="polite">
-        <span aria-hidden="true" className={`size-8 flex-none rounded-full border-[3px] border-line border-t-pop ${waiting ? "animate-spin" : ""}`} />
-        <span className="flex flex-col">
+      <section aria-live="polite" className="mx-3.5 mt-3.5 flex items-start gap-3 rounded-[18px] border border-dashed border-white/25 px-[18px] py-4">
+        <span aria-hidden="true" className={`mt-1.5 size-2.5 flex-none rounded-full ${state.expired ? "bg-warn" : "bg-[#ffd08a]"} ${waiting ? "animate-pulse" : ""}`} />
+        <span className="flex flex-col gap-0.5">
           <span className="font-bold">{!live ? "Preview only" : state.expired ? "Code expired" : "Waiting for your message"}</span>
-          <span className="text-sm text-muted">
-            {!live ? "With the bot connected, this page opens your trip once the bot sees the code." : "This page opens your trip once the bot sees it."}
+          <span className="text-sm leading-[1.45] text-muted">
+            {!live
+              ? "With the bot connected, this page opens your trip once the bot sees the code."
+              : "This page opens your trip once the bot sees the code. You can leave it open."}
           </span>
         </span>
-      </li>
-    </ol>
+      </section>
+
+      {live && (
+        <p className="mx-5 mt-4.5 text-sm leading-[1.45] text-muted">
+          {state.expired ? "Code expired?" : "Need another one?"}{" "}
+          <button type="button" onClick={start} className="font-semibold text-ink underline underline-offset-4">Get a new code</button>
+        </p>
+      )}
+    </>
   );
 }

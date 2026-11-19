@@ -25,15 +25,6 @@
   --accent: #ffa25c;
   --accent-ink: #2a1406;
 
-  /* Older names the money section and the other pages still use until they're redone (PRs 2 to 4). */
-  --pop: var(--accent);
-  --hot: var(--accent);
-  --outline: var(--edge);
-  --paper: #ffffff;
-  --paper-ink: #0f1628;
-  --paper-muted: #4a5368;
-  --paper-hot: #b3261e;
-  --good: #9be3b0;
 }
 
 /* Theme accents: taken from each theme's photo, all 4.5:1+ with their ink. */
@@ -57,15 +48,6 @@
   --color-warn: var(--warn);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
-  --color-pop: var(--pop);
-  --color-hot: var(--hot);
-  --color-outline: var(--outline);
-  --color-paper: var(--paper);
-  --color-paper-ink: var(--paper-ink);
-  --color-paper-muted: var(--paper-muted);
-  --color-paper-hot: var(--paper-hot);
-  --color-good: var(--good);
-  --color-card: var(--surface);
   --font-sans: var(--font-mona), "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -193,51 +175,6 @@
   }
   .field:focus-within {
     border-color: #ffffff;
-  }
-
-  /* Older classes, kept until the pages that use them are redone (PRs 2 to 4). */
-  .display {
-    font-weight: 800;
-    font-stretch: 125%;
-    letter-spacing: -0.02em;
-    line-height: 1;
-  }
-  .label-caps {
-    font-weight: 700;
-    font-size: 0.9375rem;
-    color: var(--ink);
-  }
-  .sticker {
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 8px;
-    background: var(--fill);
-    font-weight: 600;
-    font-size: 0.8125rem;
-  }
-  .btn-pop {
-    background: #ffffff;
-    color: var(--ground);
-    font-weight: 700;
-  }
-  .btn-outline {
-    border: 1.5px solid var(--edge);
-    color: var(--ink);
-  }
-  .btn-paper {
-    background: var(--paper-ink);
-    color: var(--paper);
-  }
-  .map-btn {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 999px;
-    background: var(--fill);
-    color: var(--ink);
   }
 }
 
