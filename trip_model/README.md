@@ -66,10 +66,13 @@ class Refund:
 
 class Activity:
     id; name; location | None; start | None; end | None   # date or datetime
+    slot | None                         # morning, lunch, afternoon, dinner, night; start is then just the day
     est_cost_cents | None; cost_is_per_person: bool
     attendees: list[Person]; important: bool; booking_url | None
     expense_id | None                   # links plan to real cost once paid
+    from_idea: bool                     # came off the ideas list
     est_per_person_cents() -> int | None  # group total / attendees, unless already per person
+    sort_key()                          # the day, then the clock time or slot; just-a-day plans first
     update(**changes)                   # rejected (and undone) if it would end before it starts
 
 class Poll:
@@ -96,7 +99,8 @@ class Trip:
     polls: list[Poll]
     reminders: list[Reminder]
     opt_outs: set[(person_id, Category)]
-    itinerary_drafts: dict[draft_id, list[day]]
+    ideas: list[dict]                   # things the group wants to do, not on a day yet
+    lodging | None                      # where the group is staying, as they wrote it
     refunds -> list[Refund]             # every expense's refunds
 
     get_member(person_id, active_only=False); active_member_ids()

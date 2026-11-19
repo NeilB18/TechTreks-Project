@@ -4,8 +4,8 @@ The data model and its rules (splits, refunds, balances, settle-up, opt-outs,
 dropouts, polls, budget warnings) live in trip_model/. This module is the tool
 layer on top: it turns tool arguments (ids, category names, ISO strings) into
 model objects and model results back into JSON, makes ids, and holds the
-trip-level tool rules (leader settings, travel tips, itinerary drafts, the agent's
-trip summary). Errors from the model come back to the agent as ToolErrors.
+trip-level tool rules (leader settings, the trip's plans and ideas list, the
+agent's trip summary). Errors from the model come back to the agent as ToolErrors.
 
 Trips live in memory here; DjangoBackend (backend/trips/services.py) loads a trip
 from the database, runs the same engine on it and saves it back. It does NOT
@@ -16,17 +16,12 @@ tests.
 import functools
 import logging
 import re
-from datetime import date, datetime, time, timedelta
-from urllib.parse import quote_plus
+from datetime import date, datetime
 
 from agent import config
 from agent.backend.core import rules
 from agent.backend.protocol import BACKEND_TOOLS, ToolError
-from agent.travel import nearby, osm, planner
-from agent.travel.osm import MapOff
-from agent.travel.planner import KINDS, pick_slot, plan_days, taken
-from agent.travel.provider import get_provider
-from trip_model.activity import Activity, as_datetime
+from trip_model.activity import SLOTS, Activity
 from trip_model.budget import Budget
 from trip_model.category import Category
 from trip_model.expense import Expense
@@ -40,31 +35,15 @@ from trip_model.trip_status import TripStatus
 CATEGORIES = [c.name for c in Category]
 STATUSES = [s.name for s in TripStatus]
 # Decision types the group can route through the leader at onboarding (no default).
-APPROVAL_TYPES = ["trip_changes", "member_changes", "itinerary_saves", "refunds_deletes"]
+APPROVAL_TYPES = ["trip_changes", "member_changes", "refunds_deletes"]
 TRIP_FIELDS = ["destination", "start_date", "end_date", "base_currency", "status",
                "target_break", "group_budget", "leader_id", "leader_approval", "name",
-               "auto_log_mode", "planning_notes", "lodging", "home_city", "theme"]
+               "auto_log_mode", "lodging", "theme"]
 # The trip page's looks: a beach or coast, a city, mountains or outdoors.
 THEMES = ["sunset", "night_swim", "campfire"]
 
-# Itinerary drafts: each suggested stop is checked on the map (about a second each), so a draft is capped.
-MAX_STOPS_PER_DAY = 3
-MAX_STOPS = 15
-MAX_IDEAS = 20  # the ideas list stays short: places the group asked to keep, not a catalog
-MAX_NOTES = 500
-MAX_DESTINATIONS = 5
-DESTINATION_NOTE = ("Costs are estimates. Flights vary a lot by where and when people book: check the links "
-                    "for real prices.")
-NEARBY_RADIUS_M = 1600  # about a mile, about a 20-minute walk
-MAX_RADIUS_M = 5000     # about 3 miles
-MAX_NEARBY = 5
-NEARBY_NOTE = "Closest first (OpenStreetMap has no ratings). Straight-line distances; walking times are rough."
-ESTIMATES_NOTE = "Hours and prices are estimates; check before you go."
-# While the map is off (agent/travel/osm.py), these are what the agent passes on.
-MAP_OFF_NEARBY = ("Nearby search is off for now while we switch to a new map service. Say so politely, and don't "
-                  "suggest places from memory instead.")
-MAP_OFF_LODGING = ("Saving where the group is staying needs the map, which is off for now while we switch to a new "
-                   "map service, so nothing was saved. Say it's coming soon.")
+MAX_IDEAS = 20  # the ideas list stays short: things the group asked to keep, not a catalog
+MAX_LODGING = 200
 
 log = logging.getLogger(__name__)
 
@@ -116,20 +95,8 @@ def _day(value: date | datetime) -> date:
     return value.date() if isinstance(value, datetime) else value
 
 
-def _hours(stop: dict) -> dict | None:
-    """A checked stop's parsed opening hours (stored as the raw OpenStreetMap text, which survives JSON)."""
-    return osm.parse_opening_hours(stop["opening_hours"]) if stop.get("opening_hours") else None
-
-
-def _at(day: date, minutes: int) -> datetime:
-    return datetime.combine(day, time()) + timedelta(minutes=minutes)
-
-
 class TripEngine:
-    def __init__(self, now: str = "2027-03-01T12:00:00", travel=None):
-        # Romir's hook: where travel tips/itinerary ideas come from. Live Google Places + SerpAPI when
-        # their keys are set, canned otherwise (agent/travel/provider.py).
-        self.travel = travel or get_provider()
+    def __init__(self, now: str = "2027-03-01T12:00:00"):
         self.trips: dict[str, Trip] = {}
         self.now = now
         self._counters: dict[str, int] = {}
@@ -246,7 +213,7 @@ class TripEngine:
                 "cost_is_per_person": a.cost_is_per_person, "est_per_person_cents": a.est_per_person_cents(),
                 "attendees": [p.id for p in a.attendees], "important": a.important,
                 "booking_url": a.booking_url, "expense_id": a.expense_id,
-                "lat": a.lat, "lon": a.lon, "verified": a.verified, "kind": a.kind, "from_idea": a.from_idea}
+                "slot": a.slot, "from_idea": a.from_idea}
 
     def _poll_view(self, p: Poll) -> dict:
         return {"id": p.id, "question": p.question, "options": p.options, "votes": p.votes,
@@ -277,7 +244,7 @@ class TripEngine:
         if "now" in seed:
             self.now = str(seed["now"])
         t = seed["trip"]
-        fields = {k: t[k] for k in TRIP_FIELDS if k in t and k not in ("name", "lodging")}
+        fields = {k: t[k] for k in TRIP_FIELDS if k in t and k != "name"}
         if "status" in fields:
             fields["status"] = TripStatus[fields["status"]]
         for k in ("start_date", "end_date"):
@@ -287,8 +254,6 @@ class TripEngine:
         if "leader" in t:
             trip.leader_id = t["leader"]
         self.trips[trip.id] = trip
-        if t.get("lodging"):  # looked up on the map like one set from chat
-            self.update_trip(trip.id, {"lodging": t["lodging"]})
         for m in seed.get("members", []):
             trip.add_member(Person(m["id"], m["name"], m.get("chat_user_id", m["id"]), m.get("handle"),
                                    active=m.get("active", True)))
@@ -420,26 +385,14 @@ class TripEngine:
         return {"removed": True, "removed_from_activities": removed_from,
                 "still_owes_past_splits": True, "was_leader": trip.leader_id == person_id}
 
-    def _find_lodging(self, name, city: str | None) -> dict | None:
-        """Where the group is staying, looked up on the map near the destination. Empty clears it. Nothing is saved
-        if the map can't find it, so the agent asks for the street address."""
-        if name is None or not str(name).strip():
+    @staticmethod
+    def _lodging(value) -> str | None:
+        """Where the group is staying, saved as they wrote it (a hotel name or an address). Empty clears it."""
+        if value is None:
             return None
-        name = str(name).strip()
-        if not city:
-            raise ToolError("Set the destination first, so the place can be found on the map")
-        try:
-            found = self.travel.find_place(name, city)
-        except MapOff as e:
-            raise ToolError(MAP_OFF_LODGING) from e
-        except Exception as e:  # noqa: BLE001
-            log.warning("Lodging lookup failed for %r in %s: %s", name, city, e)
-            raise ToolError("The map lookup failed, so nothing was saved. Try again in a minute.") from e
-        if found is None:
-            raise ToolError(f"Couldn't find {name!r} on the map near {city}, so nothing was saved. "
-                            'Ask for the street address (e.g. "2727 Indian Creek Dr").')
-        return {"name": name, "address": osm.short_address(found), "lat": found.lat, "lon": found.lon,
-                "maps_url": found.maps_url}
+        if not isinstance(value, str) or len(value.strip()) > MAX_LODGING:
+            raise ToolError(f"lodging must be a hotel name or address, up to {MAX_LODGING} characters")
+        return value.strip() or None
 
     def update_trip(self, trip_id: str, changes: dict) -> dict:
         trip = self._trip(trip_id)
@@ -457,13 +410,8 @@ class TripEngine:
             bad = set(new["leader_approval"]) - set(APPROVAL_TYPES)
             if bad:
                 raise ToolError(f"Unknown leader_approval types {sorted(bad)}; use {APPROVAL_TYPES}")
-        if "home_city" in new and new["home_city"] is not None:
-            if not isinstance(new["home_city"], str) or len(new["home_city"].strip()) > 100:
-                raise ToolError("home_city must be a city name, e.g. \"Atlanta\"")
-            new["home_city"] = new["home_city"].strip() or None
-        if "planning_notes" in new and new["planning_notes"] is not None:
-            if not isinstance(new["planning_notes"], str) or len(new["planning_notes"]) > MAX_NOTES:
-                raise ToolError(f"planning_notes must be text, up to {MAX_NOTES} characters")
+        if "lodging" in new:
+            new["lodging"] = self._lodging(new["lodging"])
         if "base_currency" in new and new["base_currency"] != trip.base_currency:
             if new["base_currency"] not in rules.USD_PER_UNIT:
                 raise ToolError(f"Unsupported currency {new['base_currency']!r}")
@@ -485,14 +433,9 @@ class TripEngine:
                 del new["theme"]
             else:
                 new["theme_set_by"] = "bot"
-        if "lodging" in new:  # last, so a lodging the map can't find leaves the whole change unsaved
-            new["lodging"] = self._find_lodging(new["lodging"], new.get("destination", trip.destination))
         for k, v in new.items():
             setattr(trip, k, v)
         out = {"updated": True, "trip": self.summary(trip_id)["trip"]}
-        if new.get("lodging"):
-            out["next_step"] = ("Tell the group the address you saved, with the Maps link, so someone can correct it "
-                                "if it's the wrong place.")
         if theme_kept:
             out["theme_kept"] = f"Someone picked the {theme_kept} theme on the trip page, so it stays. No need to mention it."
         if "start_date" in changes or "end_date" in changes:
@@ -524,182 +467,29 @@ class TripEngine:
         return {"saved": True, "person_id": person_id, "category": category, "opted_out": not remove}
 
     # ---------------------------------------------------------------- planning
-    def generate_itinerary(self, trip_id: str, places: list[dict] | None = None, days: list[str] | None = None,
-                           use_ideas: bool = True, constraints: str | None = None,
-                           save_draft_id: str | None = None) -> dict:
-        trip = self._trip(trip_id)
-        if save_draft_id:
-            if save_draft_id not in trip.itinerary_drafts:
-                raise ToolError(f"No draft {save_draft_id!r}")
-            ids, already = [], []
-            on_trip = {(a.name.lower(), iso(a.start)) for a in trip.activities}
-            draft = trip.itinerary_drafts.pop(save_draft_id)
-            for day in draft:
-                for item in day["items"]:
-                    if (item["name"].lower(), item["start"]) in on_trip:  # saved from an earlier draft
-                        already.append(item["name"])
-                        continue
-                    a = Activity(self._next_id("a", {a.id for a in trip.activities}), item["name"],
-                                 location=item["location"], start=parse_day_or_time(item["start"], "start"),
-                                 end=parse_day_or_time(item["end"], "end"),
-                                 est_cost_cents=item["est_cost_cents"],
-                                 cost_is_per_person=item["cost_is_per_person"],
-                                 attendees=[p for p in trip.members if p.active],
-                                 lat=item.get("lat"), lon=item.get("lon"), verified=item.get("verified"),
-                                 kind=item.get("kind"), from_idea=bool(item.get("idea_id")))
-                    trip.add_activity(a)
-                    ids.append(a.id)
-            # Ideas that made it onto a day leave the ideas list.
-            used = {item["idea_id"] for day in draft for item in day["items"] if item.get("idea_id")}
-            scheduled = [i["name"] for i in trip.ideas if i["idea_id"] in used]
-            trip.ideas = [i for i in trip.ideas if i["idea_id"] not in used]
-            return {"saved": True, "activity_ids": ids, "already_on_trip": already, "ideas_scheduled": scheduled}
-        if not (trip.destination and trip.start_date and trip.end_date):
-            raise ToolError("Set destination, start_date and end_date before generating an itinerary")
-        dates = self._plan_dates(trip, days)
-        ideas = trip.ideas if use_ideas else []
-        if places or ideas:
-            plan, extra = self._draft_from_places(trip, places or [], dates, ideas)
-        elif self.travel.source == "live":  # Google Places picks the stops (only when its key is set)
-            plan, extra = self._draft_from_provider(trip, dates, constraints), {}
-        else:
-            raise ToolError(f"Pass places: the stops you suggest, up to {MAX_STOPS_PER_DAY} a day, each with name, "
-                            "kind (food, activity or night) and est_cost_cents per person")
-        # One draft at a time: a rebuilt draft replaces the old one, so an old draft_id can't save a stale plan.
-        replaced = sorted(trip.itinerary_drafts)
-        draft_id = self._next_id("d", set(replaced))
-        trip.itinerary_drafts = {draft_id: plan}
-        return {"draft_id": draft_id, "days": plan, "constraints": constraints, "source": self.travel.source,
-                "saved": False, "replaced_drafts": replaced, **extra}
+    # The bot keeps track of what the group decides. It doesn't suggest places or check them anywhere (Nov 12, 2026).
+    @staticmethod
+    def _same_time(trip: Trip, start, skip: Activity | None = None) -> list[str]:
+        """Other plans at exactly this clock time. Plans in a slot or with just a day never clash."""
+        if not isinstance(start, datetime):
+            return []
+        return [a.name for a in trip.activities if a is not skip and isinstance(a.start, datetime) and a.start == start]
 
     @staticmethod
-    def _check_place_arg(p) -> None:
-        if not isinstance(p, dict) or not str(p.get("name") or "").strip() or p.get("kind") not in KINDS:
-            raise ToolError("Each place needs a name and a kind: food, activity or night")
-        cost = p.get("est_cost_cents")
-        if cost is not None and (isinstance(cost, bool) or not isinstance(cost, int) or cost < 0):
-            raise ToolError(f"est_cost_cents for {p['name']!r} must be whole cents, 0 or more ($25 -> 2500)")
-
-    @staticmethod
-    def _draft_item(it: dict, day: date) -> dict:
-        """A planned stop (with slot, start_min, end_min, hours_conflict) as it's stored in a draft."""
-        return {"name": it["name"], "kind": it["kind"], "slot": it["slot"], "location": it["location"],
-                "start": iso(_at(day, it["start_min"])), "end": iso(_at(day, it["end_min"])),
-                "est_cost_cents": it.get("est_cost_cents"), "cost_is_per_person": True, "verified": it["verified"],
-                "lat": it["lat"], "lon": it["lon"], "opening_hours": it["opening_hours"],
-                "hours_conflict": it["hours_conflict"], "maps_url": it["maps_url"],
-                **({"idea_id": it["idea_id"]} if it.get("idea_id") else {})}
-
-    @staticmethod
-    def _plan_dates(trip: Trip, days: list[str] | None) -> list[date]:
-        """The dates a draft covers. Required, so a request for one day doesn't turn into a plan for the whole trip."""
-        if not days:
-            raise ToolError('Pass days: the dates to plan, e.g. ["2027-03-15"]. If the group didn\'t say which days, '
-                            "ask them first.")
-        dates = sorted({parse_day(str(d), "days") for d in days})
-        outside = [d.isoformat() for d in dates if not trip.start_date <= d <= trip.end_date]
-        if outside:
-            raise ToolError(f"{outside} are outside the trip ({iso(trip.start_date)} to {iso(trip.end_date)})")
-        return dates
-
-    def _check_place(self, trip: Trip, name: str, kind: str) -> tuple[dict, str]:
-        """Look a stop up on the map. Returns the stop and "found", "not_found", "unchecked" (the lookup failed, so
-        verified is None rather than False) or "off" (the map is turned off: saved unchecked, nothing flagged)."""
-        try:
-            found = self.travel.find_place(name, trip.destination)
-        except MapOff:
-            found, status = None, "off"
-        except Exception as e:  # noqa: BLE001 - a map outage shouldn't stop planning
-            log.warning("Place lookup failed for %r in %s: %s", name, trip.destination, e)
-            found, status = None, "unchecked"
-        else:
-            status = "found" if found else "not_found"
-        return {"name": name, "kind": kind,
-                "location": osm.short_address(found) if found else trip.destination,
-                "verified": None if status in ("unchecked", "off") else found is not None,
-                "lat": found.lat if found else None, "lon": found.lon if found else None,
-                "opening_hours": found.opening_hours if found else None,
-                "maps_url": found.maps_url if found else osm.maps_url(name, trip.destination)}, status
-
-    @staticmethod
-    def _busy(trip: Trip, day: date, skip: Activity | None = None) -> list[dict]:
-        """The slots plans already on the trip take on this day (agent/travel/planner.py `taken`), leaving out
-        `skip` (the activity being moved)."""
-        midnight = datetime.combine(day, time())
-        out = []
-        for a in trip.activities:
-            if a.start is None or a is skip:
-                continue
-            if isinstance(a.start, datetime):
-                if a.start.date() == day:
-                    start = int((a.start - midnight).total_seconds() // 60)
-                    end = int((as_datetime(a.end) - midnight).total_seconds() // 60) if a.end else start + 120
-                    out += taken(start, end, a.lat, a.lon)
-            elif a.start <= day <= _day(a.end or a.start):  # a plan with only dates covers those whole days
-                out += taken(None, None, a.lat, a.lon)
-        return out
-
-    def _draft_from_places(self, trip: Trip, places: list[dict], dates: list[date],
-                           ideas: list[dict]) -> tuple[list[dict], dict]:
-        """The group's ideas first, then the agent's stops, each checked on the map, laid out into the free slots of
-        those days (agent/travel/planner.py)."""
-        for p in places:
-            self._check_place_arg(p)
-        # A place already on the trip isn't drafted again, and the same place twice (or an idea again) would be
-        # looked up and scheduled twice.
-        on_trip = {a.name.lower(): a.name for a in trip.activities}
-        already = sorted({on_trip[i["name"].lower()] for i in ideas if i["name"].lower() in on_trip}
-                         | {on_trip[p["name"].strip().lower()] for p in places if p["name"].strip().lower() in on_trip})
-        idea_names = {i["name"].lower() for i in ideas}
-        ideas = [i for i in ideas if i["name"].lower() not in on_trip]
-        unique: dict[str, dict] = {}
-        for p in places:
-            key = p["name"].strip().lower()
-            if key not in idea_names and key not in on_trip:
-                unique.setdefault(key, p)
-        places = list(unique.values())
-        busy = {d: self._busy(trip, d) for d in dates}
-        free = sum(len(planner.SLOTS) - len({b["slot"] for b in busy[d]}) for d in dates)
-        if not free:
-            raise ToolError("Those days are already full. Ask which plans to move, or pick other days.")
-        cap = min(MAX_STOPS_PER_DAY * len(dates), MAX_STOPS, free)
-        stops = [{**i, "hours": _hours(i)} for i in ideas[:cap]]  # ideas were checked on the map when saved
-        room = cap - len(stops)
-        not_found, unchecked = [], []
-        for p in places[:room]:
-            stop, status = self._check_place(trip, p["name"].strip(), p["kind"])
-            if status == "not_found":
-                not_found.append(stop["name"])
-            elif status == "unchecked":
-                unchecked.append(stop["name"])
-            stops.append({**stop, "est_cost_cents": p.get("est_cost_cents"), "hours": _hours(stop)})
-        plan = [{"date": day["date"].isoformat(), "items": [self._draft_item(it, day["date"]) for it in day["items"]]}
-                for day in plan_days(stops, dates, busy)]
-        extra = {"not_found": not_found, "map_check_failed": unchecked, "already_on_trip": already,
-                 "ideas_used": [i["name"] for i in ideas[:cap]], "ideas_left": [i["name"] for i in ideas[cap:]],
-                 "skipped": [p["name"] for p in places[room:]], "note": ESTIMATES_NOTE, "credit": osm.ATTRIBUTION}
-        return plan, extra
-
-    def _draft_from_provider(self, trip: Trip, dates: list[date], constraints: str | None) -> list[dict]:
-        days = []
-        ideas = self.travel.itinerary_items(trip.destination, 2 * len(dates), constraints)
-        for i, day in enumerate(dates):
-            d = day.isoformat()
-            items = []
-            for j, hour in enumerate((11, 19)):
-                name, loc, cost = ideas[2 * i + j]
-                items.append({"name": name, "location": loc,
-                              "start": f"{d}T{hour}:00", "end": f"{d}T{hour + 2}:00",
-                              "est_cost_cents": cost, "cost_is_per_person": True})
-            days.append({"date": d, "items": items})
-        return days
+    def _moved(a: Activity, on: date) -> dict:
+        """Moving a plan to another day keeps its clock time or slot (and how long it lasts)."""
+        shift = on - _day(a.start) if a.start else None
+        if a.start is None:
+            return {"start": on}
+        start = datetime.combine(on, a.start.time()) if isinstance(a.start, datetime) else on
+        return {"start": start, "end": a.end + shift if a.end is not None else None}
 
     def add_activity(self, trip_id: str, name: str | None = None, activity_id: str | None = None,
                      location: str | None = None, start: str | None = None, end: str | None = None,
                      est_cost_cents: int | None = None, cost_is_per_person: bool | None = None,
                      attendees: list[str] | None = None, important: bool | None = None,
                      booking_url: str | None = None, expense_id: str | None = None, day: str | None = None,
-                     kind: str | None = None, idea_id: str | None = None) -> dict:
+                     slot: str | None = None, idea_id: str | None = None, confirm_same_time: bool = False) -> dict:
         trip = self._trip(trip_id)
         people = None if attendees is None else [trip.get_member(pid, active_only=True) for pid in attendees]
         fields = {"name": name, "location": location, "start": parse_day_or_time(start, "start"),
@@ -707,265 +497,75 @@ class TripEngine:
                   "cost_is_per_person": cost_is_per_person, "attendees": people, "important": important,
                   "booking_url": booking_url, "expense_id": expense_id}
         fields = {k: v for k, v in fields.items() if v is not None}
-        if kind is not None and kind not in KINDS:
-            raise ToolError("kind must be food, activity or night (leave it out for things like flights)")
+        if slot is not None and slot not in SLOTS:
+            raise ToolError(f"slot must be one of {list(SLOTS)}")
+        if slot and isinstance(fields.get("start"), datetime):
+            raise ToolError("Pass a slot or a clock time in start, not both")
+        on = parse_day(day, "day")
+        match = None
         if activity_id:
             match = next((a for a in trip.activities if a.id == activity_id), None)
             if match is None:
                 raise ToolError(f"No activity {activity_id!r}")
-            if kind:
-                fields["kind"] = kind
-            if day and "start" not in fields:  # move it to a free slot of its kind on that day
-                k = fields.get("kind") or match.kind
-                if not k:
-                    raise ToolError("It isn't a food, activity or night stop, so pass start with a time (or pass kind)")
-                on = parse_day(day, "day")
-                slot, _ = pick_slot(on, self._busy(trip, on, skip=match), {"kind": k, "hours": None},
-                                    prefer=self._slot_of(match))
-                if slot is None:  # nothing changed
-                    return {"updated": False, "day_full": True, "day": on.isoformat(),
-                            "plans_that_day": [a.name for a in trip.activities
-                                               if a.start and _day(a.start) == on and a is not match],
-                            "next_step": "Ask for a specific time or another day."}
-                fields["start"], fields["end"] = _at(on, slot[2]), _at(on, slot[3])
+            if on and "start" not in fields:
+                fields.update(self._moved(match, on))
+        elif on and "start" not in fields:
+            fields["start"] = on  # just the day, unless they named a slot
+        if slot:
+            day_of = fields.get("start", match.start if match else None)
+            if day_of is None:
+                raise ToolError("A slot needs a day: pass day too")
+            fields.update(start=_day(day_of), end=None, slot=slot)
+        elif isinstance(fields.get("start"), datetime):
+            fields["slot"] = None  # a clock time replaces a slot
+        in_slot = fields.get("slot") or (match is not None and match.slot and "start" not in fields)
+        if in_slot and isinstance(fields.get("end"), datetime):
+            raise ToolError("A plan in a slot (like lunch) has no clock times. To give it an end time, pass a clock "
+                            "start time too, which replaces the slot.")
+        clash = self._same_time(trip, fields.get("start"), skip=match)
+        if clash and not confirm_same_time:  # nothing saved until the person says yes
+            return {"created" if not match else "updated": False, "same_time_as": clash,
+                    "at": iso(fields["start"]),
+                    "next_step": "Ask the person if they really want both at that time. If they say yes, call again "
+                                 "with confirm_same_time: true."}
+        if match:
             match.update(**fields)
-            return {"activity_id": activity_id, "updated": True, "start": iso(match.start), "end": iso(match.end)}
+            return {"activity_id": activity_id, "updated": True, "start": iso(match.start), "end": iso(match.end),
+                    "slot": match.slot, "outside_trip_dates": match.id in self._activities_outside(trip)}
         idea = None
         if idea_id:
             idea = next((i for i in trip.ideas if i["idea_id"] == idea_id), None)
             if idea is None:
                 raise ToolError(f"No idea {idea_id!r}")
             fields.setdefault("name", idea["name"])
-            kind = kind or idea["kind"]
+            if idea.get("location"):  # ideas saved before the planning cut can have one
+                fields.setdefault("location", idea["location"])
             if idea.get("est_cost_cents") is not None:
                 fields.setdefault("est_cost_cents", idea["est_cost_cents"])
-        if not fields.get("name"):
+        if not str(fields.get("name") or "").strip():
             raise ToolError("name is required for a new activity")
-        place, status = (idea, "found") if idea else (None, None)
-        if kind and not idea:  # a place: check it on the map
-            place, status = self._check_place(trip, fields["name"].strip(), kind)
-        if place:
-            fields.setdefault("location", place["location"])
-            fields.update(lat=place["lat"], lon=place["lon"], verified=place["verified"])
-        slot = None
-        if day and "start" not in fields:
-            if not place:
-                raise ToolError("Pass kind (food, activity or night) with day so it gets the right slot, "
-                                "or pass start with a time")
-            on = parse_day(day, "day")
-            slot, why = pick_slot(on, self._busy(trip, on), {**place, "hours": _hours(place)})
-            if slot is None:  # nothing saved: the group picks a time, another day or the ideas list
-                taken_by = [a.name for a in trip.activities if a.start and _day(a.start) == on]
-                return {"created": False, "day_full": why == "full", "closed_then": why == "closed",
-                        "day": on.isoformat(), "plans_that_day": taken_by,
-                        "opening_hours": place.get("opening_hours"),
-                        "next_step": "Ask for a specific time, another day, or the ideas list."}
-            fields["start"], fields["end"] = _at(on, slot[2]), _at(on, slot[3])
+        fields["name"] = fields["name"].strip()
         fields.setdefault("attendees", [p for p in trip.members if p.active])
-        a = Activity(self._next_id("a", {a.id for a in trip.activities}), **fields, kind=kind, from_idea=bool(idea))
+        a = Activity(self._next_id("a", {a.id for a in trip.activities}), **fields, from_idea=bool(idea))
         trip.add_activity(a)
         if idea:
             trip.ideas.remove(idea)
-        out = {"activity_id": a.id, "created": True, "start": iso(a.start), "end": iso(a.end),
-               "outside_trip_dates": a.id in self._activities_outside(trip)}
-        if place:
-            out.update(slot=slot[0] if slot else None, location=a.location, verified=a.verified,
-                       not_found=status == "not_found", map_check_failed=status == "unchecked",
-                       maps_url=place["maps_url"], opening_hours=place.get("opening_hours"),
-                       from_ideas=bool(idea), credit=osm.ATTRIBUTION)
-        return out
-
-    @staticmethod
-    def _slot_of(a: Activity) -> str | None:
-        """The slot of its kind a timed activity sits in, e.g. "dinner"."""
-        if not isinstance(a.start, datetime) or not a.kind:
-            return None
-        start = a.start.hour * 60 + a.start.minute
-        end = start + int((as_datetime(a.end) - a.start).total_seconds() // 60) if a.end else start + 120
-        return next((b["slot"] for b in taken(start, end) if b["kind"] == a.kind), None)
+        return {"activity_id": a.id, "created": True, "start": iso(a.start), "end": iso(a.end), "slot": a.slot,
+                "outside_trip_dates": a.id in self._activities_outside(trip), "from_ideas": bool(idea)}
 
     def remove_activity(self, trip_id: str, activity_id: str) -> dict:
         trip = self._trip(trip_id)
         a = trip.remove_activity(activity_id)
-        back = (a.from_idea and bool(a.kind) and len(trip.ideas) < MAX_IDEAS
+        back = (a.from_idea and len(trip.ideas) < MAX_IDEAS
                 and a.name.lower() not in {i["name"].lower() for i in trip.ideas})
         if back:  # it came off the ideas list, so it goes back on
             trip.ideas.append({"idea_id": self._next_id("i", {i["idea_id"] for i in trip.ideas}), "name": a.name,
-                               "kind": a.kind, "location": a.location, "verified": a.verified, "lat": a.lat,
-                               "lon": a.lon, "opening_hours": None, "maps_url": osm.maps_url(a.name, trip.destination),
                                "est_cost_cents": a.est_per_person_cents(), "suggested_by": None})
         return {"removed": True, "activity_id": a.id, "name": a.name, "back_on_ideas": back,
                 "expense_still_logged": a.expense_id}
 
-    def edit_draft(self, trip_id: str, draft_id: str, action: str, stop: str | None = None,
-                   place: dict | None = None, day: str | None = None) -> dict:
-        """One change to an unsaved draft: drop a stop, swap it for another place, move it to another day, or add
-        a place to a day. The draft keeps its id. If the new spot has no free slot (or the place is closed then),
-        nothing changes."""
-        trip = self._trip(trip_id)
-        if draft_id not in trip.itinerary_drafts:
-            raise ToolError(f"No draft {draft_id!r}. Current: {sorted(trip.itinerary_drafts)}")
-        if action not in ("drop", "swap", "move", "add"):
-            raise ToolError("action must be drop, swap, move or add")
-        draft = trip.itinerary_drafts[draft_id]
-        old = old_day = None
-        if action != "add":
-            key = (stop or "").strip().lower()
-            old_day, old = next(((d, it) for d in draft for it in d["items"] if it["name"].lower() == key),
-                                (None, None))
-            if old is None:
-                raise ToolError(f"No stop {stop!r} in the draft. Stops: {[it['name'] for d in draft for it in d['items']]}")
-        status = None
-        if action == "drop":
-            old_day["items"].remove(old)
-        else:
-            if action == "move":
-                new, on, prefer = old, parse_day(day, "day"), old["slot"]
-            else:  # swap or add: a new place, checked on the map
-                self._check_place_arg(place)
-                name = place["name"].strip()
-                taken_names = {a.name.lower() for a in trip.activities} | {
-                    it["name"].lower() for d in draft for it in d["items"] if it is not old}
-                if name.lower() in taken_names:
-                    raise ToolError(f"{name} is already on the trip or in this draft")
-                checked, status = self._check_place(trip, name, place["kind"])
-                new = {**checked, "est_cost_cents": place.get("est_cost_cents")}
-                if action == "swap":
-                    on, prefer = date.fromisoformat(old_day["date"]), old["slot"]
-                else:
-                    on, prefer = parse_day(day, "day"), None
-            if on is None or not trip.start_date <= on <= trip.end_date:
-                raise ToolError(f"day must be a date in the trip ({iso(trip.start_date)} to {iso(trip.end_date)})")
-            target = next((d for d in draft if d["date"] == on.isoformat()), None)
-            busy = self._busy(trip, on) + [{"slot": it["slot"], "kind": it["kind"], "lat": it["lat"], "lon": it["lon"]}
-                                           for it in (target["items"] if target else []) if it is not old]
-            slot, why = pick_slot(on, busy, {**new, "hours": _hours(new)}, prefer=prefer)
-            if slot is None:
-                return {"draft_id": draft_id, "changed": False, "day_full": why == "full",
-                        "closed_then": why == "closed", "day": on.isoformat(),
-                        "opening_hours": new.get("opening_hours"), "not_found": status == "not_found",
-                        "next_step": "Nothing changed. Ask for another day or a different place."}
-            if old is not None:
-                old_day["items"].remove(old)
-            if target is None:
-                target = {"date": on.isoformat(), "items": []}
-                draft.append(target)
-                draft.sort(key=lambda d: d["date"])
-            target["items"].append(self._draft_item(
-                {**new, "slot": slot[0], "start_min": slot[2], "end_min": slot[3], "hours_conflict": False}, on))
-            target["items"].sort(key=lambda it: it["start"])
-        return {"draft_id": draft_id, "changed": True, "days": draft, "not_found": status == "not_found",
-                "map_check_failed": status == "unchecked", "note": ESTIMATES_NOTE, "credit": osm.ATTRIBUTION}
-
-    def compare_destinations(self, trip_id: str, places: list[dict]) -> dict:
-        """The destinations the agent suggests, checked on the map and against everyone's budget, each with a Google
-        Flights link from the group's home city. The cost compared with budgets is the trip without flights; the
-        flight estimate is shown on its own because it varies so much."""
-        trip = self._trip(trip_id)
-        if not trip.home_city:
-            raise ToolError("Ask where the group is flying from and save it with update_trip home_city first, so the "
-                            "flight links start there.")
-        if not isinstance(places, list) or not 2 <= len(places) <= MAX_DESTINATIONS:
-            raise ToolError(f"Pass 2 to {MAX_DESTINATIONS} places to compare")
-        for p in places:
-            if not isinstance(p, dict) or not str(p.get("name") or "").strip():
-                raise ToolError("Each place needs a name")
-            for field in ("est_cost_cents", "est_flight_cents"):
-                v = p.get(field)
-                if (v is None and field == "est_cost_cents") or (v is not None and (
-                        isinstance(v, bool) or not isinstance(v, int) or v < 0)):
-                    raise ToolError(f"{field} for {p['name']!r} must be whole cents, 0 or more ($900 -> 90000)")
-        active = [m for m in trip.members if m.active]
-        nights = (trip.end_date - trip.start_date).days if trip.start_date and trip.end_date else None
-        out = []
-        for p in places:
-            name = p["name"].strip()
-            try:
-                found = self.travel.find_place(name, "")
-            except Exception as e:  # noqa: BLE001 - a map outage shouldn't stop the comparison
-                log.warning("Destination lookup failed for %r: %s", name, e)
-                found, checked = None, False
-            else:
-                checked = True
-            cost, flight = p["est_cost_cents"], p.get("est_flight_cents")
-            budgets = {m.id: m.budget.total_cents for m in active if m.budget}
-            query = f"Flights to {name} from {trip.home_city}"
-            if trip.start_date and trip.end_date:
-                query += f" on {trip.start_date.isoformat()} through {trip.end_date.isoformat()}"
-            out.append({
-                "name": name, "found_on_map": bool(found) if checked else None,
-                # A city's full address ends in region and country ("Quintana Roo, Mexico"): those say where it is.
-                "place": ", ".join(x.strip() for x in found.address.split(",")[-2:]) if found else None,
-                "est_cost_cents": cost, "est_flight_cents": flight,
-                "est_total_cents": cost + flight if flight is not None else None,
-                "fits_everyone": all(cost <= b for b in budgets.values()) and len(budgets) == len(active),
-                "stretch_without_flights": sorted(pid for pid, b in budgets.items() if cost > b),
-                "stretch_with_flights": sorted(pid for pid, b in budgets.items()
-                                               if flight is not None and cost + flight > b),
-                "flights_url": f"https://www.google.com/travel/flights?q={quote_plus(query)}"})
-        return {"destinations": out, "from": trip.home_city, "nights": nights,
-                "no_budget_yet": sorted(m.id for m in active if m.budget is None), "note": DESTINATION_NOTE,
-                "next_step": "Post them (costs as estimates; mention kindly who each is a stretch for), then offer a "
-                             "poll with create_poll. Changing the trip's destination still needs the usual confirmation."}
-
-    def find_nearby(self, trip_id: str, what: str, near: str | None = None, radius_m: int | None = None) -> dict:
-        """The closest places of a kind ("pizza", "coffee", "pharmacy") to where the group is staying, or to `near`
-        (a place someone names). Distances are worked out here, so the agent never does the math."""
-        trip = self._trip(trip_id)
-        radius = NEARBY_RADIUS_M if radius_m is None else radius_m
-        if isinstance(radius, bool) or not isinstance(radius, int) or not 100 <= radius <= MAX_RADIUS_M:
-            raise ToolError(f"radius_m must be 100 to {MAX_RADIUS_M} meters (about 3 miles)")
-        if nearby.normalize(what) is None:
-            raise ToolError("what must be a short word or two, like pizza, coffee, bar or pharmacy")
-        if near and str(near).strip():
-            if not trip.destination:
-                raise ToolError("Set the destination first, so the place can be found on the map")
-            try:
-                found = self.travel.find_place(str(near).strip(), trip.destination)
-            except MapOff as e:
-                raise ToolError(MAP_OFF_NEARBY) from e
-            except Exception as e:  # noqa: BLE001
-                log.warning("Lookup failed for %r in %s: %s", near, trip.destination, e)
-                raise ToolError("The map lookup failed. Say so and suggest trying again in a minute.") from e
-            if found is None:
-                raise ToolError(f"Couldn't find {near!r} on the map near {trip.destination}. "
-                                "Ask for an address or a well-known landmark.")
-            origin = {"name": str(near).strip(), "address": osm.short_address(found), "lat": found.lat,
-                      "lon": found.lon}
-        elif trip.lodging:
-            origin = trip.lodging
-        else:
-            raise ToolError("No lodging saved, so there's no starting point. Ask where the group is staying (and "
-                            "offer to save it with update_trip lodging), or pass near.")
-        try:
-            places = self.travel.find_nearby(what, origin["lat"], origin["lon"], radius)
-        except MapOff as e:
-            raise ToolError(MAP_OFF_NEARBY) from e
-        except Exception as e:  # noqa: BLE001 - a busy map server gets a friendly reply, not a crash
-            log.warning("Nearby search for %r failed: %s", what, e)
-            raise ToolError("The map search is busy right now. Say so and suggest trying again in a minute.") from e
-        ranked = sorted(((nearby.distance_m(origin["lat"], origin["lon"], p["lat"], p["lon"]), p) for p in places),
-                        key=lambda mp: mp[0])
-        ranked = [(m, p) for m, p in ranked if m <= radius]
-        results = []
-        for m, p in ranked[:MAX_NEARBY]:
-            distance, walk = nearby.describe_distance(m)
-            where = f"{p['street']}, {trip.destination}" if p.get("street") else trip.destination or ""
-            results.append({"name": p["name"], "distance": distance, "walk": walk, "address": p.get("street"),
-                            "opening_hours": p.get("opening_hours"), "cuisine": p.get("cuisine"),
-                            "maps_url": osm.maps_url(p["name"], where)})
-        within = f"{radius / 1609.344:.1f}".rstrip("0").rstrip(".") + " mi"  # 1600 m -> "1 mi", 400 m -> "0.2 mi"
-        out = {"what": what, "near": origin["name"], "near_address": origin.get("address"), "within": within,
-               "results": results, "more_found": max(0, len(ranked) - MAX_NEARBY), "note": NEARBY_NOTE,
-               "credit": osm.ATTRIBUTION}
-        if not results:
-            out["next_step"] = (f"Nothing found within {within}. Say so and offer to look farther "
-                                f"(radius_m up to {MAX_RADIUS_M}).")
-        return out
-
-    def save_idea(self, trip_id: str, name: str | None = None, kind: str | None = None,
-                  est_cost_cents: int | None = None, idea_id: str | None = None, remove: bool = False,
-                  suggested_by: str | None = None) -> dict:
+    def save_idea(self, trip_id: str, name: str | None = None, est_cost_cents: int | None = None,
+                  idea_id: str | None = None, remove: bool = False, suggested_by: str | None = None) -> dict:
         trip = self._trip(trip_id)
         if remove:  # anyone on the trip can drop an idea
             key = (name or "").strip().lower()
@@ -975,8 +575,8 @@ class TripEngine:
                 raise ToolError(f"No idea {idea_id or name!r}. Ideas: {[i['name'] for i in trip.ideas]}")
             trip.ideas.remove(match)
             return {"removed": True, "name": match["name"], "ideas_left": len(trip.ideas)}
-        if not (name or "").strip() or kind not in KINDS:
-            raise ToolError("An idea needs a name and a kind: food, activity or night")
+        if not (name or "").strip():
+            raise ToolError("An idea needs a name")
         if est_cost_cents is not None and (isinstance(est_cost_cents, bool) or not isinstance(est_cost_cents, int)
                                            or est_cost_cents < 0):
             raise ToolError("est_cost_cents must be whole cents, 0 or more ($25 -> 2500)")
@@ -987,36 +587,10 @@ class TripEngine:
             raise ToolError(f"The ideas list is full ({MAX_IDEAS}). Put some on a day or drop some first.")
         if suggested_by:
             trip.get_member(suggested_by)
-        if not trip.destination:
-            raise ToolError("Set the destination before saving ideas, so they can be checked on the map")
-        place, status = self._check_place(trip, name.strip(), kind)
-        idea = {"idea_id": self._next_id("i", {i["idea_id"] for i in trip.ideas}), **place,
+        idea = {"idea_id": self._next_id("i", {i["idea_id"] for i in trip.ideas}), "name": name.strip(),
                 "est_cost_cents": est_cost_cents, "suggested_by": suggested_by}
         trip.ideas.append(idea)
-        return {"saved": True, "idea": idea, "not_found": status == "not_found",
-                "map_check_failed": status == "unchecked", "ideas_count": len(trip.ideas), "credit": osm.ATTRIBUTION}
-
-    def get_travel_tips(self, trip_id: str, destination: str, multipliers: list[float],
-                        prices_only: bool = False, interests: list[str] | None = None) -> dict:
-        trip = self._trip(trip_id)
-        if not multipliers or any(m <= 0 for m in multipliers):
-            raise ToolError("multipliers must be positive numbers, e.g. [0.5, 0.75, 1, 1.25, 1.5, 2]")
-        active = [p for p in trip.members if p.active]
-        totals = [p.budget.total_cents for p in active if p.budget]
-        missing = [p.id for p in active if p.budget is None]
-        if not totals:
-            return {"average_cents": None, "missing_budgets": missing, "tiers": [],
-                    "note": "Nobody has set a budget yet; ask members in the group for theirs."}
-        avg = round(sum(totals) / len(totals))
-        tiers = []
-        for m in multipliers:
-            tier = {"multiplier": m, "budget_cents": rules.tier_price(avg, m)}
-            if not prices_only:
-                tier.update(self.travel.tips(destination, tier, iso(trip.start_date), iso(trip.end_date)))
-            tiers.append(tier)
-        return {"destination": destination, "average_cents": avg, "budgets_counted": len(totals),
-                "budgets": {p.id: p.budget.total_cents for p in active if p.budget},
-                "missing_budgets": missing, "tiers": tiers, "interests": interests or []}
+        return {"saved": True, "idea": idea, "ideas_count": len(trip.ideas)}
 
     def create_poll(self, trip_id: str, question: str, options: list[str], closes_at: str | None = None) -> dict:
         trip = self._trip(trip_id)
@@ -1132,11 +706,7 @@ class TripEngine:
         s["refunds"] = [self._refund_view(r) for r in trip.refunds]
         s["polls"] = [self._poll_view(p) for p in trip.polls]
         s["reminders"] = [self._reminder_view(r) for r in trip.reminders]
-        s["itinerary_drafts"] = sorted(trip.itinerary_drafts)
         s["ideas"] = trip.ideas
-        for view, a in zip(s["activities"], trip.activities):
-            if a.verified is not None:  # came from an itinerary draft: rebuild its Maps link
-                view["maps_url"] = osm.maps_url(a.name, a.location or trip.destination)
         # Budgets are shared with everyone on the trip (decided Oct 28, 2026).
         s["budgets"] = {p.id: {"total_cents": p.budget.total_cents,
                                "limits": {c.name: v for c, v in p.budget.limits.items()}}
@@ -1167,8 +737,7 @@ class TripEngine:
                      "end_date": iso(trip.end_date), "target_break": trip.target_break,
                      "base_currency": trip.base_currency, "group_budget_cents": trip.group_budget,
                      "leader_id": trip.leader_id, "leader_approval": sorted(trip.leader_approval),
-                     "auto_log_mode": trip.auto_log_mode, "planning_notes": trip.planning_notes,
-                     "lodging": trip.lodging, "home_city": trip.home_city, "theme": trip.theme,
+                     "auto_log_mode": trip.auto_log_mode, "lodging": trip.lodging, "theme": trip.theme,
                      # The trip page, for "what's the link?". None until the database gives the trip a token.
                      "page_url": f"{config.TRIP_PAGE_URL}/t/{trip.share_token}" if trip.share_token else None},
             "members": [{"id": p.id, "name": p.name, "handle": p.payment_handle,
@@ -1181,7 +750,7 @@ class TripEngine:
                  "paid_by": e.paid_by.id, "amount_cents": e.amount_cents, "shares": e.shares()}
                 for e in trip.expenses[-10:]],
             "activities": [self._activity_view(a) for a in trip.activities],
-            "ideas": [{"idea_id": i["idea_id"], "name": i["name"], "kind": i["kind"]} for i in trip.ideas],
+            "ideas": [{"idea_id": i["idea_id"], "name": i["name"]} for i in trip.ideas],
             "open_polls": [{"id": p.id, "question": p.question, "options": p.options,
                             "votes": len(p.votes)} for p in trip.polls if p.check_open(now)],
         }

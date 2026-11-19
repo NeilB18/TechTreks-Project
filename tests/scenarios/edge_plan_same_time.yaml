@@ -1,0 +1,42 @@
+kind: edge
+title: Two plans at exactly the same clock time get an "are you sure?", and save on a yes
+seed:
+  now: "2027-03-01T12:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+  activities:
+    - {id: a1, name: Wynwood Walls, start: "2027-03-15T12:00"}
+turns:
+  - sender: jake
+    text: "@tripbot add the boat tour Monday at 12pm, $60 each"
+    expect:
+      calls:
+        - {name: add_activity, args: {start: "2027-03-15T12:00"}}
+      messages:
+        - {to: group, contains: [Wynwood, "?"]}
+      end_state:
+        - activity_count: 1
+    golden:
+      calls:
+        - {name: add_activity, args: {trip_id: miami, name: Boat tour, start: "2027-03-15T12:00", est_cost_cents: 6000}}
+      messages:
+        - {to: group, text: "Wynwood Walls is already at 12:00 PM on Monday. Add the boat tour at the same time too?"}
+  - sender: jake
+    text: "@tripbot yeah, put both"
+    expect:
+      calls:
+        - {name: add_activity, args: {start: "2027-03-15T12:00", confirm_same_time: true}}
+      end_state:
+        - activity_count: 2
+        - activity_at: {name: boat tour, start: "2027-03-15T12:00"}
+    golden:
+      calls:
+        - {name: add_activity, args: {trip_id: miami, name: Boat tour, start: "2027-03-15T12:00", est_cost_cents: 6000,
+                                      confirm_same_time: true}}
+      messages:
+        - {to: group, text: "Done, the boat tour is Monday at 12:00 PM too ($60 each)."}

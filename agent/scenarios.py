@@ -33,7 +33,6 @@ import yaml
 from agent.backend.core.engine import TripEngine, iso
 from agent.backend.protocol import ToolError, dispatch, is_mutation
 from agent.runner import ChatEvent, ToolCall, TurnResult
-from agent.travel.provider import FakeTravel
 from trip_model.category import Category
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -53,7 +52,7 @@ def load_scenarios() -> list[dict]:
 def make_backend(scn: dict, backend=None):
     """Seed `backend` (default: a new TripEngine) with the scenario's state snapshot.
     Any backend with load_seed() works; HttpBackend is seeded through its `state` backend."""
-    b = backend or TripEngine(travel=FakeTravel())  # canned travel data: evals stay free and repeatable
+    b = backend or TripEngine()
     (getattr(b, "state", None) or b).load_seed(scn["seed"])
     return b
 
@@ -178,9 +177,15 @@ def _check_state(check: dict, backend, trip_id: str) -> list[str]:
     if kind == "activity_count":
         n = len(trip.activities)
         return [] if n == spec else [f"expected {spec} activities, have {n}"]
-    if kind == "activity_count_min":  # the model picks how many stops a draft has
-        n = len(trip.activities)
-        return [] if n >= spec else [f"expected at least {spec} activities, have {n}"]
+    if kind == "activity_at":  # e.g. {name: wynwood, start: "2027-03-15", slot: null}: when the plan is
+        spec = dict(spec)
+        name = spec.pop("name")
+        named = [a for a in trip.activities if _fold(name) in _fold(a.name)]
+        if not named:
+            return [f"no activity named like {name!r}"]
+        a = named[0]
+        got = {"start": iso(a.start), "end": iso(a.end), "slot": a.slot}
+        return [f"activity {a.name!r} {k} should be {v!r}, is {got[k]!r}" for k, v in spec.items() if got[k] != v]
     if kind == "no_activity_named":  # case- and accent-insensitive substring
         named = [a.name for a in trip.activities if _fold(spec) in _fold(a.name)]
         return [] if not named else [f"activity {named[0]!r} should be gone"]

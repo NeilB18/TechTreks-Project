@@ -9,9 +9,8 @@ TRIP_FIELDS = ("id", "name", "status", "destination", "start_date", "end_date", 
                "base_currency", "leader_id", "theme")
 MEMBER_FIELDS = ("id", "name", "active")
 ACTIVITY_FIELDS = ("activity_id", "name", "location", "start", "end", "est_cost_cents", "cost_is_per_person",
-                   "est_per_person_cents", "attendees", "important", "booking_url", "lat", "lon", "verified",
-                   "maps_url", "kind", "from_idea")
-IDEA_FIELDS = ("idea_id", "name", "kind", "location")
+                   "est_per_person_cents", "attendees", "important", "booking_url", "slot", "from_idea")
+IDEA_FIELDS = ("idea_id", "name", "est_cost_cents")
 
 
 def _pick(d: dict, fields: tuple[str, ...]) -> dict:

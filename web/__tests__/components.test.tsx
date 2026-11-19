@@ -44,10 +44,10 @@ describe("Money (style D)", () => {
   });
 
   it("lists everyone's budget, yours first", () => {
-    render(<Money data={view("ex5-travel-tips", "mia")} />);
+    render(<Money data={view("ex1-dropout", "mia")} />);
     expect(screen.getByText("You")).toBeTruthy();
-    expect(screen.getByText(/of \$1,200/)).toBeTruthy(); // Aarav
-    expect(screen.getByText(/of \$800/)).toBeTruthy(); // Jake
+    expect(screen.getByText(/of \$1,500/)).toBeTruthy(); // Aarav
+    expect(screen.getByText(/of \$1,100/)).toBeTruthy(); // Jake
   });
 
   it("says when everyone's settled", () => {
@@ -69,10 +69,10 @@ describe("Itinerary", () => {
 });
 
 describe("fixtures carry everyone's budget (budgets are shared with the trip)", () => {
-  it("ex5-travel-tips", () => {
-    const { members } = fixture("ex5-travel-tips").detail;
+  it("ex1-dropout", () => {
+    const { members } = fixture("ex1-dropout").detail;
     expect(Object.fromEntries(members.map((m) => [m.id, m.budget_cents]))).toEqual(
-      { aarav: 120000, jake: 80000, mia: 50000 });
+      { aarav: 150000, priya: null, jake: 110000, mia: 95000 });
   });
 });
 
@@ -83,9 +83,17 @@ describe("Itinerary folding", () => {
     const days = [...container.querySelectorAll("details")];
     expect(days.map((d) => d.open)).toEqual([true, true, false, false, false]);
     expect(screen.getByText("Day 3")).toBeTruthy();
-    expect(screen.getByText("South Pointe Park, La Mar by Gastón Acurio")).toBeTruthy();
+    expect(screen.getByText("Vizcaya Museum and Gardens, La Mar by Gastón Acurio")).toBeTruthy();
     expect(screen.getAllByRole("link", { name: /on Google Maps/ })).toHaveLength(detail.activities.length);
     expect(screen.getByText("Must do")).toBeTruthy();
+  });
+
+  it("shows a slot by name, a clock time as a time, and just-a-day plans first as any time", () => {
+    const { detail } = fixture("miami-demo");
+    const { container } = render(<Itinerary activities={detail.activities} trip={detail.trip} />);
+    const sunday = [...container.querySelectorAll("details")[0].querySelectorAll("li")].map((li) => li.textContent);
+    expect(sunday.map((t) => t?.match(/^(Any time|\d+(:\d\d)?[ap]m|Morning|Lunch|Afternoon|Dinner|Night)/)?.[0]))
+      .toEqual(["Any time", "3pm", "Dinner"]); // South Pointe Park, check-in, Joe's
   });
 
   it("says nothing's planned and how to ask, when there are no stops", () => {

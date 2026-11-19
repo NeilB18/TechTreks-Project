@@ -1,6 +1,6 @@
 # TechTreks
 
-Group-trip agent for a GroupMe chat: plans the trip, logs and splits expenses, gives travel tips by budget, and keeps everyone's budget on track. Budgets are shared with everyone on the trip, and the bot only posts in the group. Design lives in [specs.md](specs.md) and [examples.md](examples.md).
+Group-trip agent for a GroupMe chat: keeps track of the trip's plans, logs and splits expenses, and keeps everyone's budget on track. It doesn't suggest or look up places (decided Nov 12, 2026): the group decides what to do, and the bot keeps the calendar. Budgets are shared with everyone on the trip, and the bot only posts in the group. Design lives in [specs.md](specs.md) and [examples.md](examples.md).
 
 ## Agent (Phase 1–2)
 
@@ -8,10 +8,10 @@ Group-trip agent for a GroupMe chat: plans the trip, logs and splits expenses, g
 agent/
   config.py                 model (qwen3.8-flash), thinking, endpoint
   prompts/system_prompt.md  system prompt v1
-  tools/schemas.py          26 backend tools + set_payment_handle and send_message (runner-side)
+  tools/schemas.py          21 backend tools + set_payment_handle and send_message (runner-side)
   backend/protocol.py       the agent <-> backend contract
   backend/core/engine.py    TripEngine: every tool, run on trip_model objects (in memory for tests)
-  backend/core/rules.py     placeholders: FX table (post-MVP), tier prices
+  backend/core/rules.py     placeholders: FX table (post-MVP)
   runner.py                 Qwen function-calling loop for one chat message, plus guards (payer, refund
                             confirmation, budget numbers in the group, made-up members) and history trimming
   scenarios.py              runs + checks the examples.md scenarios
@@ -60,15 +60,16 @@ The live Qwen scenarios run only when started by hand: Actions → Tests → Run
 
 ## Agent evals
 
-There are 42 scenarios: the 12 worked examples plus 30 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
+There are 36 scenarios: the 11 worked examples plus 25 edge cases (`tests/scenarios/edge_*.yaml`). The edge cases cover:
 
 - prompt injection (fake approvals, impersonating the leader)
 - staying quiet
-- confirmations for edits, deletes, itinerary saves and dropouts
+- confirmations for edits, deletes and dropouts
 - ambiguous expenses, foreign currency, slang and typos, corrections mid-thread
 - multi-day settle-up
 - polls, reminders and onboarding
-- planning in steps, editing drafts, lodging, nearby search and picking a destination
+- the trip's calendar: a plan with just a day, a named slot, a clock time, "are you sure?" for two plans at the same time, the ideas list, and where the group is staying
+- saying no, in one line, to finding or planning places
 - posting the trip page's link
 
 ```bash
@@ -159,7 +160,15 @@ Next.js + Tailwind in `web/`. See [web/README.md](web/README.md). It reads fixtu
 ## Placeholders
 
 - FX: fixed rate table in `rules.py`. The provider is still TBD.
-- Travel tips and itineraries use built-in sample data until keys are added. With `GOOGLE_PLACES_API_KEY` in `.env`, they come from Google Places: real restaurants and attractions, ratings, and price levels matched to the tier. Adding `SERPAPI_KEY` also brings in real hotel prices from Google Hotels, capped at about 40% of the tier's budget for a shared room. If an API call fails, the tool falls back to sample data with a note. Tests and evals always use the sample data. Note: Places fields like rating and price level bill at Google's Enterprise rate.
-- Place checks: `agent/travel/osm.py` looks places up on OpenStreetMap's free Nominatim server (coordinates, kind of place, opening hours when known, a Google Maps link). It keeps to the server's usage policy: 1 request a second, a User-Agent naming the app, cached answers. Planning happens in steps: `add_activity` with a `kind` checks one place and, with a `day`, puts it in a free slot that day; `save_idea` keeps a place on a short ideas list when no day is given; and `generate_itinerary` drafts only the `days` asked for, using the ideas first, then the agent's suggestions. `edit_draft` changes one stop in an unsaved draft (drop, swap, move, add), and `remove_activity` removes a saved one. Where the group is staying (`lodging` on `update_trip`) is looked up on the map too, and `find_nearby` searches around it on the same Nominatim server (`agent/travel/nearby.py`): the closest places of a kind, with distances and walk times worked out in code. To pick a destination, `compare_destinations` checks the places the agent suggests on the map and against everyone's budget (the trip without flights, plus a separate flight estimate), with a Google Flights link from the group's `home_city`. Food types like pizza search nearby restaurants and keep the matching cuisine or name. `agent/travel/planner.py` lays stops out into free slots (grouped by area, opening hours respected when known, plans already on the day kept). Credit "© OpenStreetMap contributors" wherever results show.
 - Currency: the MVP is USD-only. The FX code keeps working but multi-currency is post-MVP.
-- **The map is off for now (Nov 10, 2026).** Nominatim calls are turned off (`osm.ENABLED = False`) while a hosted map service is chosen (Geoapify is being pitched). Until then stops and ideas are saved unchecked with a Google Maps search link, and nearby search and saving lodging say they're off. The place-check and nearby-search description above is how it worked with the map on.
+
+## Planning: the trip's calendar
+
+The bot keeps track of what the group decides and never suggests, looks up or checks places (Nov 12, 2026). There's no map service or places API.
+
+- `add_activity`: "boat tour Saturday" is saved on that day with no time. It gets a slot (morning, lunch, afternoon, dinner, night) only when someone names one, and any number of plans can share a slot. A clock time ("Saturday 2pm") is saved as given. If another plan is at exactly that clock time, nothing is saved until the person says yes (`confirm_same_time`). Moving a plan to another day keeps its time or slot.
+- `save_idea`: things the group wants to do without a day yet (up to 20). Putting one on a day takes it off the list, and removing that plan puts it back.
+- `remove_activity`: right away, unless it's paid for or marked important.
+- Where the group is staying (`lodging` on `update_trip`) is saved as the group wrote it. The trip page shows it to members with a Google Maps search link.
+- The trip page's Maps buttons are plain Google Maps search links (Google's "Maps URLs": no key, no cost). Nobody checks they find the right place.
+- Removed: itinerary drafts, destination suggestions, nearby search, travel-tip tiers, the map checks, and the Google Places and SerpAPI code. They're in git history if a good places API turns up.

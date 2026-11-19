@@ -27,14 +27,5 @@ def convert(amount_cents: int, from_ccy: str, to_ccy: str) -> tuple[int, float]:
     return round(amount_cents * rate), rate
 
 
-# --- Travel-tip tiers ---------------------------------------------------------
-PRESET_MULTIPLIERS = [0.5, 0.75, 1, 1.25, 1.5, 2]
-
-
-def tier_price(average_cents: int, multiplier: float) -> int:
-    """Multiplier x group average, rounded to the whole dollar."""
-    return round(average_cents * multiplier / 100) * 100
-
-
 def fmt_usd(cents: int) -> str:
     return f"${cents / 100:,.2f}".replace(".00", "")

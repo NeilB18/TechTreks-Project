@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from agent.backend.core.engine import TripEngine  # noqa: E402
-from agent.travel.provider import FakeTravel  # noqa: E402
 from agent.scenarios import golden_turn, load_scenarios  # noqa: E402
 
 OUT = ROOT / "web" / "fixtures"
@@ -28,7 +27,7 @@ def page_data(backend: TripEngine, trip_id: str) -> dict:
 
 
 def demo(backend=None, trip_id: str = "miami-demo") -> dict:
-    b = backend if backend is not None else TripEngine(travel=FakeTravel())  # made-up map data: no network
+    b = backend if backend is not None else TripEngine()
     b.load_seed({
         "now": "2027-03-01T12:00:00",
         "trip": {"id": trip_id, "name": "Miami Spring Break", "status": "BOOKED", "destination": "Miami",
@@ -42,20 +41,25 @@ def demo(backend=None, trip_id: str = "miami-demo") -> dict:
         "exclusions": [["jake", "DRINKS"]],
     })
     t = trip_id
-    draft = b.generate_itinerary(trip_id=t, constraints="beach, food, one night out", days=["2027-03-14", "2027-03-15", "2027-03-16", "2027-03-17", "2027-03-18"], places=[
-        {"name": "South Pointe Park", "kind": "activity", "est_cost_cents": 0},
-        {"name": "Joe's Stone Crab", "kind": "food", "est_cost_cents": 7000},
-        {"name": "Wynwood Walls", "kind": "activity", "est_cost_cents": 0},
-        {"name": "Versailles Restaurant", "kind": "food", "est_cost_cents": 2500},
-        {"name": "Ball & Chain", "kind": "night", "est_cost_cents": 3000},
-        {"name": "Vizcaya Museum and Gardens", "kind": "activity", "est_cost_cents": 2500},
-        {"name": "Little Havana Walking Tour", "kind": "activity", "est_cost_cents": 2000},
-        {"name": "La Mar by Gastón Acurio", "kind": "food", "est_cost_cents": 6000},
-        {"name": "Bayside Marketplace", "kind": "activity", "est_cost_cents": 1500},
-        {"name": "Mandolin Aegean Bistro", "kind": "food", "est_cost_cents": 4000}])["draft_id"]
-    b.generate_itinerary(trip_id=t, save_draft_id=draft)
+    b.update_trip(trip_id=t, changes={"lodging": "Freehand Miami, 2727 Indian Creek Dr"})
+    # What the group told the bot: some plans with just a day, some in a slot, some at a clock time.
+    plan = [("Check in at the Airbnb", {"start": "2027-03-14T15:00"}),
+            ("South Pointe Park", {"day": "2027-03-14"}),
+            ("Joe's Stone Crab", {"day": "2027-03-14", "slot": "dinner", "est_cost_cents": 7000}),
+            ("Wynwood Walls", {"day": "2027-03-15", "slot": "morning"}),
+            ("Versailles Restaurant", {"day": "2027-03-15", "slot": "lunch", "est_cost_cents": 2500}),
+            ("Ball & Chain", {"day": "2027-03-15", "slot": "night", "est_cost_cents": 3000}),
+            ("Vizcaya Museum and Gardens", {"day": "2027-03-16", "slot": "afternoon", "est_cost_cents": 2500}),
+            ("La Mar by Gastón Acurio", {"day": "2027-03-16", "slot": "dinner", "est_cost_cents": 6000}),
+            ("Beach day", {"day": "2027-03-17"}),
+            ("Little Havana Walking Tour", {"day": "2027-03-17", "slot": "morning", "est_cost_cents": 2000}),
+            ("Bayside Marketplace", {"day": "2027-03-18", "slot": "lunch"})]
+    for name, when in plan:
+        b.add_activity(trip_id=t, name=name, **when)
     b.add_activity(trip_id=t, name="Boat tour", location="Miami Beach Marina", start="2027-03-15T14:00",
                    est_cost_cents=60000, cost_is_per_person=False, important=True)
+    b.save_idea(trip_id=t, name="Mandolin Aegean Bistro", est_cost_cents=4000, suggested_by="mia")
+    b.save_idea(trip_id=t, name="Key Biscayne bike ride", suggested_by="leo")
     log = dict(trip_id=t, currency="USD")
     b.log_expense(**log, paid_by="aarav", amount=150000, description="Airbnb (Mar 14–18)",
                   category="LODGING", split_with=PEOPLE)
@@ -80,7 +84,7 @@ def main() -> None:
     for scn in load_scenarios():
         if scn.get("skip") or scn.get("kind") == "edge":
             continue
-        b = TripEngine(travel=FakeTravel())
+        b = TripEngine()
         b.load_seed(scn["seed"])
         for turn in scn["turns"]:
             golden_turn(b, turn.get("golden", {}))

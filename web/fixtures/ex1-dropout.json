@@ -16,9 +16,7 @@
         "trip_changes"
       ],
       "auto_log_mode": null,
-      "planning_notes": null,
       "lodging": null,
-      "home_city": null,
       "theme": null,
       "page_url": null
     },
@@ -90,10 +88,7 @@
         "important": false,
         "booking_url": null,
         "expense_id": null,
-        "lat": null,
-        "lon": null,
-        "verified": null,
-        "kind": null,
+        "slot": null,
         "from_idea": false
       }
     ],
@@ -128,7 +123,6 @@
     "refunds": [],
     "polls": [],
     "reminders": [],
-    "itinerary_drafts": [],
     "budgets": {
       "aarav": {
         "total_cents": 150000,

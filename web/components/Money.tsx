@@ -6,7 +6,7 @@ import { Avatars } from "@/components/Avatars";
 import { BudgetForm } from "@/components/BudgetForm";
 import { CopyButton } from "@/components/CopyButton";
 import { MarkSent } from "@/components/MarkSent";
-import { formatMoney, handleKind, listNames, payLink, warningText } from "@/lib/format";
+import { formatMoney, handleKind, listNames, mapsSearchUrl, payLink, warningText } from "@/lib/format";
 import type { BudgetStatus, Expense, Member, MyTrip, Payment } from "@/lib/types";
 
 // The money side of the trip page for a signed-in member, in style D from the design canvas:
@@ -107,11 +107,14 @@ export function Money({ data, actions }: { data: MyTrip; actions?: MoneyActions 
         <section aria-labelledby="staying" className="flex flex-col gap-3.5 pt-7">
           <h2 id="staying" className="display text-[28px]">Where you&rsquo;re staying</h2>
           <article className="card flex items-center justify-between gap-3 p-[18px]">
-            <div className="min-w-0">
-              <p className="font-bold">{trip.lodging.name}</p>
-              <p className="text-sm text-muted">{trip.lodging.address}</p>
-            </div>
-            <a href={trip.lodging.maps_url} target="_blank" rel="noreferrer" className="btn btn-outline shrink-0">
+            <p className="min-w-0 font-bold">{trip.lodging}</p>
+            <a
+              href={mapsSearchUrl(trip.lodging, trip.destination)}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`${trip.lodging} on Google Maps`}
+              className="btn btn-outline shrink-0"
+            >
               Maps
             </a>
           </article>

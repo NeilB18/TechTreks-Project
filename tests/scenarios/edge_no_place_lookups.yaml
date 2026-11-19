@@ -1,0 +1,32 @@
+kind: edge
+title: Asked to find or plan places, the bot says in one short line that it doesn't look up places
+seed:
+  now: "2027-03-15T13:00:00"
+  trip: {id: miami, name: Miami Spring Break, status: ACTIVE, destination: Miami,
+         start_date: "2027-03-14", end_date: "2027-03-18", base_currency: USD,
+         leader: aarav, leader_approval: [member_changes, trip_changes], auto_log_mode: mention_only,
+         lodging: Freehand Miami}
+  members:
+    - {id: aarav, name: Aarav, handle: "@aarav-venmo"}
+    - {id: jake, name: Jake, handle: "@jake-venmo"}
+    - {id: mia, name: Mia, handle: "@mia-venmo"}
+turns:
+  - sender: jake
+    text: "@tripbot any good pizza near where we're staying?"
+    expect:
+      forbid_mutations: true
+      messages:
+        - {to: group, matches: ["(don't|can't|cannot|do not|won't)\\b.{0,15}\\b(look|search|find|recommend|suggest|pick)"],
+           not_contains: ["minute walk", "mi away", "blocks away"]}
+    golden:
+      messages:
+        - {to: group, text: "I don't look up places, sorry! If you pick a spot, I can put it on the plan."}
+  - sender: mia
+    text: "@tripbot can you plan out our wednesday?"
+    expect:
+      forbid_mutations: true
+      messages:
+        - {to: group, matches: ["(don't|can't|cannot|do not|won't)\\b.{0,15}\\b(look|search|find|recommend|suggest|pick|plan)"]}
+    golden:
+      messages:
+        - {to: group, text: "I don't pick places, but tell me what you want to do Wednesday and I'll keep track of it."}

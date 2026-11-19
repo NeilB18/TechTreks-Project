@@ -10,19 +10,19 @@ seed:
     - {id: jake, name: Jake, handle: "@jake-venmo"}
     - {id: mia, name: Mia, handle: "@mia-venmo"}
   ideas:
-    - {name: Wynwood Walls, kind: activity, suggested_by: mia}
+    - {name: Wynwood Walls, suggested_by: mia}
 turns:
   - sender: jake
     text: "@tripbot let's do Wynwood on Monday"
     expect:
       calls:
         - {name: add_activity, args: {day: "2027-03-15"}}
-      forbid: [generate_itinerary]
       end_state:
         - activity_count: 1
         - idea_count: 0
+        - activity_at: {name: wynwood, start: "2027-03-15", slot: null}
     golden:
       calls:
         - {name: add_activity, args: {trip_id: miami, idea_id: i1, day: "2027-03-15"}}
       messages:
-        - {to: group, text: "Wynwood Walls is on Monday at 10am (Mia's idea). Maps: https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami"}
+        - {to: group, text: "Wynwood Walls is on Monday now (Mia's idea)."}

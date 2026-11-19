@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  countdown, formatDateRange, formatDay, formatDayRange, formatMoney, formatTime, groupByDay, isOutsideTrip, mapsUrl,
-  payLink, stopDetails, tripDayLabel, warningText,
+  countdown, formatDateRange, formatDay, formatDayRange, formatMoney, formatTime, groupByDay, isOutsideTrip, mapsSearchUrl,
+  mapsUrl, payLink, stopDetails, tripDayLabel, warningText, whenLabel,
 } from "@/lib/format";
 import type { Activity } from "@/lib/types";
 
@@ -46,6 +46,23 @@ describe("groupByDay", () => {
     ]);
     expect(days.map((d) => d.date)).toEqual(["2027-03-14", "2027-03-15", null]);
     expect(days[1].activities.map((a) => a.activity_id)).toEqual(["boat", "dinner"]);
+  });
+
+  it("puts plans with just the day first, then slots and clock times in order", () => {
+    const day = groupByDay([
+      { ...activity("joes", "2027-03-15"), slot: "dinner" },
+      activity("boat", "2027-03-15T14:00"),
+      activity("beach", "2027-03-15"),
+      { ...activity("versailles", "2027-03-15"), slot: "lunch" },
+      activity("late", "2027-03-15T20:30"),
+    ])[0];
+    expect(day.activities.map((a) => a.activity_id)).toEqual(["beach", "versailles", "boat", "joes", "late"]);
+  });
+
+  it("labels a plan by its clock time or slot, and nothing for just a day", () => {
+    expect(whenLabel(activity("x", "2027-03-15T14:00"))).toBe("2pm");
+    expect(whenLabel({ ...activity("x", "2027-03-15"), slot: "lunch" })).toBe("Lunch");
+    expect(whenLabel(activity("x", "2027-03-15"))).toBeNull();
   });
 
   it("flags activities outside the trip dates", () => {
@@ -105,17 +122,19 @@ describe("trip page header and stops", () => {
     expect(tripDayLabel("2027-03-16", null, null)).toBe("");
   });
 
-  it("links every stop to Google Maps, by search when it has no link of its own", () => {
+  it("links every stop to a Google Maps search near the trip", () => {
     const a = { ...activity("x", null), name: "Joe's Stone Crab" };
     expect(mapsUrl(a, "Miami")).toBe("https://www.google.com/maps/search/?api=1&query=Joe%27s+Stone+Crab%2C+Miami");
     expect(mapsUrl({ ...a, location: "Miami Beach Marina" }, "Miami")).toContain("Miami+Beach+Marina");
-    expect(mapsUrl({ ...a, maps_url: "https://maps.example/x" }, "Miami")).toBe("https://maps.example/x");
+    expect(mapsSearchUrl("Freehand Miami", "Miami")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Freehand+Miami");
+    expect(mapsSearchUrl("2727 Indian Creek Dr", null)).toContain("query=2727+Indian+Creek+Dr");
   });
 
-  it("describes a stop by kind and cost", () => {
-    const a = { ...activity("x", null), kind: "food" as const, est_per_person_cents: 7000 };
-    expect(stopDetails(a, "USD")).toBe("Food · about $70 each");
-    expect(stopDetails({ ...a, kind: null, location: "Miami Beach Marina", est_per_person_cents: 0 }, "USD"))
+  it("describes a stop by where it is and its cost", () => {
+    const a = { ...activity("x", null), est_per_person_cents: 7000 };
+    expect(stopDetails(a, "USD")).toBe("about $70 each");
+    expect(stopDetails({ ...a, location: "Miami Beach Marina", est_per_person_cents: 0 }, "USD"))
       .toBe("Miami Beach Marina");
   });
 });

@@ -10,8 +10,8 @@ seed:
     - {id: jake, name: Jake, handle: "@jake-venmo"}
     - {id: mia, name: Mia, handle: "@mia-venmo"}
   activities:
-    - {id: boat_tour, name: Boat tour, kind: activity, start: "2027-03-15T14:30", end: "2027-03-15T17:30", important: true}
-    - {id: beach, name: South Pointe Park, kind: activity, start: "2027-03-16T10:00", end: "2027-03-16T12:00"}
+    - {id: boat_tour, name: Boat tour, start: "2027-03-15T14:30", end: "2027-03-15T17:30", important: true}
+    - {id: beach, name: South Pointe Park, start: "2027-03-16", slot: morning}
 turns:
   - sender: jake
     text: "@tripbot drop the boat tour"

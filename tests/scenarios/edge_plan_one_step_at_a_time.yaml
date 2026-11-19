@@ -1,5 +1,5 @@
 kind: edge
-title: One place stays one place; a place with no day goes on the ideas list; questions and chatter save nothing
+title: One thing stays one thing, with no made-up time; no day means the ideas list; questions and chatter save nothing
 seed:
   now: "2027-03-01T12:00:00"
   trip: {id: miami, name: Miami Spring Break, status: PLANNING, destination: Miami,
@@ -14,24 +14,25 @@ turns:
     text: "@tripbot add Wynwood Walls on Monday"
     expect:
       calls:
-        - {name: add_activity, args: {day: "2027-03-15", kind: activity}}
-      forbid: [generate_itinerary, save_idea]
+        - {name: add_activity, args: {day: "2027-03-15"}}
+      forbid: [save_idea]
       messages:
         - {to: group, contains: [Wynwood]}
       end_state:
         - activity_count: 1
         - idea_count: 0
+        - activity_at: {name: wynwood, start: "2027-03-15", slot: null}
     golden:
       calls:
-        - {name: add_activity, args: {trip_id: miami, name: Wynwood Walls, kind: activity, day: "2027-03-15", est_cost_cents: 0}}
+        - {name: add_activity, args: {trip_id: miami, name: Wynwood Walls, day: "2027-03-15"}}
       messages:
-        - {to: group, text: "Added Wynwood Walls for Monday at 10am 🎨 Maps: https://www.google.com/maps/search/?api=1&query=Wynwood+Walls%2C+Miami (map data © OpenStreetMap contributors)"}
+        - {to: group, text: "Added Wynwood Walls to Monday 🎨"}
   - sender: mia
     text: "@tripbot add Joe's Stone Crab"
     expect:
       calls:
-        - {name: save_idea, args: {kind: food}}
-      forbid: [generate_itinerary, add_activity]
+        - {name: save_idea, args: {name: "Joe's Stone Crab"}}
+      forbid: [add_activity]
       messages:
         - {to: group, contains: [Joe]}
       end_state:
@@ -39,21 +40,20 @@ turns:
         - idea_count: 1
     golden:
       calls:
-        - {name: save_idea, args: {trip_id: miami, name: "Joe's Stone Crab", kind: food, est_cost_cents: 7000}}
+        - {name: save_idea, args: {trip_id: miami, name: "Joe's Stone Crab"}}
       messages:
-        - {to: group, text: "Added Joe's Stone Crab to the ideas list 🦀 Want it on a specific day?"}
+        - {to: group, text: "Added Joe's Stone Crab to the ideas list 🦀"}
   - sender: aarav
     text: "@tripbot what's on our ideas list?"
     expect:
       forbid_mutations: true
-      forbid: [generate_itinerary]
       messages:
         - {to: group, contains: [Joe]}
       end_state:
         - idea_count: 1
     golden:
       messages:
-        - {to: group, text: "Just Joe's Stone Crab so far (Mia's pick). Say the word and I'll put it on a day."}
+        - {to: group, text: "Just Joe's Stone Crab so far (Mia's pick)."}
   - sender: jake
     mentioned: false
     text: "we should also hit south beach at some point"

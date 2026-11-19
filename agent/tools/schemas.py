@@ -1,5 +1,5 @@
-"""Qwen function-calling tool definitions (OpenAI format): the 26 backend tools
-from specs.md plus send_message.
+"""Qwen function-calling tool definitions (OpenAI format): the 21 backend tools
+from specs.md plus set_payment_handle and send_message.
 
 Schemas stick to plain JSON Schema (type, properties, required, items, enum,
 description) because Model Studio's docs don't confirm anyOf/oneOf support.
@@ -8,6 +8,7 @@ in the injected trip summary. Keep inputs in sync with agent/backend/protocol.py
 (tests/test_schemas.py checks this). Category and status names come from trip_model/.
 """
 
+from trip_model.activity import SLOTS
 from trip_model.category import Category
 from trip_model.trip_status import TripStatus
 
@@ -95,22 +96,17 @@ BACKEND_TOOL_SCHEMAS = [
               "start_date": ISO_DATE, "end_date": ISO_DATE, "base_currency": CURRENCY,
               "status": {"type": "string", "enum": [s.name for s in TripStatus]},
               "target_break": {"type": "string"},
-              "group_budget": {**CENTS, "description": "Per-person cents of the tier the leader locked in"},
+              "group_budget": {**CENTS, "description": "Per-person cents the leader set for the group"},
               "leader_id": PERSON,
               "leader_approval": {"type": "array", "items": {"type": "string", "enum": [
-                  "trip_changes", "member_changes", "itinerary_saves", "refunds_deletes"]}},
+                  "trip_changes", "member_changes", "refunds_deletes"]}},
               "auto_log_mode": {"type": "string"},
-              "lodging": {"type": "string", "description": "Where the group is staying: a hotel name or street address. "
-                          "It's looked up on the map; if it can't be found nothing is saved, so ask for the address. "
-                          "Empty string clears it. No confirmation needed."},
-              "home_city": {"type": "string", "description": "Where the group flies from (a city), for flight links "
-                            "when picking a destination. Ask once if it's missing. No confirmation needed."},
+              "lodging": {"type": "string", "description": "Where the group is staying, as they wrote it: a hotel name "
+                          "or street address. Saved as given. Empty string clears it. No confirmation needed."},
               "theme": {"type": "string", "enum": ["sunset", "night_swim", "campfire"],
                         "description": "The trip page's look. Set it whenever you set the destination: sunset for "
                         "a beach or coast, night_swim for a city, campfire for mountains or outdoors. No confirmation "
-                        "needed, and don't mention it in the chat."},
-              "planning_notes": {"type": "string", "description": "The group's interests and pace for planning, "
-                                 "e.g. \"chill mornings, big on food, one night out\". No confirmation needed."}}}},
+                        "needed, and don't mention it in the chat."}}}},
           ["trip_id", "changes"]),
     _tool("set_budget",
           "Set a person's budget for this trip: total plus optional per-category limits. Everyone on the trip can see budgets.",
@@ -125,107 +121,43 @@ BACKEND_TOOL_SCHEMAS = [
            "remove": {"type": "boolean", "description": "true to opt back in"}},
           ["trip_id", "person_id", "category"]),
     # ------------------------------------------------------------ planning
-    _tool("generate_itinerary",
-          "Draft only the days someone asked for (days is required: if they didn't say which days, ask first). The group's ideas "
-          "go in first, then the stops you suggest to fill what's left; plans already on those days keep their slots. Each stop is "
-          "checked on OpenStreetMap and put into a free slot (morning, lunch, afternoon, dinner, night), grouped by area and respecting "
-          "opening hours when known. Returns draft_id, days, ideas_used, not_found (stops the map couldn't find: offer a swap) and "
-          "skipped (over the limit). A new draft replaces the old one. Post the draft for the group. "
-          "Only after the group confirms (the leader, if itinerary_saves is in leader_approval), call again with save_draft_id to save it as activities.",
-          {"trip_id": TRIP_ID,
-           "days": {"type": "array", "items": ISO_DATE, "description": "The dates to plan, only the ones asked for"},
-           "places": {"type": "array", "maxItems": 15,
-                      "description": "Real, well-known places in the destination to fill the days after the group's ideas, up to 3 a day in all",
-                      "items": {"type": "object", "additionalProperties": False, "required": ["name", "kind"],
-                                "properties": {"name": {"type": "string", "description": "The place's real name, e.g. \"Versailles Restaurant\""},
-                                               "kind": {"type": "string", "enum": ["food", "activity", "night"]},
-                                               "est_cost_cents": {**CENTS, "description": "Your estimate per person"}}}},
-           "use_ideas": {"type": "boolean", "description": "false to leave the ideas list out of this draft"},
-           "constraints": {"type": "string", "description": "Interests, pace, budget notes"},
-           "save_draft_id": {"type": "string"}},
-          ["trip_id"]),
+    # The trip's calendar: only what the group tells you. You never suggest or look up places.
     _tool("add_activity",
-          "Add one activity, or edit one by passing activity_id (with day and no start, it moves to a free slot of its kind that day; "
-          "updated: false means that day is full). For a place, pass kind: it's checked on the map, and with day "
-          "(and no start) it goes in the first free slot of its kind that day. If the day has no free slot of that kind, or the "
-          "place is closed then, nothing is saved (created: false): ask for a time, another day, or the ideas list. "
+          "Add one plan, or edit one by passing activity_id. With day and nothing else, it's on that day with no time. "
+          "Pass slot only when they named a part of the day (\"Saturday lunch\"), or start with a clock time when they "
+          "gave one (\"Saturday 2pm\" -> 2027-03-13T14:00). Any number of plans can share a slot. Editing with day moves "
+          "it to that day and keeps its time or slot. If another plan is at exactly that clock time, nothing is saved "
+          "(same_time_as): ask if they're sure, and on a yes call again with confirm_same_time: true. "
           "Pass idea_id to put an idea from the ideas list on a day; it leaves the list.",
           {"trip_id": TRIP_ID, "activity_id": {"type": "string"}, "name": {"type": "string"},
-           "kind": {"type": "string", "enum": ["food", "activity", "night"],
-                    "description": "For places only; leave out for things like flights or check-in"},
-           "day": {**ISO_DATE, "description": "The date; the slot is picked for you"},
+           "day": {**ISO_DATE, "description": "The date it's on"},
+           "slot": {"type": "string", "enum": list(SLOTS),
+                    "description": "Only when they named a part of the day; leave out otherwise"},
            "idea_id": {"type": "string", "description": "An idea from the ideas list"},
-           "location": {"type": "string"}, "start": {"type": "string", "description": "ISO date or datetime"},
+           "location": {"type": "string"},
+           "start": {"type": "string", "description": "ISO datetime when they gave a clock time"},
            "end": {"type": "string"}, "est_cost_cents": CENTS,
            "cost_is_per_person": {"type": "boolean", "description": "false if est_cost_cents is the group total"},
            "attendees": PEOPLE, "important": {"type": "boolean"}, "booking_url": {"type": "string"},
-           "expense_id": {"type": "string", "description": "Link to the expense once it's paid"}},
+           "expense_id": {"type": "string", "description": "Link to the expense once it's paid"},
+           "confirm_same_time": {"type": "boolean",
+                                 "description": "Only after the person said yes to two plans at the same time"}},
           ["trip_id"]),
     _tool("remove_activity",
           "Remove a saved activity. Small change: do it and confirm, unless it's linked to an expense or marked important, "
           "then ask the group first. One that came from the ideas list goes back on it (back_on_ideas). A linked expense stays logged.",
           {"trip_id": TRIP_ID, "activity_id": {"type": "string"}},
           ["trip_id", "activity_id"]),
-    _tool("edit_draft",
-          "One change to an unsaved itinerary draft, without rebuilding it: drop a stop, swap a stop for another place (it keeps "
-          "that slot if it fits, otherwise a free slot of its kind that day), move a stop to another day, or add a place to a day. "
-          "The draft keeps its draft_id. Returns the whole draft; changed: false means nothing changed (day_full or closed_then), so ask.",
-          {"trip_id": TRIP_ID, "draft_id": {"type": "string"},
-           "action": {"type": "string", "enum": ["drop", "swap", "move", "add"]},
-           "stop": {"type": "string", "description": "The name of the stop in the draft (drop, swap, move)"},
-           "place": {"type": "object", "additionalProperties": False, "required": ["name", "kind"],
-                     "description": "The new place (swap, add): a real place in the destination",
-                     "properties": {"name": {"type": "string"},
-                                    "kind": {"type": "string", "enum": ["food", "activity", "night"]},
-                                    "est_cost_cents": {**CENTS, "description": "Your estimate per person"}}},
-           "day": {**ISO_DATE, "description": "The day to move it to (move) or put it on (add)"}},
-          ["trip_id", "draft_id", "action"]),
-    _tool("compare_destinations",
-          "Compare 2 to 5 destinations you suggest for the trip. Each is checked on the map and against everyone's budget, "
-          "with a Google Flights link from home_city (ask where they fly from first if it's missing). est_cost_cents is your "
-          "estimate per person for the whole trip WITHOUT flights (lodging, food, activities); est_flight_cents is a separate "
-          "round-trip estimate per person, which varies a lot. Returns who each one is a stretch for. Then offer a poll.",
-          {"trip_id": TRIP_ID,
-           "places": {"type": "array", "minItems": 2, "maxItems": 5,
-                      "items": {"type": "object", "additionalProperties": False, "required": ["name", "est_cost_cents"],
-                                "properties": {"name": {"type": "string", "description": "A real city or area, e.g. \"Cancún\""},
-                                               "est_cost_cents": {**CENTS, "description": "Per person for the trip, without flights"},
-                                               "est_flight_cents": {**CENTS, "description": "Round-trip flight per person from home_city"}}}}},
-          ["trip_id", "places"]),
-    _tool("find_nearby",
-          "The closest places of a kind to where the group is staying (lodging in trip_state), or to `near`. Returns up to 5, "
-          "closest first, each with distance, walk time, listed hours and a Maps link: use those as given. OpenStreetMap has no "
-          "ratings, so say \"closest\", not \"best\", and only mention places from the results. If there's no lodging it errors: "
-          "ask where they're staying. Empty results: offer to look farther.",
-          {"trip_id": TRIP_ID,
-           "what": {"type": "string", "description": "A short word or two: pizza, coffee, tacos, bar, pharmacy, grocery, atm"},
-           "near": {"type": "string", "description": "A place someone named instead of the lodging, e.g. \"Wynwood Walls\""},
-           "radius_m": {"type": "integer", "minimum": 100, "maximum": 5000,
-                        "description": "How far to look in meters; default 1600 (about a mile). Only when they ask for farther or closer."}},
-          ["trip_id", "what"]),
     _tool("save_idea",
-          "The ideas list: places the group wants to do but hasn't put on a day. Save one when someone asks you to add a place "
-          "without a day, or remove one (remove=true with idea_id or name; anyone on the trip can). Each idea is checked on the map; "
-          "not_found means it couldn't be found, so say so. Up to 20 ideas. Itinerary drafts use ideas first.",
-          {"trip_id": TRIP_ID, "name": {"type": "string", "description": "The place's real name"},
-           "kind": {"type": "string", "enum": ["food", "activity", "night"]},
-           "est_cost_cents": {**CENTS, "description": "Your estimate per person, if you have one"},
+          "The ideas list: things the group wants to do but hasn't put on a day. Save one when someone asks you to add "
+          "something without a day, or remove one (remove=true with idea_id or name; anyone on the trip can). Up to 20 ideas.",
+          {"trip_id": TRIP_ID, "name": {"type": "string", "description": "What they called it"},
+           "est_cost_cents": {**CENTS, "description": "Per person, only if they said a price"},
            "idea_id": {"type": "string", "description": "To remove an idea"},
            "remove": {"type": "boolean"},
            "suggested_by": {**PERSON, "description": "Filled in for you: the person who asked"}},
           ["trip_id"]),
-    _tool("get_travel_tips",
-          "Tier prices and travel tips from the group's average budget. Also returns each member's total in `budgets`. "
-          "First call with prices_only=true and multipliers [0.5, 0.75, 1, 1.25, 1.5, 2] to list the preset tiers. "
-          "When someone picks a preset or a custom multiplier (e.g. 1.1), call with just that multiplier to get lodging, food, activities and money-saving tips. "
-          "Returns missing_budgets: members who haven't set a budget yet.",
-          {"trip_id": TRIP_ID, "destination": {"type": "string"},
-           "multipliers": {"type": "array", "items": {"type": "number"},
-                           "description": "Positive multipliers of the group average, e.g. [1.1]"},
-           "prices_only": {"type": "boolean"},
-           "interests": {"type": "array", "items": {"type": "string"}}},
-          ["trip_id", "destination", "multipliers"]),
-    _tool("create_poll", "Start a group vote (destination, dates, activities, tiers).",
+    _tool("create_poll", "Start a group vote (destination, dates, activities).",
           {"trip_id": TRIP_ID, "question": {"type": "string"},
            "options": {"type": "array", "items": {"type": "string"}, "minItems": 2},
            "closes_at": {"type": "string", "description": "ISO datetime"}},
@@ -258,7 +190,7 @@ BACKEND_TOOL_SCHEMAS = [
     _tool("convert_currency", "Convert an amount between currencies.",
           {"amount": CENTS, "from": CURRENCY, "to": CURRENCY}, ["amount", "from", "to"]),
     _tool("get_trip",
-          "Full trip state beyond the summary: every expense with shares, splits and refunds, polls with votes, reminders, itinerary drafts, the ideas list with map details, and everyone's budget (total and category limits).",
+          "Full trip state beyond the summary: every expense with shares, splits and refunds, polls with votes, reminders, the ideas list, and everyone's budget (total and category limits).",
           {"trip_id": TRIP_ID}, ["trip_id"]),
 ]
 
