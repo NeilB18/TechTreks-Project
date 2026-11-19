@@ -15,9 +15,7 @@ export default async function MoneyPage(props: PageProps<"/t/[token]/money">) {
   const view = await loadTrip(props);
   return (
     <TripShell view={view} tab="money">
-      <div className="px-5 pt-6">
-        <MoneySection />
-      </div>
+      <MoneySection />
     </TripShell>
   );
 }

@@ -88,7 +88,8 @@ function MoneyCard({ data, moneyHref }: { data: MyTrip; moneyHref: string }) {
   );
 }
 
-function PayRow({ p, first, data, money, who, whoIndex, me }: {
+/** One person you owe: their initial, "You owe Aarav $400", the handle to copy, Pay on Venmo, Mark as sent. */
+export function PayRow({ p, first, data, money, who, whoIndex, me }: {
   p: Payment; first: boolean; data: MyTrip; money: (c: number) => string; who: string; whoIndex: number; me: string;
 }) {
   const { tripId, preview, reload } = useMemberData();
