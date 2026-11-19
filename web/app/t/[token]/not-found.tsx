@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Footer } from "@/components/Footer";
+import { Message } from "@/components/Message";
 import { TopBar } from "@/components/TopBar";
 import { usingFixtures } from "@/lib/api";
 
@@ -10,17 +11,18 @@ export default function TripNotFound() {
     <>
       <main id="main" className="mx-auto w-full max-w-2xl">
         <TopBar live={!usingFixtures} />
-        <div className="flex flex-col gap-3 px-5 py-14">
-          <span className="sticker self-start -rotate-6">Hmm</span>
-          <h1 className="display text-[40px]">Trip not found</h1>
-          <p className="text-muted">
-            Check the link, or ask &ldquo;@tripbot what&rsquo;s the trip page?&rdquo; in your group chat for the current one.
-          </p>
-          <div className="mt-3 flex gap-2.5">
-            <Link href="/trips" className="btn btn-pop">My trips</Link>
-            <Link href="/" className="btn btn-outline">Home</Link>
-          </div>
-        </div>
+        <Message
+          title="We can’t find that trip"
+          actions={
+            <>
+              <Link href="/trips" className="btn btn-white min-h-[50px] flex-1">My trips</Link>
+              <Link href="/" className="btn btn-line min-h-[50px] flex-1">Home</Link>
+            </>
+          }
+        >
+          The link might be old, or the trip was removed. Ask &ldquo;@tripbot what&rsquo;s the trip page?&rdquo; in your
+          group chat to get a fresh link.
+        </Message>
       </main>
       <Footer />
     </>

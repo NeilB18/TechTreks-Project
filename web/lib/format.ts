@@ -38,6 +38,16 @@ export function formatDateRange(start: string | null, end: string | null): strin
   return `${formatDate(start)}, ${a.y} – ${formatDate(end)}, ${b.y}`;
 }
 
+/** "Mar 14–18" or "Mar 30 – Apr 2", without the year: for trips coming up. */
+export function formatShortRange(start: string | null, end: string | null): string | null {
+  if (!start) return null;
+  if (!end || end === start) return formatDate(start);
+  const a = parts(start);
+  const b = parts(end);
+  if (a.y === b.y && a.m === b.m) return `${MONTH[a.m - 1]} ${a.d}–${b.d}`;
+  return `${formatDate(start)} – ${formatDate(end)}`;
+}
+
 /** "Aarav", "Aarav and Jake", "Leo, Priya and Sam". */
 export function listNames(names: string[]): string {
   if (names.length <= 1) return names[0] ?? "";

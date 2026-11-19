@@ -41,7 +41,7 @@ describe("MyTripsList", () => {
     const miami = screen.getByRole("link", { name: /Miami Spring Break/ });
     expect(miami.getAttribute("href")).toBe("/t/k7rm4xq2pa8d");
     expect(miami.textContent).toContain("You owe $257.36");
-    expect(miami.textContent).toContain("6 going · 122 days to go");
+    expect(miami.textContent).toContain("Mar 14–18, in 122 days");
     expect(screen.getByRole("link", { name: /Chicago Fall Break/ }).textContent).toContain("All settled");
     expect(screen.getByRole("heading", { name: "Past" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Get a link code" }).getAttribute("href")).toBe("/link");
