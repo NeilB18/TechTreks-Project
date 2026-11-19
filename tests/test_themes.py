@@ -60,3 +60,31 @@ def test_members_pick_the_theme_on_the_page(member):
     DjangoBackend().update_trip(trip_id="miami", changes={"theme": "sunset"})
     shared = Client().get(f"/api/share/{row.share_token}", headers={"Authorization": f"Bearer {AGENT_TOKEN}"})
     assert shared.json()["trip"]["theme"] == "campfire"
+
+
+def test_snow_and_desert_road_are_themes():
+    e = TripEngine()
+    e.load_seed(SEED)
+    e.update_trip("miami", {"destination": "Breckenridge", "theme": "snow"})
+    assert e.summary("miami")["trip"]["theme"] == "snow"
+    e.update_trip("miami", {"destination": "Las Vegas", "theme": "desert"})
+    assert e.summary("miami")["trip"]["theme"] == "desert"
+
+
+def test_the_tool_schema_and_prompt_list_every_theme():
+    from pathlib import Path
+
+    from agent.backend.core.engine import THEMES
+    from agent.tools.schemas import BACKEND_TOOL_SCHEMAS
+
+    update = next(t for t in BACKEND_TOOL_SCHEMAS if t["function"]["name"] == "update_trip")
+    enum = update["function"]["parameters"]["properties"]["changes"]["properties"]["theme"]["enum"]
+    assert enum == THEMES
+    prompt = (Path(__file__).parent.parent / "agent" / "prompts" / "system_prompt.md").read_text(encoding="utf-8")
+    for theme in THEMES:
+        assert f"`{theme}`" in prompt
+
+
+def test_members_can_pick_snow_on_the_page(member):
+    assert post_theme(member, "snow").json() == {"theme": "snow"}
+    assert post_theme(member, "desert").json() == {"theme": "desert"}

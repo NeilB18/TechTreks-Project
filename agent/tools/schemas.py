@@ -103,10 +103,11 @@ BACKEND_TOOL_SCHEMAS = [
               "auto_log_mode": {"type": "string"},
               "lodging": {"type": "string", "description": "Where the group is staying, as they wrote it: a hotel name "
                           "or street address. Saved as given. Empty string clears it. No confirmation needed."},
-              "theme": {"type": "string", "enum": ["sunset", "night_swim", "campfire"],
+              "theme": {"type": "string", "enum": ["sunset", "night_swim", "campfire", "snow", "desert"],
                         "description": "The trip page's look. Set it whenever you set the destination: sunset for "
-                        "a beach or coast, night_swim for a city, campfire for mountains or outdoors. No confirmation "
-                        "needed, and don't mention it in the chat."}}}},
+                        "a beach or coast, night_swim for a city, campfire for mountains or outdoors, snow for a ski "
+                        "trip or winter in the mountains, desert for the desert, Las Vegas, the Southwest or a road "
+                        "trip. No confirmation needed, and don't mention it in the chat."}}}},
           ["trip_id", "changes"]),
     _tool("set_budget",
           "Set a person's budget for this trip: total plus optional per-category limits. Everyone on the trip can see budgets.",
