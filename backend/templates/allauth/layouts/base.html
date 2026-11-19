@@ -9,7 +9,7 @@ web/app/globals.css. The site normally skips allauth's pages: Sign in posts stra
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>{% block head_title %}{% endblock head_title %} | {{ SITE_NAME }}</title>
+  <title>{% block head_title %}{% endblock head_title %} | {{ SITE_NAME|default:"TravelBot" }}</title>
   <style>
     :root {
       --ground: #0f1628; --raised: #18213a; --surface: rgb(255 255 255 / 0.07); --line: rgb(255 255 255 / 0.12);
@@ -83,7 +83,7 @@ web/app/globals.css. The site normally skips allauth's pages: Sign in posts stra
 </head>
 <body>
   {% block body %}
-    <nav class="top"><a class="wordmark" href="{{ FRONTEND_URL }}">{{ SITE_NAME|lower }}</a></nav>
+    <nav class="top"><a class="wordmark" href="{{ FRONTEND_URL|default:"/" }}">{{ SITE_NAME|default:"TravelBot"|lower }}</a></nav>
     <main id="main">
       <div class="panel">
         {% if messages %}
@@ -94,7 +94,7 @@ web/app/globals.css. The site normally skips allauth's pages: Sign in posts stra
         {% block content %}{% endblock content %}
       </div>
     </main>
-    <footer>No money moves through {{ SITE_NAME }}. Sign-in is with Google; we never see your password.</footer>
+    <footer>No money moves through {{ SITE_NAME|default:"TravelBot" }}. Sign-in is with Google; we never see your password.</footer>
   {% endblock body %}
   {% block extra_body %}{% endblock extra_body %}
 </body>
