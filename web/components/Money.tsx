@@ -14,7 +14,7 @@ import type { BudgetStatus, Member, MyTrip } from "@/lib/types";
 // The Money tab for people on the trip (design canvas: Final designs, "Money tab"): settle up for
 // the whole group, everyone's budgets, and everything spent, newest first. What you owe is netted
 // across every expense, so amounts are never called "your share of" anything; the list only says
-// what each expense was for you ("You: $400" or "Not in it").
+// what each expense was for you ("You: $400" or "Not split with you").
 
 const CATEGORY: Record<string, string> = {
   LODGING: "Staying", TRANSPORT: "Getting around", FOOD: "Food", DRINKS: "Drinks",
@@ -262,7 +262,7 @@ function Spent({ data, money, name, index }: Helpers) {
     ].filter(Boolean).join(". ");
     const mine = e.shares[me];
     return { key: e.expense_id, at: e.created_at, order: i, icon: { person: e.paid_by }, title: e.description, sub,
-      amount: money(e.amount_cents), you: mine ? `You: ${money(mine)}` : "Not in it" };
+      amount: money(e.amount_cents), you: mine ? `You: ${money(mine)}` : "Not split with you" };
   });
   (detail.refunds ?? []).forEach((r, i) => {
     const expense = detail.expenses.find((e) => e.expense_id === r.expense_id);
@@ -270,7 +270,7 @@ function Spent({ data, money, name, index }: Helpers) {
     rows.push({ key: `refund-${r.id}`, at: r.created_at, order: detail.expenses.length + i, icon: "refund",
       title: `Refund: ${expense?.description ?? "an expense"}`,
       sub: [r.note, `Back to ${Object.keys(r.per_person).length} people`].filter(Boolean).join(". "),
-      amount: money(r.amount_cents), you: back ? `You: ${money(back)} back` : "Not in it" });
+      amount: money(r.amount_cents), you: back ? `You: ${money(back)} back` : "Not refunded to you" });
   });
   rows.sort((a, b) => b.at.localeCompare(a.at) || b.order - a.order);
 
