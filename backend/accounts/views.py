@@ -246,4 +246,8 @@ def groupme_connected(request):
     except nt.GroupMeError as e:
         log.warning("Add a trip failed: %s", e)
         return redirect(f"{back}?error=groupme")
+    except Exception:
+        # Never a bare 500 page in the middle of Add a trip: log it and go back with a reason.
+        log.exception("Add a trip failed")
+        return redirect(f"{back}?error=groupme")
     return redirect(f"{settings.FRONTEND_URL}/t/{trip.share_token}?new=1")

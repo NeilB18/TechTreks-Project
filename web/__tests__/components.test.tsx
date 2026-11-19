@@ -45,7 +45,8 @@ describe("Money tab", () => {
     expect(screen.getByText(/Drinks\. Jake paid, split 5 ways/)).toBeTruthy();
     expect(screen.getByText(/MX\$1,800 originally/)).toBeTruthy();
     expect(screen.getByText(/\$150 back/)).toBeTruthy();
-    expect(screen.getAllByText("Not in it").length).toBeGreaterThan(0); // Mia isn't in the concert tickets
+    expect(screen.getAllByText("Not split with you").length).toBeGreaterThan(0); // Mia isn't in the concert tickets
+    expect(screen.queryByText("Not in it")).toBeNull();
     expect(screen.getByText("You: $250")).toBeTruthy(); // the Airbnb
     expect(screen.queryByText(/share of/i)).toBeNull();
   });

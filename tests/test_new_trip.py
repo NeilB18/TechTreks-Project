@@ -41,7 +41,8 @@ def gm(db, settings, monkeypatch):
         return _Resp(200, {"response": {
             "/users/me": {"id": "9001", "name": "Romir Basu"},
             "/groups": {"id": "777", "share_url": "https://groupme.com/join_group/777/abc"},
-            "/bots": {"bot_id": "bot-777"},
+            # The real API wraps the new bot (the docs don't show this): {"response": {"bot": {...}}}.
+            "/bots": {"bot": {"bot_id": "bot-777", "group_id": "777", "name": "tripbot"}},
         }.get(path, {})})
 
     monkeypatch.setattr(new_trip.requests, "request", request)
@@ -120,3 +121,45 @@ def test_a_failed_bot_removes_the_group_and_saves_nothing(gm):
     assert r["Location"] == "https://site.example/new?error=groupme"
     assert ("POST", "/groups/777/destroy") in {(m, p) for m, p, _, _ in gm["calls"]}
     assert not Trip.objects.exists() and not GroupChat.objects.exists()
+
+
+def test_the_bot_reply_works_in_either_shape(gm, monkeypatch):
+    """The docs show the bot's fields directly; the API wraps them in "bot". Both make the trip."""
+    real = new_trip._call
+    monkeypatch.setattr(new_trip, "_call", lambda m, p, tok, body=None: {"bot_id": "bot-flat"} if p == "/bots" else real(m, p, tok, body))
+    client, _ = signed_in()
+    start(client)
+    client.get(f"/accounts/groupme/callback?access_token={TOKEN}")
+    assert GroupChat.objects.get().bot_id == "bot-flat"
+
+
+def test_an_unexpected_error_goes_back_to_the_form_and_removes_the_group(gm, monkeypatch):
+    def boom(*a, **kw):
+        raise RuntimeError("database fell over")
+    monkeypatch.setattr(new_trip.DjangoBackend, "add_member", boom)
+    client, _ = signed_in()
+    start(client)
+    r = client.get(f"/accounts/groupme/callback?access_token={TOKEN}")
+    assert r.status_code == 302 and r["Location"] == "https://site.example/new?error=groupme"  # not a bare 500
+    assert ("POST", "/groups/777/destroy") in {(m, p) for m, p, _, _ in gm["calls"]}
+    assert not Trip.objects.exists() and not GroupChat.objects.exists() and not gm["posts"]
+
+
+def test_error_pages_have_the_site_look():
+    from django.template.loader import render_to_string
+
+    for page, words in (("500.html", "Something went wrong"), ("404.html", "Nothing here")):
+        html = render_to_string(page)  # Django renders these with no request context
+        assert words in html and "travelbot" in html and "<style>" in html and "Menu:" not in html
+
+
+def test_access_tokens_never_reach_the_logs(caplog):
+    """GroupMe puts the token in the callback's address; the request log must not print it."""
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="django.server"):
+        logging.getLogger("django.server").info('"%s" %s %s', f"GET /accounts/groupme/callback?access_token={TOKEN}&x=1 HTTP/1.1", "302", "0")
+    with caplog.at_level(logging.INFO, logger="accounts"):
+        logging.getLogger("accounts").warning("Add a trip failed for /cb?ACCESS_TOKEN=%s", TOKEN)
+    assert TOKEN not in caplog.text
+    assert "access_token=[hidden]&x=1" in caplog.text and "ACCESS_TOKEN=[hidden]" in caplog.text

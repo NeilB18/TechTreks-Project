@@ -116,10 +116,26 @@ BOT_INLINE = os.environ.get("BOT_INLINE", "0") == "1"  # 1 = run the agent insid
 # Chat times ("remind me at 9am") are the group's local time. One zone for now; per trip needs a Trip field.
 BOT_TIME_ZONE = os.environ.get("BOT_TIME_ZONE", "America/New_York")
 
+# The bot's and Add a trip's info lines, and every 500's traceback, to the server's output (errors
+# vanish otherwise when DEBUG is off).
+# Every logger here hides GroupMe access tokens (tripapi/log_filters.py): "django.server" is the request log,
+# which would otherwise print the token in /accounts/groupme/callback?access_token=...
 LOGGING = {
     "version": 1,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "loggers": {"bot": {"handlers": ["console"], "level": "INFO"}},
+    "disable_existing_loggers": False,
+    "filters": {"redact": {"()": "tripapi.log_filters.RedactTokens"}},
+    "formatters": {"django.server": {"()": "django.utils.log.ServerFormatter",
+                                     "format": "[{server_time}] {message}", "style": "{"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "filters": ["redact"]},
+        "django.server": {"class": "logging.StreamHandler", "formatter": "django.server", "filters": ["redact"]},
+    },
+    "loggers": {
+        "bot": {"handlers": ["console"], "level": "INFO", "filters": ["redact"]},
+        "accounts": {"handlers": ["console"], "level": "INFO", "filters": ["redact"]},
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False, "filters": ["redact"]},
+        "django.server": {"handlers": ["django.server"], "level": "INFO", "propagate": False, "filters": ["redact"]},
+    },
 }
 
 REST_FRAMEWORK = {
