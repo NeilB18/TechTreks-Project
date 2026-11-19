@@ -1,118 +1,103 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
-import { fetchMe } from "@/lib/me";
+import { CheckIcon, PhotoIcon } from "@/components/Icons";
+import { Sheet, useSheet } from "@/components/Sheet";
+import { useMemberData } from "@/components/trip/MemberData";
 import { postJson } from "@/lib/post";
 import { THEMES } from "@/lib/themes";
 import type { Theme } from "@/lib/types";
 
 /**
- * "Change theme", next to Copy trip link. Only members of the trip see it: live, it asks /api/me/;
- * in sample mode, `preview` says whether the page is previewed as a member. Saving reloads the
- * page in the new look (sample mode only changes ?theme=, nothing is saved).
+ * "Change theme", on the trip's photo. Only people on the trip see it. A bottom sheet with our
+ * theme photos; saving reloads the page in the new look. In sample mode it only changes ?theme=
+ * (nothing is saved). Themes the bot can't save yet (pickable: false) aren't offered.
  */
-export function ThemePicker({
-  tripId,
-  theme,
-  preview,
-}: {
-  tripId: string;
-  theme: Theme;
-  // Sample mode: whether the page is previewed as a member, and where the preview lives.
-  preview: { member: boolean; pagePath: string; as?: string } | null;
-}) {
-  const [member, setMember] = useState(preview?.member ?? false);
+export function ThemePicker({ theme }: { theme: Theme }) {
+  const { state, tripId, preview, tabPath, previewAs } = useMemberData();
   const [picked, setPicked] = useState<Theme>(theme);
   const [error, setError] = useState<string | null>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
+  const [busy, setBusy] = useState(false);
+  const { ref: sheetRef, open: openSheet, close: closeSheet } = useSheet();
   const router = useRouter();
 
-  useEffect(() => {
-    if (preview) return;
-    let cancelled = false;
-    fetchMe().then((me) => !cancelled && setMember(!!me?.signed_in && me.people.some((p) => p.trip_id === tripId)));
-    return () => {
-      cancelled = true;
-    };
-  }, [preview, tripId]);
-
-  if (!member) return null;
+  if (state.step !== "ready") return null;
 
   const open = () => {
     setPicked(theme);
     setError(null);
-    const d = dialog.current;
-    if (d?.showModal) d.showModal();
-    else d?.setAttribute("open", "");
-  };
-  const close = () => {
-    const d = dialog.current;
-    if (d?.close) d.close();
-    else d?.removeAttribute("open");
+    openSheet();
   };
   async function save() {
     if (preview) {
-      const q = new URLSearchParams({ ...(preview.as ? { as: preview.as } : {}), theme: picked });
-      close();
-      router.push(`${preview.pagePath}?${q}`, { scroll: false });
+      const q = new URLSearchParams({ ...(previewAs ? { as: previewAs } : {}), theme: picked });
+      closeSheet();
+      router.push(`${tabPath}?${q}`, { scroll: false });
       return;
     }
+    setBusy(true);
     try {
       await postJson(`/api/me/trips/${encodeURIComponent(tripId)}/theme`, { theme: picked });
-      close();
+      closeSheet();
       router.refresh(); // the server renders the page again in the new theme
     } catch {
       setError("Couldn’t change the theme. Try again.");
+    } finally {
+      setBusy(false);
     }
   }
 
-  const name = THEMES.find((t) => t.id === picked)?.name ?? "";
   return (
     <>
-      <button type="button" onClick={open} className="btn btn-outline min-h-12">
+      <button
+        type="button"
+        onClick={open}
+        className="absolute right-3.5 bottom-1 z-10 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-white/16 px-3 text-[13px] font-semibold"
+      >
+        <PhotoIcon size={16} />
         Change theme
       </button>
-      <dialog
-        ref={dialog}
-        aria-labelledby="theme-title"
-        className="mx-auto mt-auto mb-0 w-full max-w-2xl rounded-t-[28px] bg-paper p-5 pb-7 text-paper-ink backdrop:bg-black/50"
-      >
-        <h2 id="theme-title" className="display text-[28px]">Trip theme</h2>
-        <p className="mt-1 text-sm text-paper-muted">Everyone on the trip sees the change.</p>
-        <div role="radiogroup" aria-label="Themes" className="mt-4 grid grid-cols-3 gap-2.5">
-          {THEMES.filter((t) => t.pickable || t.id === theme).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="radio"
-              aria-checked={t.id === picked}
-              onClick={() => setPicked(t.id)}
-              className={`flex flex-col gap-2 rounded-[18px] border-[3px] p-1.5 text-left ${t.id === picked ? "border-paper-ink" : "border-transparent"}`}
-            >
-              <span data-theme={t.id} aria-hidden="true" className="relative block h-24 overflow-hidden rounded-[13px] bg-ground">
-                <span className="absolute -right-3.5 -bottom-3.5 size-[70px] rounded-full bg-hot" />
-                <span className="absolute bottom-3 left-2.5 h-2.5 w-10 rounded-full bg-pop" />
-                <span className="display absolute top-2.5 left-2.5 text-base text-ink">Aa</span>
-              </span>
-              <span className="flex flex-col px-1 pb-1">
-                <span className="text-sm font-bold">{t.name}</span>
-                <span className="text-xs text-paper-muted">{t.note}</span>
-              </span>
-            </button>
-          ))}
+      <Sheet dialogRef={sheetRef} onClose={closeSheet} labelledBy="theme-title">
+        <div className="flex flex-col gap-1">
+          <h2 id="theme-title" className="wide text-[22px]">Trip theme</h2>
+          <p className="text-sm leading-[1.45] text-muted">Everyone on the trip sees the change.</p>
         </div>
-        {error && <p role="alert" className="mt-3 text-sm font-semibold text-paper-hot">{error}</p>}
-        <div className="mt-4 flex flex-col gap-1">
-          <button type="button" onClick={save} className="btn btn-paper min-h-[52px] text-base">
-            Use {name}
-          </button>
-          <button type="button" onClick={close} className="btn min-h-11 text-paper-ink">
-            Cancel
-          </button>
+        <div role="radiogroup" aria-label="Themes" className="grid grid-cols-3 gap-x-2.5 gap-y-3.5">
+          {THEMES.filter((t) => t.pickable || t.id === theme).map((t) => {
+            const on = t.id === picked;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => setPicked(t.id)}
+                className="flex flex-col gap-2 text-left"
+              >
+                <span className={`relative block h-[104px] w-full overflow-hidden rounded-[14px] ${on ? "outline-3 outline-offset-2 outline-white" : ""}`}>
+                  <Image src={t.photo} alt="" fill sizes="130px" loading="eager" className="object-cover" />
+                  {on && (
+                    <span aria-hidden="true" className="absolute top-1.5 right-1.5 inline-flex size-6 items-center justify-center rounded-full bg-white text-ground">
+                      <CheckIcon size={14} stroke={3} />
+                    </span>
+                  )}
+                </span>
+                <span className={`text-sm ${on ? "font-bold text-ink" : "font-semibold text-soft"}`}>{t.name}</span>
+              </button>
+            );
+          })}
         </div>
-      </dialog>
+        {error && <p role="alert" className="text-sm font-semibold text-warn">{error}</p>}
+        <div className="mt-1 flex gap-2.5">
+          <button type="button" onClick={save} disabled={busy} className="btn btn-white min-h-[50px] flex-1 disabled:opacity-60">
+            Save
+          </button>
+          <button type="button" onClick={closeSheet} className="btn btn-line min-h-[50px] flex-1">Cancel</button>
+        </div>
+      </Sheet>
     </>
   );
 }

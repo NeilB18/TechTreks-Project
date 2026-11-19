@@ -131,9 +131,11 @@ describe("trip page header and stops", () => {
     expect(mapsSearchUrl("2727 Indian Creek Dr", null)).toContain("query=2727+Indian+Creek+Dr");
   });
 
-  it("describes a stop by where it is and its cost", () => {
+  it("describes a stop by place and cost", () => {
     const a = { ...activity("x", null), est_per_person_cents: 7000 };
-    expect(stopDetails(a, "USD")).toBe("about $70 each");
+    expect(stopDetails(a, "USD")).toBe("About $70 each");
+    expect(stopDetails({ ...a, location: "Little Havana" }, "USD")).toBe("Little Havana, about $70 each");
+    expect(stopDetails({ ...a, location: "Miami" }, "USD", "Miami")).toBe("About $70 each");
     expect(stopDetails({ ...a, location: "Miami Beach Marina", est_per_person_cents: 0 }, "USD"))
       .toBe("Miami Beach Marina");
   });

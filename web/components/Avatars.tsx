@@ -1,31 +1,55 @@
-// Initials in coloured circles, overlapping: who's going. The colours are fixed per position so a
-// person keeps theirs as long as the member list doesn't change order. All pass 4.5:1 with dark text.
-const COLORS = ["#ffc94a", "#ff6b4a", "#7fd3ff", "#c9a2ff", "#8ef0b0", "#ffb3c7"];
+// Initials in coloured circles: who's going, who you pay, who did what. A person's colour comes
+// from their position on the trip, so it's the same everywhere on the page. The first person
+// gets the theme's accent; the rest a fixed set. Every pair passes 4.5:1.
+const COLORS: [string, string][] = [
+  ["var(--accent)", "var(--accent-ink)"],
+  ["#f4797e", "#2a0a0e"],
+  ["#7cc0ea", "#071a2a"],
+  ["#ffd08a", "#2a1a06"],
+  ["#c7b6f2", "#1a1030"],
+  ["#9be6aa", "#06240e"],
+  ["#ffb3c7", "#2a0614"],
+];
 
-export function avatarColor(index: number): string {
-  return COLORS[index % COLORS.length];
+export function avatarColor(index: number): { background: string; color: string } {
+  const [background, color] = COLORS[index % COLORS.length];
+  return { background, color };
 }
 
-/** `colorIndexes`: each person's position on the trip, so they keep the same colour everywhere. */
-export function Avatars({ names, colorIndexes, max = 6 }: { names: string[]; colorIndexes?: number[]; max?: number }) {
+/** One person's initial. `index`: their position on the trip. */
+export function Avatar({ name, index, size = 42 }: { name: string; index: number; size?: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="avatar"
+      style={{ ...avatarColor(index), width: size, height: size, fontSize: Math.round(size * 0.4) }}
+    >
+      {name.trim()[0]?.toUpperCase() ?? "?"}
+    </span>
+  );
+}
+
+/** Overlapping initials. `colorIndexes`: each person's position on the trip. */
+export function Avatars({ names, colorIndexes, max = 6, size = 30 }: { names: string[]; colorIndexes?: number[]; max?: number; size?: number }) {
   const shown = names.slice(0, max);
   const more = names.length - shown.length;
+  const ring = "border-2 border-[#1a2338]";
   return (
-    <div className="flex" aria-hidden="true">
+    <span className="flex flex-none" aria-hidden="true">
       {shown.map((name, i) => (
         <span
           key={`${name}-${i}`}
-          style={{ background: avatarColor(colorIndexes?.[i] ?? i) }}
-          className={`inline-flex size-9 items-center justify-center rounded-full border-2 border-ground text-sm font-bold text-ground ${i ? "-ml-2.5" : ""}`}
+          style={{ ...avatarColor(colorIndexes?.[i] ?? i), width: size, height: size, fontSize: Math.round(size * 0.4) }}
+          className={`avatar ${ring} ${i ? "-ml-2" : ""}`}
         >
           {name.trim()[0]?.toUpperCase() ?? "?"}
         </span>
       ))}
       {more > 0 && (
-        <span className="-ml-2.5 inline-flex size-9 items-center justify-center rounded-full border-2 border-ground bg-surface text-xs font-bold text-ink">
+        <span style={{ width: size, height: size }} className={`avatar -ml-2 ${ring} bg-fill text-xs text-ink`}>
           +{more}
         </span>
       )}
-    </div>
+    </span>
   );
 }

@@ -19,4 +19,14 @@ describe("CopyLinkButton", () => {
     expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/t/k7rm4xq2pa8d`);
   });
+
+  it("copies the trip page's link from the Money tab too", async () => {
+    const writeText = vi.fn(async () => {});
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    window.history.replaceState(null, "", "/t/k7rm4xq2pa8d/money?as=mia");
+    render(<CopyLinkButton />);
+    fireEvent.click(screen.getByRole("button", { name: "Copy trip link" }));
+    await screen.findByRole("button", { name: "Copied" });
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/t/k7rm4xq2pa8d`);
+  });
 });
