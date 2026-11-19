@@ -7,14 +7,17 @@ of the trip get 403, and anonymous requests get 401.
 
 import json
 import logging
+import time
 from functools import wraps
 
 from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from accounts import new_trip as nt
 from accounts.services import new_code
 from agent.backend.core.rules import fmt_usd
 from agent.backend.protocol import ToolError
@@ -97,6 +100,8 @@ def my_trip(request, trip_id: str):
         "balances": backend.get_balances(trip_id=trip_id),
         "budget": backend.get_budget_status(trip_id=trip_id, person_id=person.person_id),
         "budgets": backend.budget_overview(trip_id=trip_id),
+        # The group chat's share link, for groups made with Add a trip: "Invite friends".
+        "group_join_url": getattr(getattr(person.trip, "group_chat", None), "join_url", "") or None,
     })
 
 
@@ -198,3 +203,47 @@ def my_trip_theme(request, trip_id: str):
         return JsonResponse({"error": "Send {\"theme\": ...} as JSON"}, status=400)
     except ToolError as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+# ------------------------------------------------------------------- Add a trip (accounts/new_trip.py)
+NEW_TRIP_KEY = "new_trip"
+NEW_TRIP_MINUTES = 15
+
+
+@require_POST
+@login_required_json
+def new_trip(request):
+    """POST {"name"}: start Add a trip. Remembers the name in the session and returns GroupMe's page,
+    where the person lets TravelBot make the group. GroupMe sends them back to groupme_connected."""
+    name = nt.clean_name(_body(request).get("name"))
+    if name is None:
+        return JsonResponse({"error": f"Give the trip a name, up to {nt.MAX_NAME} characters"}, status=400)
+    url = nt.authorize_url()
+    if url is None or nt.bot_callback_url() is None:
+        return JsonResponse({"error": "Adding trips from the site isn't set up yet"}, status=503)
+    request.session[NEW_TRIP_KEY] = {"name": name, "at": time.time()}
+    return JsonResponse({"authorize_url": url})
+
+
+@require_GET
+def groupme_connected(request):
+    """GroupMe's OAuth callback (<FRONTEND_URL>/accounts/groupme/callback?access_token=...). Makes the group,
+    the bot and the trip, then sends the person to the new trip page. Every failure goes back to /new with a
+    reason; the token is never stored."""
+    back = f"{settings.FRONTEND_URL}/new"
+    if not request.user.is_authenticated:
+        return redirect(f"{back}?error=signin")
+    pending = request.session.pop(NEW_TRIP_KEY, None)
+    # Only finish a flow this person started here, recently: a link to this URL with someone else's
+    # token can't make a trip on its own.
+    if not pending or time.time() - pending.get("at", 0) > NEW_TRIP_MINUTES * 60:
+        return redirect(f"{back}?error=expired")
+    token = request.GET.get("access_token", "")
+    if not token:
+        return redirect(f"{back}?error=cancelled")
+    try:
+        trip = nt.create_trip_with_group(request.user, pending["name"], token)
+    except nt.GroupMeError as e:
+        log.warning("Add a trip failed: %s", e)
+        return redirect(f"{back}?error=groupme")
+    return redirect(f"{settings.FRONTEND_URL}/t/{trip.share_token}?new=1")

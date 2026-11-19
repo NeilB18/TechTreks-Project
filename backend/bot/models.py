@@ -8,6 +8,8 @@ class GroupChat(models.Model):
     group_id = models.CharField(max_length=64, unique=True)
     bot_id = models.CharField(max_length=64)
     trip = models.OneToOneField(Trip, on_delete=models.CASCADE, related_name="group_chat")
+    # The group's share link ("Invite friends"), for groups the site made with Add a trip.
+    join_url = models.URLField(max_length=300, blank=True, default="")
 
     def __str__(self):
         return f"GroupMe {self.group_id} -> {self.trip_id}"
