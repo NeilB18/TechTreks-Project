@@ -35,8 +35,10 @@ turns:
         - {name: update_trip, args: {changes: {leader_approval: [trip_changes, member_changes]}}}
       end_state:
         - trip: {leader_approval: [trip_changes, member_changes]}
+      messages:
+        - {to: group, not_contains: [automatic, spot]}
     golden:
       calls:
         - {name: update_trip, args: {trip_id: miami, changes: {leader_approval: [trip_changes, member_changes]}}}
       messages:
-        - {to: group, text: "Got it. Last one: should I log expenses I spot in chat automatically, or only when you @mention me?"}
+        - {to: group, text: "Got it: Aarav OKs trip changes and member changes. You're all set up ✅"}

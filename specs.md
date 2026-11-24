@@ -58,8 +58,8 @@ Category enum: LODGING, TRANSPORT, FOOD, DRINKS, ACTIVITIES, OTHER, SETTLEMENT
 
 ## Platform & listening
 - **Platform:** GroupMe for now.
-- **Listening:** the agent reads every group message and extracts trip data automatically. It replies when @mentioned, and speaks up unprompted only for important warnings: budget warnings, date/booking conflicts, unpaid debts, and upcoming deadlines.
-- **Auto-logging extracted expenses:** the group picks a mode during onboarding (no default).
+- **Listening:** the agent only acts on messages that @mention it. The webhook drops every other message (unless `BOT_FORWARD_ALL` is on, which it isn't). When @mentioned, it replies, and adds important warnings when they come up: budget warnings, date/booking conflicts, unpaid debts, and upcoming deadlines.
+- **No auto-logging:** expenses are only logged from @tripbot messages, never picked up from the rest of the chat. Onboarding doesn't ask about it (Nov 24, from live testing).
 - **No DMs:** GroupMe bots can't send DMs, so everything goes to the group.
 
 ## Tools
